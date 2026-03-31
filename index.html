@@ -126,12 +126,68 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
   <!-- Content -->
   <main class="lg:ml-60 flex-1 min-h-screen flex flex-col">
     <header class="sticky top-0 h-13 bg-white/80 backdrop-blur border-b border-slate-200/50 z-30 flex justify-between items-center px-5 py-3">
-      <span id="sec-title" class="text-base font-bold text-slate-900">Dashboard</span>
+      <div class="flex items-center gap-3">
+        <button type="button" onclick="toggleMobileMenu()" class="lg:hidden p-1.5 rounded-xl hover:bg-slate-100 transition-colors">
+          <span class="ms text-xl text-slate-600">menu</span>
+        </button>
+        <span id="sec-title" class="text-base font-bold text-slate-900">Dashboard</span>
+      </div>
       <div class="flex items-center gap-2">
-        <span class="text-xs text-slate-400" id="header-date"></span>
+        <span class="text-xs text-slate-400 hidden sm:block" id="header-date"></span>
         <div class="w-8 h-8 rounded-full bg-primary-container flex items-center justify-center text-white text-sm font-bold">H</div>
       </div>
     </header>
+    
+    <!-- Mobile Menu Overlay -->
+    <div id="mobile-overlay" class="hidden fixed inset-0 bg-black/30 z-40 lg:hidden" onclick="closeMobileMenu()"></div>
+    
+    <!-- Mobile Sidebar -->
+    <div id="mobile-sidebar" class="fixed top-0 left-0 h-full w-64 bg-white z-50 shadow-2xl transform -translate-x-full transition-transform duration-300 lg:hidden flex flex-col p-3">
+      <div class="px-3 py-5 mb-2 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-primary-container flex items-center justify-center text-white shadow-md">
+            <span class="ms ms-fill">restaurant</span>
+          </div>
+          <div>
+            <h1 class="text-sm font-bold text-slate-900 leading-tight">Romatella Admin</h1>
+            <p class="text-[10px] text-slate-400 uppercase tracking-wider">Modern Gastronomy</p>
+          </div>
+        </div>
+        <button type="button" onclick="closeMobileMenu()" class="p-1 rounded-lg hover:bg-slate-100">
+          <span class="ms text-xl text-slate-400">close</span>
+        </button>
+      </div>
+      <nav class="flex-1 space-y-0.5 overflow-y-auto">
+        <div onclick="mobileNav('home')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
+          <span class="ms text-lg">dashboard</span>Dashboard
+        </div>
+        <div onclick="mobileNav('compras')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
+          <span class="ms text-lg">shopping_cart</span>Nueva Compra
+        </div>
+        <div onclick="mobileNav('historial')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
+          <span class="ms text-lg">receipt_long</span>Historial
+        </div>
+        <div onclick="mobileNav('productos')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
+          <span class="ms text-lg">inventory_2</span>Productos
+        </div>
+        <div onclick="mobileNav('proveedores')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
+          <span class="ms text-lg">group</span>Proveedores
+        </div>
+        <div onclick="mobileNav('cuentas')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
+          <span class="ms text-lg">payments</span>Cuentas por Pagar
+        </div>
+        <div onclick="mobileNav('requisiciones')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
+          <span class="ms text-lg">priority_high</span>Requisiciones
+          <span id="mob-req-badge" class="ml-auto bg-error text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">4</span>
+        </div>
+        <div onclick="mobileNav('reportes')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
+          <span class="ms text-lg">assessment</span>Reportes
+        </div>
+      </nav>
+      <button type="button" onclick="doLogout()" class="mx-2 mb-2 text-slate-400 py-2.5 px-3 rounded-xl text-sm flex items-center gap-2 hover:bg-slate-100 transition-colors">
+        <span class="ms text-lg">logout</span>Cerrar sesión
+      </button>
+    </div>
 
     <!-- DASHBOARD -->
     <section id="sec-home" class="sec active p-5 fade">
@@ -757,7 +813,7 @@ const DB = {
     { id:61, nombre:'MANZANA AMARILLA', categoria:'Frutas y Verduras', unidad:'kg', precio:45.00, proveedor:'DISFRULEG' },
     { id:62, nombre:'MAYONESA CON LIMON MC CORMICK 3.4KG', categoria:'Abarrotes', unidad:'pza', precio:306.00, proveedor:'Costco de México' },
     { id:63, nombre:'MONTGRAS RINCONES ROSE', categoria:'Vinos', unidad:'bot', precio:160.01, proveedor:'VIPARMEX' },
-    { id:64, nombre:'MOSTAZA FRENCH'S 2.9KG', categoria:'Abarrotes', unidad:'pza', precio:143.00, proveedor:'Costco de México' },
+    { id:64, nombre:'MOSTAZA FRENCHS 2.9KG', categoria:'Abarrotes', unidad:'pza', precio:143.00, proveedor:'Costco de México' },
     { id:65, nombre:'MOZZARELLA FRESCO KIRKLAND 2x510G', categoria:'Lácteos', unidad:'pza', precio:183.12, proveedor:'Costco de México' },
     { id:66, nombre:'NARANJA', categoria:'Frutas y Verduras', unidad:'kg', precio:16.00, proveedor:'DISFRULEG' },
     { id:67, nombre:'NUEZ', categoria:'Semillas', unidad:'kg', precio:300.00, proveedor:'DISFRULEG' },
@@ -808,7 +864,7 @@ const DB = {
     { id:112, nombre:'CALDO DE CAMARON KNORR', categoria:'Abarrotes', unidad:'pza', precio:41.00, proveedor:'Walmart' },
     { id:113, nombre:'VINO BLANCO CHAUVENET', categoria:'Vinos', unidad:'bot', precio:94.82, proveedor:'CEPATINTA' },
     { id:114, nombre:'VINO TINTO CHAUVENET', categoria:'Vinos', unidad:'bot', precio:94.82, proveedor:'CEPATINTA' },
-    { id:115, nombre:'QUESO AZUL DANES EUROPE'S FINEST', categoria:'Lácteos', unidad:'pza', precio:306.00, proveedor:'Costco de México' },
+    { id:115, nombre:'QUESO AZUL DANES EUROPEOS FINEST', categoria:'Lácteos', unidad:'pza', precio:306.00, proveedor:'Costco de México' },
     { id:116, nombre:'GALLETA SAVOIARDI', categoria:'Abarrotes', unidad:'pza', precio:239.00, proveedor:'LA MEGA' },
   ],
   proveedores: [
@@ -938,6 +994,8 @@ function renderDashboard() {
   document.getElementById('metric-req').textContent = pendReq;
   document.getElementById('metric-compras').textContent = compras.length;
   document.getElementById('req-badge').textContent = pendReq;
+  const mobBadge = document.getElementById('mob-req-badge');
+  if (mobBadge) mobBadge.textContent = pendReq;
   
   // Alert vencidas
   const vencidas = compras.filter(c => c.estatus !== 'Pagado' && isVencida(c.vencimiento));
@@ -1722,6 +1780,33 @@ async function handleFileUpload(event) {
   } catch(e) {
     txt.textContent = '⚠ Error de conexión — llena los campos manualmente';
   }
+}
+
+// ============================================================
+// MOBILE MENU
+// ============================================================
+function toggleMobileMenu() {
+  const sidebar = document.getElementById('mobile-sidebar');
+  const overlay = document.getElementById('mobile-overlay');
+  const isOpen = !sidebar.classList.contains('-translate-x-full');
+  if (isOpen) {
+    closeMobileMenu();
+  } else {
+    sidebar.classList.remove('-translate-x-full');
+    overlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+  }
+}
+function closeMobileMenu() {
+  const sidebar = document.getElementById('mobile-sidebar');
+  const overlay = document.getElementById('mobile-overlay');
+  sidebar.classList.add('-translate-x-full');
+  overlay.classList.add('hidden');
+  document.body.style.overflow = '';
+}
+function mobileNav(section) {
+  closeMobileMenu();
+  showSec(section);
 }
 
 // ============================================================
