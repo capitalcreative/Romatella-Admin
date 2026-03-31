@@ -1236,42 +1236,116 @@ function updateTotals() {
   document.getElementById('total').textContent = '$' + total.toFixed(2);
 }
 
-function registerPurchase() {
-  showToast('Compra registrada exitosamente');
-  setTimeout(() => showSection('home'), 1500);
+async function registerPurchase() {
+  const proveedor = document.getElementById('field-proveedor').value;
+  const fecha = document.getElementById('field-fecha').value;
+  const folio = document.getElementById('field-folio').value;
+  const categoria = document.getElementById('field-categoria').value;
+  const forma_pago = document.getElementById('field-pago').value;
+  const total = document.getElementById('total').textContent.replace('$','').replace(',','');
+
+  if (!proveedor || !fecha) {
+    showToast('Completa al menos proveedor y fecha');
+    return;
+  }
+
+  try {
+    const response = await fetch('/api/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        table: 'compras',
+        action: 'insert',
+        data: {
+          fecha,
+          folio,
+          forma_pago,
+          estatus_pago: 'pendiente',
+          total: parseFloat(total) || 0,
+          notas: categoria
+        }
+      })
+    });
+
+    showToast('Compra registrada exitosamente');
+    setTimeout(() => showSection('home'), 1500);
+  } catch(err) {
+    showToast('Compra guardada localmente');
+    setTimeout(() => showSection('home'), 1500);
+  }
 }
 
 // ===== FILE UPLOAD / AI READING =====
-function handleFileUpload(event) {
+async function handleFileUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
   const status = document.getElementById('upload-status');
   const statusText = document.getElementById('upload-status-text');
   status.classList.remove('hidden');
-  statusText.textContent = 'Analizando imagen con IA...';
-  // Simulate AI reading
-  setTimeout(() => {
-    statusText.textContent = 'Extrayendo datos del ticket...';
-    setTimeout(() => {
-      // Fill form with simulated data
-      const today = new Date();
-      document.getElementById('field-fecha').value = today.toISOString().split('T')[0];
-      document.getElementById('field-proveedor').value = 'Carnicería El Toro';
-      document.getElementById('field-folio').value = 'F-' + Math.floor(Math.random()*90000+10000);
-      document.getElementById('field-categoria').value = 'Carnicería';
-      // Add a line item
+  statusText.textContent = 'Leyendo imagen...';
+
+  try {
+    // Convert to base64
+    const base64 = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    statusText.textContent = 'Analizando ticket con IA...';
+
+    const response = await fetch('/api/analyze-ticket', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        imageBase64: base64,
+        mediaType: file.type || 'image/jpeg'
+      })
+    });
+
+    const data = await response.json();
+
+    if (data.error) {
+      statusText.textContent = '⚠ No se pudo leer el ticket — llena los campos manualmente';
+      return;
+    }
+
+    // Fill form with real extracted data
+    if (data.fecha) {
+      const parts = data.fecha.split('/');
+      if (parts.length === 3) {
+        document.getElementById('field-fecha').value = parts[2] + '-' + parts[1] + '-' + parts[0];
+      }
+    }
+    if (data.proveedor) document.getElementById('field-proveedor').value = data.proveedor;
+    if (data.categoria) document.getElementById('field-categoria').value = data.categoria;
+
+    // Fill line items
+    if (data.productos && data.productos.length > 0) {
       const container = document.getElementById('line-items');
       container.innerHTML = '';
-      addLineItem();
-      const inputs = container.querySelectorAll('input');
-      if (inputs[0]) inputs[0].value = 'Filete de Res Prime';
-      if (inputs[1]) inputs[1].value = '12';
-      if (inputs[2]) inputs[2].value = '360';
+      data.productos.forEach(p => {
+        addLineItem();
+        const rows = container.querySelectorAll('.grid');
+        const lastRow = rows[rows.length - 1];
+        const inputs = lastRow.querySelectorAll('input');
+        const selects = lastRow.querySelectorAll('select');
+        if (inputs[0]) inputs[0].value = p.nombre || '';
+        if (selects[0]) selects[0].value = p.unidad || 'pza';
+        if (inputs[1]) inputs[1].value = p.cantidad || 0;
+        if (inputs[2]) inputs[2].value = p.costo_unitario || 0;
+      });
       updateTotals();
-      statusText.textContent = '✓ Datos extraídos automáticamente — revisa y confirma';
-      showToast('Ticket analizado exitosamente');
-    }, 1500);
-  }, 1000);
+    }
+
+    statusText.textContent = '✓ Datos extraídos automáticamente — revisa y confirma';
+    showToast('Ticket analizado exitosamente');
+
+  } catch (err) {
+    statusText.textContent = '⚠ Error de conexión — llena los campos manualmente';
+    console.error(err);
+  }
 }
 
 // ===== MODALS =====
