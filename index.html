@@ -414,7 +414,7 @@ tailwind.config = {
               </div>
               <div class="border-t border-slate-100 pt-3 mb-5">
                 <div class="flex justify-between items-baseline">
-                  <span class="font-bold text-slate-900">Total</span>
+                  <span class="font-bold text-slate-900">Total de la compra</span>
                   <div class="text-right">
                     <span id="total" class="text-2xl font-bold text-primary">$0.00</span>
                     <p class="text-xs text-slate-400">MXN</p>
@@ -1224,19 +1224,15 @@ function removeLineItem(btn) {
 
 function updateTotals() {
   const rows = document.querySelectorAll('#line-items .grid');
-  let subtotal = 0;
+  let total = 0;
   rows.forEach(row => {
     const inputs = row.querySelectorAll('input[type="number"]');
     if (inputs.length >= 2) {
       const qty = parseFloat(inputs[0].value) || 0;
       const price = parseFloat(inputs[1].value) || 0;
-      subtotal += qty * price;
+      total += qty * price;
     }
   });
-  const iva = subtotal * 0.16;
-  const total = subtotal + iva;
-  document.getElementById('subtotal').textContent = '$' + subtotal.toFixed(2);
-  document.getElementById('iva').textContent = '$' + iva.toFixed(2);
   document.getElementById('total').textContent = '$' + total.toFixed(2);
 }
 
