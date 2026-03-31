@@ -108,7 +108,7 @@ tailwind.config = {
             <input type="password" value="••••••••" class="w-full pl-11 pr-4 py-3.5 bg-surface-container-low border-none rounded-2xl text-sm focus:ring-2 focus:ring-primary/20 outline-none"/>
           </div>
         </div>
-        <button onclick="navigateTo('dashboard')" class="w-full bg-primary-container text-white py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:opacity-90 transition-opacity">
+        <button type="button" onclick="navigateTo('dashboard')" class="w-full bg-primary-container text-white py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/20 hover:opacity-90 transition-opacity">
           Entrar <span class="material-symbols-outlined text-lg">arrow_forward</span>
         </button>
       </div>
@@ -164,7 +164,7 @@ tailwind.config = {
         <span class="font-medium text-sm">Reportes</span>
       </a>
     </nav>
-    <button onclick="navigateTo('login')" class="mx-2 mb-2 text-slate-500 py-2.5 px-4 rounded-xl font-medium text-sm flex items-center gap-2 hover:bg-slate-200/50 transition-colors">
+    <button type="button" onclick="navigateTo('login')" class="mx-2 mb-2 text-slate-500 py-2.5 px-4 rounded-xl font-medium text-sm flex items-center gap-2 hover:bg-slate-200/50 transition-colors">
       <span class="material-symbols-outlined text-lg">logout</span> Cerrar sesión
     </button>
   </aside>
@@ -196,7 +196,7 @@ tailwind.config = {
           <span class="material-symbols-outlined text-error">warning</span>
           <span class="text-sm font-medium text-red-800">Tienes 2 facturas vencidas (más de 8 días sin pagar)</span>
         </div>
-        <button onclick="showSection('cuentas')" class="text-sm font-semibold text-error hover:underline">Ver facturas</button>
+        <button type="button" onclick="showSection('cuentas')" class="text-sm font-semibold text-error hover:underline">Ver facturas</button>
       </div>
       <h2 class="text-2xl font-bold text-slate-900 mb-1">Dashboard Overview</h2>
       <p class="text-slate-400 text-sm mb-6">Lunes, 30 de Marzo 2026</p>
@@ -245,7 +245,7 @@ tailwind.config = {
       <div class="bg-white rounded-2xl shadow-sm border border-outline-variant/10 p-6 mb-6">
         <div class="flex justify-between items-center mb-4">
           <h3 class="font-bold text-slate-900">Últimas Compras</h3>
-          <button onclick="showSection('compras')" class="text-sm text-primary font-medium hover:underline">Ver historial completo</button>
+          <button type="button" onclick="showSection('compras')" class="text-sm text-primary font-medium hover:underline">Ver historial completo</button>
         </div>
         <table class="w-full">
           <thead>
@@ -296,7 +296,7 @@ tailwind.config = {
           </tbody>
         </table>
       </div>
-      <button onclick="showSection('compras')" class="fixed bottom-6 right-6 bg-primary-container text-white px-5 py-3 rounded-2xl font-semibold text-sm flex items-center gap-2 shadow-xl shadow-primary/30 hover:opacity-90 transition-opacity">
+      <button type="button" onclick="showSection('compras')" class="fixed bottom-6 right-6 bg-primary-container text-white px-5 py-3 rounded-2xl font-semibold text-sm flex items-center gap-2 shadow-xl shadow-primary/30 hover:opacity-90 transition-opacity">
         <span class="material-symbols-outlined">add</span> Nueva Compra
       </button>
     </section>
@@ -363,9 +363,9 @@ tailwind.config = {
                 <div>
                   <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Estado</label>
                   <div class="flex gap-2">
-                    <button onclick="setStatus('Pagado', this)" class="flex-1 py-3 rounded-xl text-sm font-medium border border-outline-variant/30 bg-surface-container-low text-slate-600 hover:bg-green-50 hover:text-green-700 transition-colors">Pagado</button>
-                    <button onclick="setStatus('Pendiente', this)" class="flex-1 py-3 rounded-xl text-sm font-medium border border-orange-200 bg-orange-50 text-orange-700 transition-colors">Pendiente</button>
-                    <button onclick="setStatus('Parcial', this)" class="flex-1 py-3 rounded-xl text-sm font-medium border border-outline-variant/30 bg-surface-container-low text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition-colors">Parcial</button>
+                    <button type="button" onclick="setStatus('Pagado', this)" class="flex-1 py-3 rounded-xl text-sm font-medium border border-outline-variant/30 bg-surface-container-low text-slate-600 hover:bg-green-50 hover:text-green-700 transition-colors">Pagado</button>
+                    <button type="button" onclick="setStatus('Pendiente', this)" class="flex-1 py-3 rounded-xl text-sm font-medium border border-orange-200 bg-orange-50 text-orange-700 transition-colors">Pendiente</button>
+                    <button type="button" onclick="setStatus('Parcial', this)" class="flex-1 py-3 rounded-xl text-sm font-medium border border-outline-variant/30 bg-surface-container-low text-slate-600 hover:bg-blue-50 hover:text-blue-700 transition-colors">Parcial</button>
                   </div>
                 </div>
               </div>
@@ -377,7 +377,7 @@ tailwind.config = {
               <div class="mt-2">
                 <div class="flex items-center justify-between mb-3">
                   <h3 class="font-semibold text-slate-800">Partidas del Documento</h3>
-                  <button onclick="addLineItem()" class="text-sm text-primary font-semibold flex items-center gap-1 hover:underline">
+                  <button type="button" onclick="addLineItem()" class="text-sm text-primary font-semibold flex items-center gap-1 hover:underline">
                     <span class="material-symbols-outlined text-base">add_circle</span> Agregar producto
                   </button>
                 </div>
@@ -396,7 +396,7 @@ tailwind.config = {
                     </select>
                     <input type="number" class="col-span-2 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none" placeholder="0" oninput="updateTotals()"/>
                     <input type="number" class="col-span-2 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none" placeholder="$0" oninput="updateTotals()"/>
-                    <button onclick="removeLineItem(this)" class="col-span-1 text-slate-300 hover:text-error transition-colors flex justify-center">
+                    <button type="button" onclick="removeLineItem(this)" class="col-span-1 text-slate-300 hover:text-error transition-colors flex justify-center">
                       <span class="material-symbols-outlined text-lg">delete</span>
                     </button>
                   </div>
@@ -421,7 +421,7 @@ tailwind.config = {
                   </div>
                 </div>
               </div>
-              <button onclick="registerPurchase()" class="w-full bg-primary-container text-white py-3 rounded-2xl font-semibold text-sm shadow-lg shadow-primary/20 hover:opacity-90 transition-opacity mb-3">
+              <button type="button" onclick="registerPurchase()" class="w-full bg-primary-container text-white py-3 rounded-2xl font-semibold text-sm shadow-lg shadow-primary/20 hover:opacity-90 transition-opacity mb-3">
                 Registrar Compra
               </button>
               <button class="w-full bg-surface-container-low text-slate-700 py-3 rounded-2xl font-semibold text-sm hover:bg-surface-container transition-colors">
@@ -668,10 +668,10 @@ tailwind.config = {
           <p class="text-sm text-slate-400">Gestión de facturas y obligaciones financieras</p>
         </div>
         <div class="flex gap-2 text-sm">
-          <button onclick="filterFacturas('todas', this)" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-medium">Todas</button>
-          <button onclick="filterFacturas('pendientes', this)" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-medium hover:bg-slate-200">Pendientes</button>
-          <button onclick="filterFacturas('vencidas', this)" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-medium hover:bg-slate-200">Vencidas</button>
-          <button onclick="filterFacturas('pagadas', this)" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-medium hover:bg-slate-200">Pagadas</button>
+          <button type="button" onclick="filterFacturas('todas', this)" class="px-4 py-2 rounded-xl bg-slate-900 text-white font-medium">Todas</button>
+          <button type="button" onclick="filterFacturas('pendientes', this)" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-medium hover:bg-slate-200">Pendientes</button>
+          <button type="button" onclick="filterFacturas('vencidas', this)" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-medium hover:bg-slate-200">Vencidas</button>
+          <button type="button" onclick="filterFacturas('pagadas', this)" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 font-medium hover:bg-slate-200">Pagadas</button>
         </div>
       </div>
       <div class="grid grid-cols-3 gap-4 mb-6">
@@ -716,7 +716,7 @@ tailwind.config = {
               <td class="p-4 text-red-600 font-semibold hidden md:table-cell">09 Oct 2023</td>
               <td class="p-4 text-right font-semibold">$3,200.00</td>
               <td class="p-4 text-center"><span class="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-full">VENCIDO</span></td>
-              <td class="p-4 text-right"><button onclick="showPayModal('Lácteos Premium S.A.', 3200)" class="bg-error text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:opacity-90">Registrar pago</button></td>
+              <td class="p-4 text-right"><button type="button" onclick="showPayModal('Lácteos Premium S.A.', 3200)" class="bg-error text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:opacity-90">Registrar pago</button></td>
             </tr>
             <tr class="text-sm">
               <td class="p-4"><p class="font-semibold">Vegetales La Granja</p><p class="text-xs text-slate-400">Folio: F-88304</p></td>
@@ -724,7 +724,7 @@ tailwind.config = {
               <td class="p-4 text-orange-600 font-semibold hidden md:table-cell">22 Oct 2023</td>
               <td class="p-4 text-right font-semibold">$1,500.00</td>
               <td class="p-4 text-center"><span class="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-1 rounded-full">PENDIENTE</span></td>
-              <td class="p-4 text-right"><button onclick="showPayModal('Vegetales La Granja', 1500)" class="bg-primary-container text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:opacity-90">Registrar pago</button></td>
+              <td class="p-4 text-right"><button type="button" onclick="showPayModal('Vegetales La Granja', 1500)" class="bg-primary-container text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:opacity-90">Registrar pago</button></td>
             </tr>
             <tr class="text-sm">
               <td class="p-4"><p class="font-semibold">Carnes de la Hacienda</p><p class="text-xs text-slate-400">Folio: F-88315</p></td>
@@ -732,7 +732,7 @@ tailwind.config = {
               <td class="p-4 text-slate-400 hidden md:table-cell">26 Oct 2023</td>
               <td class="p-4 text-right font-semibold">$7,700.00</td>
               <td class="p-4 text-center"><span class="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-1 rounded-full">PENDIENTE</span></td>
-              <td class="p-4 text-right"><button onclick="showPayModal('Carnes de la Hacienda', 7700)" class="bg-primary-container text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:opacity-90">Registrar pago</button></td>
+              <td class="p-4 text-right"><button type="button" onclick="showPayModal('Carnes de la Hacienda', 7700)" class="bg-primary-container text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:opacity-90">Registrar pago</button></td>
             </tr>
           </tbody>
         </table>
@@ -778,10 +778,10 @@ tailwind.config = {
           <p class="text-xs text-slate-400 mb-3">Stock crítico para el servicio de cena del fin de semana.</p>
           <p class="text-xs text-slate-300 mb-4">⏱ Hace 14 minutos</p>
           <div class="flex gap-2 mb-2">
-            <button onclick="approveReq(this)" class="flex-1 py-2 rounded-xl text-sm font-medium border border-slate-200 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-colors">Aprobar</button>
+            <button type="button" onclick="approveReq(this)" class="flex-1 py-2 rounded-xl text-sm font-medium border border-slate-200 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-colors">Aprobar</button>
             <button class="flex-1 py-2 rounded-xl text-sm font-medium border border-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-colors">Rechazar</button>
           </div>
-          <button onclick="showSection('compras')" class="w-full py-2 rounded-xl text-sm font-semibold bg-primary-container text-white flex items-center justify-center gap-2 hover:opacity-90">
+          <button type="button" onclick="showSection('compras')" class="w-full py-2 rounded-xl text-sm font-semibold bg-primary-container text-white flex items-center justify-center gap-2 hover:opacity-90">
             <span class="material-symbols-outlined text-base">shopping_cart</span> Convertir en Compra
           </button>
         </div>
@@ -798,10 +798,10 @@ tailwind.config = {
           <p class="text-xs text-slate-400 mb-3">Agotado en cava. Pedido pendiente de cliente corporativo.</p>
           <p class="text-xs text-slate-300 mb-4">⏱ Hace 42 minutos</p>
           <div class="flex gap-2 mb-2">
-            <button onclick="approveReq(this)" class="flex-1 py-2 rounded-xl text-sm font-medium border border-slate-200 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-colors">Aprobar</button>
+            <button type="button" onclick="approveReq(this)" class="flex-1 py-2 rounded-xl text-sm font-medium border border-slate-200 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-colors">Aprobar</button>
             <button class="flex-1 py-2 rounded-xl text-sm font-medium border border-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-colors">Rechazar</button>
           </div>
-          <button onclick="showSection('compras')" class="w-full py-2 rounded-xl text-sm font-semibold bg-primary-container text-white flex items-center justify-center gap-2 hover:opacity-90">
+          <button type="button" onclick="showSection('compras')" class="w-full py-2 rounded-xl text-sm font-semibold bg-primary-container text-white flex items-center justify-center gap-2 hover:opacity-90">
             <span class="material-symbols-outlined text-base">shopping_cart</span> Convertir en Compra
           </button>
         </div>
@@ -818,10 +818,10 @@ tailwind.config = {
           <p class="text-xs text-slate-400 mb-3">Reposición de inventario semanal para línea de postres.</p>
           <p class="text-xs text-slate-300 mb-4">⏱ Hace 3 horas</p>
           <div class="flex gap-2 mb-2">
-            <button onclick="approveReq(this)" class="flex-1 py-2 rounded-xl text-sm font-medium border border-slate-200 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-colors">Aprobar</button>
+            <button type="button" onclick="approveReq(this)" class="flex-1 py-2 rounded-xl text-sm font-medium border border-slate-200 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-colors">Aprobar</button>
             <button class="flex-1 py-2 rounded-xl text-sm font-medium border border-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-colors">Rechazar</button>
           </div>
-          <button onclick="showSection('compras')" class="w-full py-2 rounded-xl text-sm font-semibold bg-primary-container text-white flex items-center justify-center gap-2 hover:opacity-90">
+          <button type="button" onclick="showSection('compras')" class="w-full py-2 rounded-xl text-sm font-semibold bg-primary-container text-white flex items-center justify-center gap-2 hover:opacity-90">
             <span class="material-symbols-outlined text-base">shopping_cart</span> Convertir en Compra
           </button>
         </div>
@@ -838,10 +838,10 @@ tailwind.config = {
           <p class="text-xs text-slate-400 mb-3">Suministros de limpieza para cierre de mes.</p>
           <p class="text-xs text-slate-300 mb-4">⏱ Ayer, 4:30 PM</p>
           <div class="flex gap-2 mb-2">
-            <button onclick="approveReq(this)" class="flex-1 py-2 rounded-xl text-sm font-medium border border-slate-200 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-colors">Aprobar</button>
+            <button type="button" onclick="approveReq(this)" class="flex-1 py-2 rounded-xl text-sm font-medium border border-slate-200 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-colors">Aprobar</button>
             <button class="flex-1 py-2 rounded-xl text-sm font-medium border border-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-colors">Rechazar</button>
           </div>
-          <button onclick="showSection('compras')" class="w-full py-2 rounded-xl text-sm font-semibold bg-primary-container text-white flex items-center justify-center gap-2 hover:opacity-90">
+          <button type="button" onclick="showSection('compras')" class="w-full py-2 rounded-xl text-sm font-semibold bg-primary-container text-white flex items-center justify-center gap-2 hover:opacity-90">
             <span class="material-symbols-outlined text-base">shopping_cart</span> Convertir en Compra
           </button>
         </div>
@@ -941,22 +941,22 @@ tailwind.config = {
         <div id="pin-dot-4" class="w-4 h-4 rounded-full bg-slate-200"></div>
       </div>
       <div class="grid grid-cols-3 gap-3 mb-4">
-        <button onclick="pinInput(1)" class="py-4 rounded-2xl bg-surface-container-low text-xl font-semibold text-slate-900 hover:bg-slate-200 active:scale-95 transition-all">1</button>
-        <button onclick="pinInput(2)" class="py-4 rounded-2xl bg-surface-container-low text-xl font-semibold text-slate-900 hover:bg-slate-200 active:scale-95 transition-all">2</button>
-        <button onclick="pinInput(3)" class="py-4 rounded-2xl bg-surface-container-low text-xl font-semibold text-slate-900 hover:bg-slate-200 active:scale-95 transition-all">3</button>
-        <button onclick="pinInput(4)" class="py-4 rounded-2xl bg-surface-container-low text-xl font-semibold text-slate-900 hover:bg-slate-200 active:scale-95 transition-all">4</button>
-        <button onclick="pinInput(5)" class="py-4 rounded-2xl bg-surface-container-low text-xl font-semibold text-slate-900 hover:bg-slate-200 active:scale-95 transition-all">5</button>
-        <button onclick="pinInput(6)" class="py-4 rounded-2xl bg-surface-container-low text-xl font-semibold text-slate-900 hover:bg-slate-200 active:scale-95 transition-all">6</button>
-        <button onclick="pinInput(7)" class="py-4 rounded-2xl bg-surface-container-low text-xl font-semibold text-slate-900 hover:bg-slate-200 active:scale-95 transition-all">7</button>
-        <button onclick="pinInput(8)" class="py-4 rounded-2xl bg-surface-container-low text-xl font-semibold text-slate-900 hover:bg-slate-200 active:scale-95 transition-all">8</button>
-        <button onclick="pinInput(9)" class="py-4 rounded-2xl bg-surface-container-low text-xl font-semibold text-slate-900 hover:bg-slate-200 active:scale-95 transition-all">9</button>
+        <button type="button" onclick="pinInput(1)" class="py-4 rounded-2xl bg-surface-container-low text-xl font-semibold text-slate-900 hover:bg-slate-200 active:scale-95 transition-all">1</button>
+        <button type="button" onclick="pinInput(2)" class="py-4 rounded-2xl bg-surface-container-low text-xl font-semibold text-slate-900 hover:bg-slate-200 active:scale-95 transition-all">2</button>
+        <button type="button" onclick="pinInput(3)" class="py-4 rounded-2xl bg-surface-container-low text-xl font-semibold text-slate-900 hover:bg-slate-200 active:scale-95 transition-all">3</button>
+        <button type="button" onclick="pinInput(4)" class="py-4 rounded-2xl bg-surface-container-low text-xl font-semibold text-slate-900 hover:bg-slate-200 active:scale-95 transition-all">4</button>
+        <button type="button" onclick="pinInput(5)" class="py-4 rounded-2xl bg-surface-container-low text-xl font-semibold text-slate-900 hover:bg-slate-200 active:scale-95 transition-all">5</button>
+        <button type="button" onclick="pinInput(6)" class="py-4 rounded-2xl bg-surface-container-low text-xl font-semibold text-slate-900 hover:bg-slate-200 active:scale-95 transition-all">6</button>
+        <button type="button" onclick="pinInput(7)" class="py-4 rounded-2xl bg-surface-container-low text-xl font-semibold text-slate-900 hover:bg-slate-200 active:scale-95 transition-all">7</button>
+        <button type="button" onclick="pinInput(8)" class="py-4 rounded-2xl bg-surface-container-low text-xl font-semibold text-slate-900 hover:bg-slate-200 active:scale-95 transition-all">8</button>
+        <button type="button" onclick="pinInput(9)" class="py-4 rounded-2xl bg-surface-container-low text-xl font-semibold text-slate-900 hover:bg-slate-200 active:scale-95 transition-all">9</button>
         <div></div>
-        <button onclick="pinInput(0)" class="py-4 rounded-2xl bg-surface-container-low text-xl font-semibold text-slate-900 hover:bg-slate-200 active:scale-95 transition-all">0</button>
-        <button onclick="pinDelete()" class="py-4 rounded-2xl bg-surface-container-low text-slate-500 hover:bg-slate-200 active:scale-95 transition-all flex items-center justify-center">
+        <button type="button" onclick="pinInput(0)" class="py-4 rounded-2xl bg-surface-container-low text-xl font-semibold text-slate-900 hover:bg-slate-200 active:scale-95 transition-all">0</button>
+        <button type="button" onclick="pinDelete()" class="py-4 rounded-2xl bg-surface-container-low text-slate-500 hover:bg-slate-200 active:scale-95 transition-all flex items-center justify-center">
           <span class="material-symbols-outlined">backspace</span>
         </button>
       </div>
-      <button onclick="confirmPin()" class="w-full bg-primary-container text-white py-3.5 rounded-2xl font-semibold">Confirmar Acceso</button>
+      <button type="button" onclick="confirmPin()" class="w-full bg-primary-container text-white py-3.5 rounded-2xl font-semibold">Confirmar Acceso</button>
     </div>
     <p class="text-center mt-4"><a onclick="navigateTo('login')" href="#" class="text-sm text-slate-400 hover:text-primary">← Volver al login admin</a></p>
   </div>
@@ -988,16 +988,16 @@ tailwind.config = {
       <div>
         <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Área Destino</label>
         <div class="grid grid-cols-2 gap-2">
-          <button onclick="selectArea(this)" class="py-4 rounded-2xl bg-white border border-outline-variant/30 flex flex-col items-center gap-1 hover:border-primary/40 hover:bg-blue-50 transition-all text-sm font-medium text-slate-700 area-btn">
+          <button type="button" onclick="selectArea(this)" class="py-4 rounded-2xl bg-white border border-outline-variant/30 flex flex-col items-center gap-1 hover:border-primary/40 hover:bg-blue-50 transition-all text-sm font-medium text-slate-700 area-btn">
             <span class="material-symbols-outlined text-primary text-2xl">soup_kitchen</span>Cocina
           </button>
-          <button onclick="selectArea(this)" class="py-4 rounded-2xl bg-white border border-outline-variant/30 flex flex-col items-center gap-1 hover:border-primary/40 hover:bg-blue-50 transition-all text-sm font-medium text-slate-700 area-btn">
+          <button type="button" onclick="selectArea(this)" class="py-4 rounded-2xl bg-white border border-outline-variant/30 flex flex-col items-center gap-1 hover:border-primary/40 hover:bg-blue-50 transition-all text-sm font-medium text-slate-700 area-btn">
             <span class="material-symbols-outlined text-primary text-2xl">local_bar</span>Bar
           </button>
-          <button onclick="selectArea(this)" class="py-4 rounded-2xl bg-white border border-outline-variant/30 flex flex-col items-center gap-1 hover:border-primary/40 hover:bg-blue-50 transition-all text-sm font-medium text-slate-700 area-btn">
+          <button type="button" onclick="selectArea(this)" class="py-4 rounded-2xl bg-white border border-outline-variant/30 flex flex-col items-center gap-1 hover:border-primary/40 hover:bg-blue-50 transition-all text-sm font-medium text-slate-700 area-btn">
             <span class="material-symbols-outlined text-primary text-2xl">cleaning_services</span>Limpieza
           </button>
-          <button onclick="selectArea(this)" class="py-4 rounded-2xl bg-white border border-outline-variant/30 flex flex-col items-center gap-1 hover:border-primary/40 hover:bg-blue-50 transition-all text-sm font-medium text-slate-700 area-btn">
+          <button type="button" onclick="selectArea(this)" class="py-4 rounded-2xl bg-white border border-outline-variant/30 flex flex-col items-center gap-1 hover:border-primary/40 hover:bg-blue-50 transition-all text-sm font-medium text-slate-700 area-btn">
             <span class="material-symbols-outlined text-primary text-2xl">more_horiz</span>Otro
           </button>
         </div>
@@ -1021,15 +1021,15 @@ tailwind.config = {
       <div>
         <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Prioridad</label>
         <div class="grid grid-cols-2 gap-3">
-          <button onclick="setPriority('normal', this)" class="py-3.5 rounded-2xl border border-outline-variant/30 text-sm font-semibold text-slate-600 hover:bg-slate-50 priority-btn">Normal</button>
-          <button onclick="setPriority('urgente', this)" class="py-3.5 rounded-2xl border border-red-200 bg-red-50 text-red-700 text-sm font-semibold priority-btn">! Urgente</button>
+          <button type="button" onclick="setPriority('normal', this)" class="py-3.5 rounded-2xl border border-outline-variant/30 text-sm font-semibold text-slate-600 hover:bg-slate-50 priority-btn">Normal</button>
+          <button type="button" onclick="setPriority('urgente', this)" class="py-3.5 rounded-2xl border border-red-200 bg-red-50 text-red-700 text-sm font-semibold priority-btn">! Urgente</button>
         </div>
       </div>
       <div>
         <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Notas Opcionales</label>
         <textarea rows="3" placeholder="Añade detalles adicionales aquí..." class="w-full px-4 py-3 bg-white border border-outline-variant/30 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20 resize-none"></textarea>
       </div>
-      <button onclick="navigateTo('confirm')" class="w-full bg-primary-container text-white py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
+      <button type="button" onclick="navigateTo('confirm')" class="w-full bg-primary-container text-white py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-primary/20">
         Enviar Requisición <span class="material-symbols-outlined">arrow_forward</span>
       </button>
     </div>
@@ -1052,10 +1052,10 @@ tailwind.config = {
         <div><p class="text-xs text-slate-400">Prioridad</p><p class="font-medium text-red-600">Urgente !</p></div>
       </div>
     </div>
-    <button onclick="navigateTo('employee')" class="w-full bg-primary-container text-white py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 mb-3">
+    <button type="button" onclick="navigateTo('employee')" class="w-full bg-primary-container text-white py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-primary/20 mb-3">
       <span class="material-symbols-outlined">add</span> Nueva requisición
     </button>
-    <button onclick="navigateTo('pin')" class="w-full bg-slate-100 text-slate-700 py-3 rounded-2xl font-medium text-sm">Ir al inicio</button>
+    <button type="button" onclick="navigateTo('pin')" class="w-full bg-slate-100 text-slate-700 py-3 rounded-2xl font-medium text-sm">Ir al inicio</button>
   </div>
 </div>
 
@@ -1065,7 +1065,7 @@ tailwind.config = {
   <div class="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl">
     <div class="flex justify-between items-center mb-4">
       <div><h3 class="font-bold text-lg text-slate-900">Historial de Precios</h3><p id="modal-product-name" class="text-sm text-slate-400"></p></div>
-      <button onclick="document.getElementById('price-modal').classList.add('hidden')" class="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center hover:bg-slate-200">
+      <button type="button" onclick="document.getElementById('price-modal').classList.add('hidden')" class="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center hover:bg-slate-200">
         <span class="material-symbols-outlined text-lg">close</span>
       </button>
     </div>
@@ -1088,7 +1088,7 @@ tailwind.config = {
   <div class="bg-white rounded-3xl p-6 w-full max-w-sm shadow-2xl">
     <div class="flex justify-between items-center mb-4">
       <h3 class="font-bold text-lg text-slate-900">Registrar Pago</h3>
-      <button onclick="document.getElementById('pay-modal').classList.add('hidden')" class="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center">
+      <button type="button" onclick="document.getElementById('pay-modal').classList.add('hidden')" class="w-8 h-8 rounded-full bg-surface-container-low flex items-center justify-center">
         <span class="material-symbols-outlined text-lg">close</span>
       </button>
     </div>
@@ -1103,7 +1103,7 @@ tailwind.config = {
           <option>Transferencia</option><option>Efectivo</option><option>Cheque</option>
         </select></div>
     </div>
-    <button onclick="registerPayment()" class="w-full bg-primary-container text-white py-3 rounded-2xl font-semibold">Confirmar Pago</button>
+    <button type="button" onclick="registerPayment()" class="w-full bg-primary-container text-white py-3 rounded-2xl font-semibold">Confirmar Pago</button>
   </div>
 </div>
 
@@ -1211,7 +1211,7 @@ function addLineItem() {
     </select>
     <input type="number" class="col-span-2 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none" placeholder="0" oninput="updateTotals()"/>
     <input type="number" class="col-span-2 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none" placeholder="$0" oninput="updateTotals()"/>
-    <button onclick="removeLineItem(this)" class="col-span-1 text-slate-300 hover:text-error transition-colors flex justify-center">
+    <button type="button" onclick="removeLineItem(this)" class="col-span-1 text-slate-300 hover:text-error transition-colors flex justify-center">
       <span class="material-symbols-outlined text-lg">delete</span>
     </button>`;
   container.appendChild(div);
