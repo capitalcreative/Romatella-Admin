@@ -420,6 +420,22 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           </tbody>
         </table>
       </div>
+      
+      <!-- Vista por proveedor -->
+      <div id="cxp-proveedor-view" class="hidden">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <table class="w-full">
+            <thead class="bg-surface-container-low"><tr class="text-xs text-slate-400 uppercase tracking-wider">
+              <th class="text-left p-4 font-medium">Proveedor</th>
+              <th class="text-center p-4 font-medium"># Facturas</th>
+              <th class="text-right p-4 font-medium">Total Pendiente</th>
+              <th class="text-center p-4 font-medium">Estado</th>
+              <th class="p-4"></th>
+            </tr></thead>
+            <tbody id="cxp-proveedor-list" class="divide-y divide-slate-50"></tbody>
+          </table>
+        </div>
+      </div>
     </section>
 
     <!-- MODAL DETALLE COMPRA -->
@@ -490,7 +506,12 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
     <section id="sec-cuentas" class="sec p-5 fade">
       <div class="flex justify-between items-center mb-5">
         <div><h2 class="text-2xl font-bold text-slate-900">Cuentas por Pagar</h2><p class="text-sm text-slate-400">Facturas y obligaciones pendientes</p></div>
-        <div class="flex gap-2 text-sm">
+        <div class="flex gap-2">
+          <!-- Vista toggle -->
+          <div class="flex gap-1 bg-slate-100 p-1 rounded-xl mr-2">
+            <button type="button" onclick="setCxPVista('detalle',this)" id="cxp-vista-detalle" class="px-3 py-1 rounded-lg bg-white text-slate-900 text-xs font-semibold shadow-sm">Por factura</button>
+            <button type="button" onclick="setCxPVista('proveedor',this)" id="cxp-vista-proveedor" class="px-3 py-1 rounded-lg text-slate-500 text-xs font-semibold">Por proveedor</button>
+          </div>
           <button type="button" onclick="filterCxP('todas',this)" id="cxp-btn-todas" class="px-3 py-1.5 rounded-xl bg-slate-900 text-white font-medium text-xs">Todas</button>
           <button type="button" onclick="filterCxP('pendientes',this)" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 font-medium text-xs hover:bg-slate-200">Pendientes</button>
           <button type="button" onclick="filterCxP('vencidas',this)" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 font-medium text-xs hover:bg-slate-200">Vencidas</button>
@@ -888,6 +909,7 @@ const DB = {
     { id:4, nombre:'Elena Soto', area:'Limpieza', producto:'Detergente Lavaloza', cantidad:4, unidad:'bidón', prioridad:'Normal', notas:'Cierre de mes', estatus:'pendiente', hora:'Ayer 4:30 PM' },
   ],
   periodo: 'semana',
+  cxpVista: 'detalle',
   currentPayId: null,
   currentEstatus: 'Pendiente',
   currentArea: null,
@@ -1344,6 +1366,79 @@ function renderCuentas(filtro) {
     </tr>`;
   }).join('');
 }
+function setCxPVista(vista, btn) {
+  DB.cxpVista = vista;
+  // Toggle button styles
+  ['detalle','proveedor'].forEach(v => {
+    const b = document.getElementById('cxp-vista-' + v);
+    if (b) b.className = v === vista
+      ? 'px-3 py-1 rounded-lg bg-white text-slate-900 text-xs font-semibold shadow-sm'
+      : 'px-3 py-1 rounded-lg text-slate-500 text-xs font-semibold';
+  });
+  // Show/hide views
+  const detalleTable = document.querySelector('#sec-cuentas .bg-white.rounded-2xl.shadow-sm:not(#cxp-proveedor-view .bg-white)');
+  const provView = document.getElementById('cxp-proveedor-view');
+  if (vista === 'proveedor') {
+    document.querySelector('#sec-cuentas table').closest('.bg-white.rounded-2xl').classList.add('hidden');
+    provView.classList.remove('hidden');
+    renderCxPProveedor();
+  } else {
+    document.querySelector('#sec-cuentas table').closest('.bg-white.rounded-2xl').classList.remove('hidden');
+    provView.classList.add('hidden');
+  }
+}
+
+function renderCxPProveedor() {
+  // Group pending compras by proveedor
+  const comprasPend = DB.compras.filter(c => c.estatus !== 'Pagado');
+  const map = {};
+  comprasPend.forEach(c => {
+    if (!map[c.proveedor]) map[c.proveedor] = { facturas: 0, total: 0, ids: [], vencida: false };
+    map[c.proveedor].facturas++;
+    map[c.proveedor].total += c.total;
+    map[c.proveedor].ids.push(c.id);
+    if (isVencida(c.vencimiento)) map[c.proveedor].vencida = true;
+  });
+
+  const provs = Object.entries(map).sort((a,b) => b[1].total - a[1].total);
+  const tbody = document.getElementById('cxp-proveedor-list');
+
+  if (!provs.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-300 text-sm">No hay cuentas pendientes</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = provs.map(([nombre, data]) => {
+    const color = data.vencida ? 'bg-red-50' : '';
+    const badge = data.vencida
+      ? '<span class="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-full">VENCIDO</span>'
+      : '<span class="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-1 rounded-full">PENDIENTE</span>';
+    return `<tr class="text-sm ${color} hover:bg-slate-50/50">
+      <td class="p-4 font-semibold">${nombre}</td>
+      <td class="p-4 text-center text-slate-500">${data.facturas} factura${data.facturas>1?'s':''}</td>
+      <td class="p-4 text-right font-bold text-lg">${fmt(data.total)}</td>
+      <td class="p-4 text-center">${badge}</td>
+      <td class="p-4 text-right">
+        <button type="button" onclick="pagarTodoProveedor('${nombre}')" 
+          class="${data.vencida?'bg-error':'bg-primary-container'} text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:opacity-90">
+          Registrar pago
+        </button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function pagarTodoProveedor(nombre) {
+  // Find all pending compras for this proveedor
+  const compras = DB.compras.filter(c => c.proveedor === nombre && c.estatus !== 'Pagado');
+  const total = compras.reduce((a,c) => a+c.total, 0);
+  // Use first compra id as reference but mark all
+  DB.currentPayProveedorNombre = nombre;
+  document.getElementById('pay-prov').textContent = nombre + ' — ' + compras.length + ' factura(s)';
+  document.getElementById('pay-monto').value = total.toFixed(2);
+  document.getElementById('modal-pay').classList.remove('hidden');
+}
+
 function filterCxP(tipo, btn) {
   document.querySelectorAll('#sec-cuentas .flex.gap-2 button').forEach(b => {
     b.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 font-medium text-xs hover:bg-slate-200';
@@ -1360,15 +1455,26 @@ function openPayModal(id) {
   document.getElementById('modal-pay').classList.remove('hidden');
 }
 function confirmarPago() {
-  const c = DB.compras.find(x => x.id === DB.currentPayId);
-  if (c) {
-    c.estatus = 'Pagado';
-    // update proveedor saldo
-    const p = DB.proveedores.find(x => x.nombre.toLowerCase() === c.proveedor.toLowerCase());
-    if (p) p.saldo = Math.max(0, (p.saldo||0) - c.total);
+  if (DB.currentPayProveedorNombre) {
+    // Bulk payment for all compras of a proveedor
+    const nombre = DB.currentPayProveedorNombre;
+    DB.compras.filter(c => c.proveedor === nombre && c.estatus !== 'Pagado').forEach(c => {
+      c.estatus = 'Pagado';
+    });
+    const p = DB.proveedores.find(x => x.nombre === nombre);
+    if (p) p.saldo = 0;
+    DB.currentPayProveedorNombre = null;
+  } else {
+    const c = DB.compras.find(x => x.id === DB.currentPayId);
+    if (c) {
+      c.estatus = 'Pagado';
+      const p = DB.proveedores.find(x => x.nombre.toLowerCase() === c.proveedor.toLowerCase());
+      if (p) p.saldo = Math.max(0, (p.saldo||0) - c.total);
+    }
   }
   closeModal('modal-pay');
   renderCuentas();
+  if (DB.cxpVista === 'proveedor') renderCxPProveedor();
   renderDashboard();
   toast('Pago registrado correctamente');
 }
