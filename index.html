@@ -1120,31 +1120,28 @@ let currentSection = 'home';
 let pinValue = [];
 
 function navigateTo(page) {
-  // Hide all pages
-  ['login','dashboard','pin','employee','confirm'].forEach(p => {
-    const el = document.getElementById('page-' + p);
-    if (el) el.style.display = 'none';
-  });
-  // Show target page
-  const target = document.getElementById('page-' + page);
+  var pages = ['login','dashboard','pin','employee','confirm'];
+  for (var i = 0; i < pages.length; i++) {
+    var el = document.getElementById('page-' + pages[i]);
+    if (el) el.style.setProperty('display', 'none', 'important');
+  }
+  var target = document.getElementById('page-' + page);
   if (target) {
+    target.style.setProperty('display', 'flex', 'important');
     if (page === 'dashboard') {
-      target.style.display = 'flex';
       showSection('home');
-    } else if (page === 'employee') {
-      target.style.display = 'flex';
-      target.style.flexDirection = 'column';
-    } else {
-      target.style.display = 'flex';
     }
   }
   currentPage = page;
 }
 
 function showSection(name) {
-  document.querySelectorAll('.section-content').forEach(s => s.style.display = 'none');
-  const section = document.getElementById('section-' + name);
-  if (section) { section.style.display = 'flex'; section.style.flexDirection = 'column'; }
+  var sections = document.querySelectorAll('.section-content');
+  for (var i = 0; i < sections.length; i++) {
+    sections[i].style.setProperty('display', 'none', 'important');
+  }
+  var section = document.getElementById('section-' + name);
+  if (section) { section.style.setProperty('display', 'flex', 'important'); section.style.flexDirection = 'column'; }
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const navItem = document.getElementById('nav-' + name);
   if (navItem) navItem.classList.add('active');
