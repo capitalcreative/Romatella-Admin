@@ -1105,16 +1105,22 @@ function buscarProducto(input) {
 }
 
 function selProducto(el, nombre, unidad, precio) {
-  const row = el.closest('.relative').querySelector('.grid');
-  const input = row.querySelector('input[placeholder="Buscar producto..."]');
-  const sel = row.querySelector('select');
-  const nums = row.querySelectorAll('input[type="number"]');
+  // Find the input that triggered this suggestion
+  const sugerenciasDiv = el.closest('.sugerencias');
+  const input = sugerenciasDiv?.previousElementSibling;
+  if (!input) return;
+  
+  const row = input.closest('.grid');
+  const sel = row?.querySelector('select');
+  const nums = row?.querySelectorAll('input[type="number"]');
+  
   input.value = nombre;
   if (sel) {
-    Array.from(sel.options).forEach(o => { if(o.value===unidad) o.selected=true; });
+    Array.from(sel.options).forEach(o => { o.selected = o.value === unidad; });
   }
-  if (nums[1]) { nums[1].value = precio; calcTotal(); }
-  el.closest('.relative.z-10')?.classList.add('hidden');
+  if (nums && nums[1]) { nums[1].value = precio; }
+  sugerenciasDiv.classList.add('hidden');
+  calcTotal();
 }
 
 function cerrarSugerencias(input) {
