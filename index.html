@@ -1380,10 +1380,15 @@ function confirmarPago() {
 // ============================================================
 function renderRequisiciones(filtro) {
   filtro = filtro || 'pendientes';
-  const list = DB.requisiciones.filter(r => r.estatus === filtro);
+  // Map filter names to estatus values
+  const estatusMap = { pendientes: 'pendiente', aprobadas: 'aprobadas', rechazadas: 'rechazadas' };
+  const estatusBuscar = estatusMap[filtro] || filtro;
+  const list = DB.requisiciones.filter(r => r.estatus === estatusBuscar);
   const pendCount = DB.requisiciones.filter(r => r.estatus === 'pendiente').length;
-  document.getElementById('req-subtitle').textContent = pendCount + ' solicitudes pendientes';
-  document.getElementById('req-badge').textContent = pendCount;
+  document.getElementById('req-subtitle').textContent = pendCount + ' solicitudes pendientes de revisión';
+  document.getElementById('req-badge').textContent = pendCount > 0 ? pendCount : '';
+  const mobBadge = document.getElementById('mob-req-badge');
+  if (mobBadge) mobBadge.textContent = pendCount > 0 ? pendCount : '';
   
   const grid = document.getElementById('req-grid');
   if (!list.length) {
@@ -1414,14 +1419,14 @@ function renderRequisiciones(filtro) {
 }
 function aprobarReq(id) {
   const r = DB.requisiciones.find(x => x.id === id);
-  if (r) r.estatus = 'aprobadas';
+  if (r) { r.estatus = 'aprobadas'; r.horaAccion = new Date().toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'}); }
   renderRequisiciones('pendientes');
   renderDashboard();
-  toast('Requisición aprobada ✓');
+  toast('✓ Requisición aprobada');
 }
 function rechazarReq(id) {
   const r = DB.requisiciones.find(x => x.id === id);
-  if (r) r.estatus = 'rechazadas';
+  if (r) { r.estatus = 'rechazadas'; r.horaAccion = new Date().toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'}); }
   renderRequisiciones('pendientes');
   renderDashboard();
   toast('Requisición rechazada');
@@ -1441,7 +1446,9 @@ function convertirCompra(id) {
     const nums = row.querySelectorAll('input[type="number"]');
     if (nums[0]) nums[0].value = r.cantidad;
   }
-  aprobarReq(id);
+  const req = DB.requisiciones.find(x => x.id === id);
+  if (req) req.estatus = 'aprobadas';
+  renderDashboard();
   showSec('compras');
   toast('Formulario prellenado con la requisición');
 }
@@ -1449,7 +1456,7 @@ function filterReq(tipo, btn) {
   document.querySelectorAll('#sec-requisiciones .flex.gap-2 button').forEach(b => {
     b.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200';
   });
-  btn.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-medium';
+  if (btn) btn.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-medium';
   renderRequisiciones(tipo);
 }
 
@@ -1663,7 +1670,10 @@ function renderHistorial(filtro, categoriaFiltro) {
       <td class="p-4 text-slate-400 hidden lg:table-cell text-xs">${c.forma_pago}</td>
       <td class="p-4 text-right font-semibold">${fmt(c.total)}</td>
       <td class="p-4 text-center">${estatusBadge(c.estatus)}</td>
-      <td class="p-4 text-right text-slate-300"><span class="ms">chevron_right</span></td>
+      <td class="p-4 text-right text-slate-300 flex items-center justify-end gap-2">
+        <span class="ms cursor-pointer hover:text-primary" onclick="event.stopPropagation();verDetalle(${c.id})">chevron_right</span>
+        <span class="ms cursor-pointer hover:text-error" onclick="event.stopPropagation();borrarCompra(${c.id})">delete</span>
+      </td>
     </tr>`).join('');
 }
 
@@ -1729,9 +1739,38 @@ function verDetalle(id) {
         <span class="font-bold text-white">TOTAL</span>
         <span class="text-2xl font-bold text-white">${fmt(c.total)}</span>
       </div>
-      ${c.estatus !== 'Pagado' ? `<button type="button" onclick="closeModal('modal-detalle');openPayModal(${c.id})" class="w-full bg-primary-container text-white py-3 rounded-2xl font-semibold hover:opacity-90">Registrar Pago</button>` : ''}
-    </div>`;
+      <div class="flex gap-3">
+        ${c.estatus !== 'Pagado' ? `<button type="button" onclick="closeModal('modal-detalle');openPayModal(${c.id})" class="flex-1 bg-primary-container text-white py-3 rounded-2xl font-semibold hover:opacity-90">Registrar Pago</button>` : ''}
+        <button type="button" onclick="closeModal('modal-detalle');borrarCompra(${c.id})" class="flex-1 bg-red-50 text-error border border-red-200 py-3 rounded-2xl font-semibold hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
+          <span class="ms text-lg">delete</span>Eliminar compra
+        </button>
+      </div>
+    </div>\`;
   document.getElementById('modal-detalle').classList.remove('hidden');
+}
+
+// ============================================================
+// BORRAR COMPRA
+// ============================================================
+function borrarCompra(id) {
+  const c = DB.compras.find(x => x.id === id);
+  if (!c) return;
+  if (!confirm(`¿Eliminar la compra de ${c.proveedor} por ${fmt(c.total)}? Esta acción no se puede deshacer.`)) return;
+  
+  // Remove from DB
+  DB.compras = DB.compras.filter(x => x.id !== id);
+  
+  // Update proveedor saldo
+  const p = DB.proveedores.find(x => x.nombre.toLowerCase() === c.proveedor.toLowerCase());
+  if (p && c.estatus !== 'Pagado') {
+    p.saldo = Math.max(0, (p.saldo||0) - c.total);
+    p.compras = Math.max(0, (p.compras||0) - 1);
+  }
+  
+  // Re-render
+  renderHistorial();
+  renderDashboard();
+  toast('Compra eliminada');
 }
 
 // ============================================================
