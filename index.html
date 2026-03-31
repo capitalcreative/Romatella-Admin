@@ -96,7 +96,10 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         <span class="ms text-lg">dashboard</span>Dashboard
       </div>
       <div onclick="showSec('compras')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-compras">
-        <span class="ms text-lg">shopping_cart</span>Compras
+        <span class="ms text-lg">shopping_cart</span>Nueva Compra
+      </div>
+      <div onclick="showSec('historial')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-historial">
+        <span class="ms text-lg">receipt_long</span>Historial
       </div>
       <div onclick="showSec('productos')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-productos">
         <span class="ms text-lg">inventory_2</span>Productos
@@ -301,6 +304,80 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
       </div>
     </section>
 
+    <!-- HISTORIAL DE COMPRAS -->
+    <section id="sec-historial" class="sec p-5 fade">
+      <div class="flex justify-between items-center mb-5">
+        <div><h2 class="text-2xl font-bold text-slate-900">Historial de Compras</h2><p class="text-sm text-slate-400">Todas las compras registradas</p></div>
+      </div>
+      <!-- Filters -->
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 mb-4 flex flex-wrap gap-3 items-center">
+        <div class="flex gap-2">
+          <button type="button" onclick="filtrarHistorial('todo',this)" id="hist-btn-todo" class="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-medium">Todas</button>
+          <button type="button" onclick="filtrarHistorial('hoy',this)" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200">Hoy</button>
+          <button type="button" onclick="filtrarHistorial('semana',this)" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200">Esta semana</button>
+          <button type="button" onclick="filtrarHistorial('mes',this)" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200">Este mes</button>
+        </div>
+        <div class="flex gap-2 items-center ml-auto">
+          <label class="text-xs text-slate-400">Desde:</label>
+          <input type="date" id="hist-desde" onchange="filtrarHistorial('custom')" class="px-3 py-1.5 bg-surface-container-low rounded-xl text-xs outline-none"/>
+          <label class="text-xs text-slate-400">Hasta:</label>
+          <input type="date" id="hist-hasta" onchange="filtrarHistorial('custom')" class="px-3 py-1.5 bg-surface-container-low rounded-xl text-xs outline-none"/>
+        </div>
+        <select onchange="filtrarHistorial('categoria',this.value)" class="px-3 py-1.5 bg-surface-container-low rounded-xl text-xs outline-none">
+          <option value="">Todas las categorías</option>
+          <option>Carnicería</option><option>Mariscos</option><option>Abarrotes</option>
+          <option>Lácteos</option><option>Walmart</option><option>Costco</option>
+          <option>Mercado</option><option>Panadería</option><option>Vinos</option>
+          <option>Licores</option><option>Refrescos</option><option>Materias Primas</option><option>Semillas</option>
+        </select>
+      </div>
+      <!-- Summary -->
+      <div class="grid grid-cols-3 gap-4 mb-4">
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Total filtrado</p>
+          <p class="text-xl font-bold" id="hist-total-filtrado">$0.00</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Compras</p>
+          <p class="text-xl font-bold" id="hist-count-filtrado">0</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Promedio</p>
+          <p class="text-xl font-bold" id="hist-promedio-filtrado">$0.00</p>
+        </div>
+      </div>
+      <!-- Table -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <table class="w-full">
+          <thead class="bg-surface-container-low"><tr class="text-xs text-slate-400 uppercase tracking-wider">
+            <th class="text-left p-4 font-medium">Fecha</th>
+            <th class="text-left p-4 font-medium">Proveedor</th>
+            <th class="text-left p-4 font-medium hidden md:table-cell">Categoría</th>
+            <th class="text-left p-4 font-medium hidden md:table-cell">Folio</th>
+            <th class="text-left p-4 font-medium hidden lg:table-cell">Forma Pago</th>
+            <th class="text-right p-4 font-medium">Total</th>
+            <th class="text-center p-4 font-medium">Estatus</th>
+            <th class="p-4"></th>
+          </tr></thead>
+          <tbody id="hist-list" class="divide-y divide-slate-50">
+            <tr><td colspan="8" class="py-8 text-center text-slate-300 text-sm">No hay compras registradas</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- MODAL DETALLE COMPRA -->
+    <div id="modal-detalle" class="hidden fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-bold text-lg">Detalle de Compra</h3>
+          <button type="button" onclick="closeModal('modal-detalle')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200"><span class="ms">close</span></button>
+        </div>
+        <div id="detalle-content"></div>
+      </div>
+    </div>
+
+    <!-- PRODUCTOS -->
     <!-- PRODUCTOS -->
     <section id="sec-productos" class="sec p-5 fade">
       <div class="flex justify-between items-center mb-5">
@@ -661,10 +738,11 @@ function showSec(name) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const nav = document.getElementById('nav-'+name);
   if (nav) nav.classList.add('active');
-  const titles = {home:'Dashboard',compras:'Registro de Compras',productos:'Productos',proveedores:'Proveedores',cuentas:'Cuentas por Pagar',requisiciones:'Requisiciones',reportes:'Reportes'};
+  const titles = {home:'Dashboard',compras:'Nueva Compra',historial:'Historial de Compras',productos:'Productos',proveedores:'Proveedores',cuentas:'Cuentas por Pagar',requisiciones:'Requisiciones',reportes:'Reportes'};
   document.getElementById('sec-title').textContent = titles[name] || name;
   // Render section data
   if (name === 'home') renderDashboard();
+  if (name === 'historial') renderHistorial('todo');
   if (name === 'cuentas') renderCuentas();
   if (name === 'proveedores') renderProveedores();
   if (name === 'reportes') renderReportes();
@@ -1272,6 +1350,134 @@ function enviarReq() {
       <div><p class="text-xs text-slate-400">Prioridad</p><p class="font-medium ${req.prioridad==='Urgente'?'text-red-600':''}">${req.prioridad}</p></div>
     </div>`;
   showEmp('confirm');
+}
+
+// ============================================================
+// HISTORIAL DE COMPRAS
+// ============================================================
+let histFiltro = 'todo';
+let histCategoria = '';
+
+function renderHistorial(filtro, categoriaFiltro) {
+  histFiltro = filtro || histFiltro;
+  histCategoria = categoriaFiltro !== undefined ? categoriaFiltro : histCategoria;
+  
+  const now = new Date();
+  let compras = [...DB.compras];
+  
+  if (histFiltro === 'hoy') {
+    const hoy = now.toISOString().split('T')[0];
+    compras = compras.filter(c => c.fecha === hoy);
+  } else if (histFiltro === 'semana') {
+    const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate()-7);
+    compras = compras.filter(c => new Date(c.fecha) >= weekAgo);
+  } else if (histFiltro === 'mes') {
+    compras = compras.filter(c => {
+      const d = new Date(c.fecha);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+  } else if (histFiltro === 'custom') {
+    const desde = document.getElementById('hist-desde').value;
+    const hasta = document.getElementById('hist-hasta').value;
+    if (desde) compras = compras.filter(c => c.fecha >= desde);
+    if (hasta) compras = compras.filter(c => c.fecha <= hasta);
+  }
+  
+  if (histCategoria) compras = compras.filter(c => c.categoria === histCategoria);
+  
+  // Sort newest first
+  compras = compras.sort((a,b) => b.fecha.localeCompare(a.fecha));
+  
+  // Summary
+  const total = compras.reduce((a,c) => a+c.total, 0);
+  document.getElementById('hist-total-filtrado').textContent = fmt(total);
+  document.getElementById('hist-count-filtrado').textContent = compras.length;
+  document.getElementById('hist-promedio-filtrado').textContent = fmt(compras.length ? total/compras.length : 0);
+  
+  const tbody = document.getElementById('hist-list');
+  if (!compras.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-slate-300 text-sm">No hay compras en este período</td></tr>';
+    return;
+  }
+  
+  tbody.innerHTML = compras.map(c => `
+    <tr class="text-sm hover:bg-slate-50/50 cursor-pointer" onclick="verDetalle(${c.id})">
+      <td class="p-4 text-slate-500">${fmtDate(c.fecha)}</td>
+      <td class="p-4 font-medium">${c.proveedor}</td>
+      <td class="p-4 text-slate-400 hidden md:table-cell"><span class="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">${c.categoria||'—'}</span></td>
+      <td class="p-4 text-slate-400 hidden md:table-cell text-xs">${c.folio}</td>
+      <td class="p-4 text-slate-400 hidden lg:table-cell text-xs">${c.forma_pago}</td>
+      <td class="p-4 text-right font-semibold">${fmt(c.total)}</td>
+      <td class="p-4 text-center">${estatusBadge(c.estatus)}</td>
+      <td class="p-4 text-right text-slate-300"><span class="ms">chevron_right</span></td>
+    </tr>`).join('');
+}
+
+function filtrarHistorial(tipo, btnOrValue) {
+  if (tipo === 'categoria') {
+    histCategoria = btnOrValue || '';
+    renderHistorial();
+    return;
+  }
+  if (tipo === 'custom') {
+    histFiltro = 'custom';
+    renderHistorial('custom');
+    return;
+  }
+  histFiltro = tipo;
+  // Update button styles
+  document.querySelectorAll('#sec-historial .flex.gap-2 button').forEach(b => {
+    b.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200';
+  });
+  if (btnOrValue && btnOrValue.classList) {
+    btnOrValue.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-medium';
+  }
+  renderHistorial(tipo);
+}
+
+function verDetalle(id) {
+  const c = DB.compras.find(x => x.id === id);
+  if (!c) return;
+  const items = (c.items||[]).length ? c.items.map(it => `
+    <tr class="text-sm">
+      <td class="py-2 text-slate-700">${it.nombre}</td>
+      <td class="py-2 text-center text-slate-400">${it.cantidad} ${it.unidad}</td>
+      <td class="py-2 text-right font-medium">${fmt(it.costo_unitario)}</td>
+      <td class="py-2 text-right font-semibold">${fmt(it.cantidad * it.costo_unitario)}</td>
+    </tr>`).join('') : '<tr><td colspan="4" class="py-3 text-slate-300 text-sm text-center">Sin detalle de productos</td></tr>';
+  
+  document.getElementById('detalle-content').innerHTML = `
+    <div class="space-y-4">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="bg-surface-container-low rounded-xl p-3"><p class="text-xs text-slate-400 mb-1">Proveedor</p><p class="font-semibold">${c.proveedor}</p></div>
+        <div class="bg-surface-container-low rounded-xl p-3"><p class="text-xs text-slate-400 mb-1">Fecha</p><p class="font-semibold">${fmtDate(c.fecha)}</p></div>
+        <div class="bg-surface-container-low rounded-xl p-3"><p class="text-xs text-slate-400 mb-1">Folio</p><p class="font-semibold">${c.folio}</p></div>
+        <div class="bg-surface-container-low rounded-xl p-3"><p class="text-xs text-slate-400 mb-1">Categoría</p><p class="font-semibold">${c.categoria||'—'}</p></div>
+        <div class="bg-surface-container-low rounded-xl p-3"><p class="text-xs text-slate-400 mb-1">Forma de pago</p><p class="font-semibold">${c.forma_pago}</p></div>
+        <div class="bg-surface-container-low rounded-xl p-3"><p class="text-xs text-slate-400 mb-1">Estatus</p>${estatusBadge(c.estatus)}</div>
+        ${c.vencimiento ? `<div class="bg-orange-50 rounded-xl p-3 col-span-2"><p class="text-xs text-orange-500 mb-1">Vencimiento</p><p class="font-semibold text-orange-700">${fmtDate(c.vencimiento)}</p></div>` : ''}
+      </div>
+      <div class="border border-slate-100 rounded-xl overflow-hidden">
+        <div class="bg-surface-container-low px-4 py-2">
+          <h4 class="font-semibold text-sm text-slate-700">Productos comprados</h4>
+        </div>
+        <table class="w-full">
+          <thead><tr class="text-xs text-slate-400 border-b border-slate-100">
+            <th class="text-left px-4 py-2 font-medium">Producto</th>
+            <th class="text-center px-4 py-2 font-medium">Cantidad</th>
+            <th class="text-right px-4 py-2 font-medium">Precio unit.</th>
+            <th class="text-right px-4 py-2 font-medium">Subtotal</th>
+          </tr></thead>
+          <tbody class="divide-y divide-slate-50 px-4">${items}</tbody>
+        </table>
+      </div>
+      <div class="bg-slate-900 rounded-xl p-4 flex justify-between items-center">
+        <span class="font-bold text-white">TOTAL</span>
+        <span class="text-2xl font-bold text-white">${fmt(c.total)}</span>
+      </div>
+      ${c.estatus !== 'Pagado' ? `<button type="button" onclick="closeModal('modal-detalle');openPayModal(${c.id})" class="w-full bg-primary-container text-white py-3 rounded-2xl font-semibold hover:opacity-90">Registrar Pago</button>` : ''}
+    </div>`;
+  document.getElementById('modal-detalle').classList.remove('hidden');
 }
 
 // ============================================================
