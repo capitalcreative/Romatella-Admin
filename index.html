@@ -228,7 +228,10 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Proveedor</label>
-                  <input id="f-proveedor" type="text" placeholder="Nombre del proveedor" class="w-full px-4 py-3 bg-surface-container-low rounded-xl text-sm outline-none"/>
+                  <input id="f-proveedor" type="text" placeholder="Buscar proveedor..." 
+                    list="proveedores-list"
+                    class="w-full px-4 py-3 bg-surface-container-low rounded-xl text-sm outline-none"/>
+                  <datalist id="proveedores-list"></datalist>
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Folio / Factura</label>
@@ -239,9 +242,9 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
                   <select id="f-categoria" class="w-full px-4 py-3 bg-surface-container-low rounded-xl text-sm outline-none">
                     <option value="">Seleccionar...</option>
                     <option>Carnicería</option><option>Mariscos</option><option>Abarrotes</option>
-                    <option>Lácteos</option><option>Walmart</option><option>Costco</option>
-                    <option>Mercado</option><option>Panadería</option><option>Vinos</option>
-                    <option>Licores</option><option>Refrescos</option><option>Materias Primas</option><option>Semillas</option>
+                    <option>Lácteos</option><option>Frutas y Verduras</option><option>Vinos</option>
+                    <option>Licores</option><option>Refrescos</option><option>Panadería</option>
+                    <option>Limpieza</option><option>Semillas</option><option>Otros insumos</option>
                   </select>
                 </div>
                 <div>
@@ -689,9 +692,143 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
 // GLOBAL STATE — single source of truth
 // ============================================================
 const DB = {
-  compras: [],       // { id, fecha, proveedor, folio, categoria, forma_pago, estatus, total, vencimiento, items[] }
-  proveedores: [],   // { id, nombre, tel, condicion, saldo }
-  requisiciones: [   // pre-loaded sample reqs
+  compras: [],
+  productos: [
+    { id:1, nombre:'ACEITE DE OLIVA 3L KIRKLAND', categoria:'Abarrotes', unidad:'pza', precio:387.72, proveedor:'Costco de México' },
+    { id:2, nombre:'ACEITE VEGETAL 20L CRISTAL', categoria:'Abarrotes', unidad:'pza', precio:716.00, proveedor:'Costco de México' },
+    { id:3, nombre:'ACEITUNA NEGRA RODAJAS CARBONELL', categoria:'Abarrotes', unidad:'pza', precio:183.12, proveedor:'Costco de México' },
+    { id:4, nombre:'AJO', categoria:'Frutas y Verduras', unidad:'kg', precio:120.00, proveedor:'DISFRULEG' },
+    { id:5, nombre:'ALCAPARRA CAPUCCINA SERPIS', categoria:'Abarrotes', unidad:'pza', precio:152.43, proveedor:'Costco de México' },
+    { id:6, nombre:'ANCHOAS PELAZZA 50G', categoria:'Abarrotes', unidad:'pza', precio:67.00, proveedor:'Walmart' },
+    { id:7, nombre:'APIO', categoria:'Frutas y Verduras', unidad:'kg', precio:18.00, proveedor:'DISFRULEG' },
+    { id:8, nombre:'ARANDANO DESHIDRATADO', categoria:'Frutas y Verduras', unidad:'kg', precio:165.00, proveedor:'DISFRULEG' },
+    { id:9, nombre:'ARROZ ARBORIO', categoria:'Abarrotes', unidad:'pza', precio:70.00, proveedor:'Walmart' },
+    { id:10, nombre:'ARÚGULA 300G', categoria:'Frutas y Verduras', unidad:'pza', precio:71.51, proveedor:'Costco de México' },
+    { id:11, nombre:'ATUN NACIONAL', categoria:'Mariscos', unidad:'kg', precio:210.00, proveedor:'KRILL' },
+    { id:12, nombre:'AZUCAR', categoria:'Abarrotes', unidad:'kg', precio:23.00, proveedor:'DISFRULEG' },
+    { id:13, nombre:'MILAGRO CAL Y CANTO TEMPRANILLO MERLOT', categoria:'Vinos', unidad:'bot', precio:164.00, proveedor:'VIPARMEX' },
+    { id:14, nombre:'BARILLA PASTA', categoria:'Abarrotes', unidad:'pza', precio:29.50, proveedor:'Walmart' },
+    { id:15, nombre:'BERENJENA', categoria:'Frutas y Verduras', unidad:'kg', precio:65.00, proveedor:'DISFRULEG' },
+    { id:16, nombre:'BISTEC DE PECHUGA', categoria:'Carnicería', unidad:'kg', precio:180.00, proveedor:'CARNICIERIA DIANA' },
+    { id:17, nombre:'BOLSA BAS', categoria:'Limpieza', unidad:'pza', precio:36.50, proveedor:'Walmart' },
+    { id:18, nombre:'BOTTER GRAN PASSIONE ROSSO IGT', categoria:'Vinos', unidad:'bot', precio:316.00, proveedor:'VIPARMEX' },
+    { id:19, nombre:'BOTTER GRAN PASSIONE SPUMANTE', categoria:'Vinos', unidad:'bot', precio:209.02, proveedor:'VIPARMEX' },
+    { id:20, nombre:'BROCOLI', categoria:'Frutas y Verduras', unidad:'kg', precio:28.00, proveedor:'DISFRULEG' },
+    { id:21, nombre:'CALABACITA', categoria:'Frutas y Verduras', unidad:'kg', precio:18.00, proveedor:'DISFRULEG' },
+    { id:22, nombre:'CALAMAR AMERICANO', categoria:'Mariscos', unidad:'kg', precio:143.00, proveedor:'KRILL' },
+    { id:23, nombre:'CAMARON 21/25', categoria:'Mariscos', unidad:'kg', precio:249.00, proveedor:'KRILL' },
+    { id:24, nombre:'CAMARON 31/35', categoria:'Mariscos', unidad:'kg', precio:205.00, proveedor:'KRILL' },
+    { id:25, nombre:'CARNE MOLIDA PREMIUM', categoria:'Carnicería', unidad:'kg', precio:217.00, proveedor:'CARNICIERIA DIANA' },
+    { id:26, nombre:'CEBOLLA BLANCA', categoria:'Frutas y Verduras', unidad:'kg', precio:19.00, proveedor:'DISFRULEG' },
+    { id:27, nombre:'CEBOLLA MORADA', categoria:'Frutas y Verduras', unidad:'kg', precio:18.00, proveedor:'DISFRULEG' },
+    { id:28, nombre:'CHAMPINON', categoria:'Frutas y Verduras', unidad:'kg', precio:94.00, proveedor:'DISFRULEG' },
+    { id:29, nombre:'CHILE GUAJILLO', categoria:'Frutas y Verduras', unidad:'kg', precio:130.00, proveedor:'DISFRULEG' },
+    { id:30, nombre:'CHILE NEGRO', categoria:'Frutas y Verduras', unidad:'kg', precio:210.00, proveedor:'DISFRULEG' },
+    { id:31, nombre:'CLORALEX 2L', categoria:'Limpieza', unidad:'pza', precio:34.00, proveedor:'Walmart' },
+    { id:32, nombre:'COCA COLA ZERO 6 PIEZAS', categoria:'Refrescos', unidad:'pza', precio:134.00, proveedor:'Walmart' },
+    { id:33, nombre:'COCOA HERSEYS', categoria:'Abarrotes', unidad:'kg', precio:350.00, proveedor:'MIRANDA' },
+    { id:34, nombre:'CREMA AGRIA', categoria:'Lácteos', unidad:'kg', precio:60.00, proveedor:'AYALA' },
+    { id:35, nombre:'CREMINI', categoria:'Frutas y Verduras', unidad:'kg', precio:110.00, proveedor:'DISFRULEG' },
+    { id:36, nombre:'ESPARRAGO', categoria:'Frutas y Verduras', unidad:'kg', precio:175.00, proveedor:'DISFRULEG' },
+    { id:37, nombre:'FRESA CAJITA', categoria:'Frutas y Verduras', unidad:'kg', precio:75.00, proveedor:'DISFRULEG' },
+    { id:38, nombre:'FRESA A GRANEL', categoria:'Frutas y Verduras', unidad:'kg', precio:75.00, proveedor:'DISFRULEG' },
+    { id:39, nombre:'GALLO PASTA LASAGNA', categoria:'Abarrotes', unidad:'pza', precio:75.00, proveedor:'Walmart' },
+    { id:40, nombre:'GERMINADO', categoria:'Frutas y Verduras', unidad:'kg', precio:54.00, proveedor:'DISFRULEG' },
+    { id:41, nombre:'GRENETINA KNOX 28GR', categoria:'Abarrotes', unidad:'pza', precio:28.00, proveedor:'Walmart' },
+    { id:42, nombre:'HARINA', categoria:'Abarrotes', unidad:'kg', precio:21.00, proveedor:'DISFRULEG' },
+    { id:43, nombre:'HELADO DE VAINILLA KIRKLAND 2x1.89L', categoria:'Abarrotes', unidad:'pza', precio:336.57, proveedor:'Costco de México' },
+    { id:44, nombre:'HELADO HOLANDA', categoria:'Abarrotes', unidad:'pza', precio:144.00, proveedor:'Walmart' },
+    { id:45, nombre:'HIERBABUENA', categoria:'Frutas y Verduras', unidad:'kg', precio:15.00, proveedor:'DISFRULEG' },
+    { id:46, nombre:'HUEVO', categoria:'Frutas y Verduras', unidad:'kg', precio:41.00, proveedor:'DISFRULEG' },
+    { id:47, nombre:'JAMON SERRANO GRAN RESERVA CINTA DE ORO', categoria:'Carnicería', unidad:'pza', precio:653.70, proveedor:'Costco de México' },
+    { id:48, nombre:'JITOMATE BOLA', categoria:'Frutas y Verduras', unidad:'kg', precio:37.00, proveedor:'DISFRULEG' },
+    { id:49, nombre:'JITOMATE CHERRY', categoria:'Frutas y Verduras', unidad:'kg', precio:60.00, proveedor:'DISFRULEG' },
+    { id:50, nombre:'JITOMATE SALADETTE', categoria:'Frutas y Verduras', unidad:'kg', precio:21.00, proveedor:'DISFRULEG' },
+    { id:51, nombre:'LAVASTRES LIQUIDO 2.6L SALVO', categoria:'Limpieza', unidad:'pza', precio:151.98, proveedor:'Costco de México' },
+    { id:52, nombre:'LECHE ENTERA KIRKLAND 12x1L', categoria:'Lácteos', unidad:'pza', precio:285.42, proveedor:'Costco de México' },
+    { id:53, nombre:'LECHUGA HIDROPONICA', categoria:'Frutas y Verduras', unidad:'pza', precio:35.00, proveedor:'LECHUGAS' },
+    { id:54, nombre:'LIMON', categoria:'Frutas y Verduras', unidad:'kg', precio:25.00, proveedor:'DISFRULEG' },
+    { id:55, nombre:'LIMON EUREKA', categoria:'Frutas y Verduras', unidad:'kg', precio:66.00, proveedor:'DISFRULEG' },
+    { id:56, nombre:'LIMPIADOR MULTIUSOS FABULOSO 10L', categoria:'Limpieza', unidad:'pza', precio:215.83, proveedor:'Costco de México' },
+    { id:57, nombre:'MAGGI SOYA 140ML', categoria:'Abarrotes', unidad:'pza', precio:25.00, proveedor:'Walmart' },
+    { id:58, nombre:'MANGO', categoria:'Frutas y Verduras', unidad:'kg', precio:25.00, proveedor:'DISFRULEG' },
+    { id:59, nombre:'MANTEQUILLA DESY', categoria:'Lácteos', unidad:'kg', precio:135.00, proveedor:'DISFRULEG' },
+    { id:60, nombre:'MANZANA', categoria:'Frutas y Verduras', unidad:'kg', precio:45.00, proveedor:'DISFRULEG' },
+    { id:61, nombre:'MANZANA AMARILLA', categoria:'Frutas y Verduras', unidad:'kg', precio:45.00, proveedor:'DISFRULEG' },
+    { id:62, nombre:'MAYONESA CON LIMON MC CORMICK 3.4KG', categoria:'Abarrotes', unidad:'pza', precio:306.00, proveedor:'Costco de México' },
+    { id:63, nombre:'MONTGRAS RINCONES ROSE', categoria:'Vinos', unidad:'bot', precio:160.01, proveedor:'VIPARMEX' },
+    { id:64, nombre:'MOSTAZA FRENCH'S 2.9KG', categoria:'Abarrotes', unidad:'pza', precio:143.00, proveedor:'Costco de México' },
+    { id:65, nombre:'MOZZARELLA FRESCO KIRKLAND 2x510G', categoria:'Lácteos', unidad:'pza', precio:183.12, proveedor:'Costco de México' },
+    { id:66, nombre:'NARANJA', categoria:'Frutas y Verduras', unidad:'kg', precio:16.00, proveedor:'DISFRULEG' },
+    { id:67, nombre:'NUEZ', categoria:'Semillas', unidad:'kg', precio:300.00, proveedor:'DISFRULEG' },
+    { id:68, nombre:'NUEZ DE LA INDIA', categoria:'Semillas', unidad:'kg', precio:320.00, proveedor:'MIRANDA' },
+    { id:69, nombre:'OJAMAICA', categoria:'Frutas y Verduras', unidad:'kg', precio:110.00, proveedor:'DISFRULEG' },
+    { id:70, nombre:'PAN BIMBO', categoria:'Abarrotes', unidad:'pza', precio:55.00, proveedor:'Walmart' },
+    { id:71, nombre:'PAN MOLIDO', categoria:'Abarrotes', unidad:'kg', precio:32.00, proveedor:'DISFRULEG' },
+    { id:72, nombre:'PAPA CAMBRAY', categoria:'Frutas y Verduras', unidad:'kg', precio:22.00, proveedor:'DISFRULEG' },
+    { id:73, nombre:'PASQUA NERO DAVOLA IGT', categoria:'Vinos', unidad:'bot', precio:253.00, proveedor:'VIPARMEX' },
+    { id:74, nombre:'PASQUA SOAVE DOC', categoria:'Vinos', unidad:'bot', precio:235.00, proveedor:'VIPARMEX' },
+    { id:75, nombre:'PECHUGA DE POLLO SIN HUESO', categoria:'Carnicería', unidad:'kg', precio:180.00, proveedor:'CARNICIERIA DIANA' },
+    { id:76, nombre:'PEÑAFIEL TONICA 6 PACK', categoria:'Refrescos', unidad:'pza', precio:89.00, proveedor:'Walmart' },
+    { id:77, nombre:'PIMIENTO MORRON', categoria:'Frutas y Verduras', unidad:'kg', precio:60.00, proveedor:'DISFRULEG' },
+    { id:78, nombre:'PISTACHE', categoria:'Semillas', unidad:'kg', precio:300.00, proveedor:'MIRANDA' },
+    { id:79, nombre:'PRONTO HOT CAKES HARINA 800GR', categoria:'Abarrotes', unidad:'pza', precio:65.00, proveedor:'Walmart' },
+    { id:80, nombre:'PROSECCO DOCG KIRKLAND 750ML', categoria:'Vinos', unidad:'bot', precio:182.57, proveedor:'Costco de México' },
+    { id:81, nombre:'PULPO COCIDO', categoria:'Mariscos', unidad:'kg', precio:279.00, proveedor:'KRILL' },
+    { id:82, nombre:'QUESO CREMA RENY PICOT 4x190G', categoria:'Lácteos', unidad:'pza', precio:131.97, proveedor:'Costco de México' },
+    { id:83, nombre:'QUESO DE CABRA KIRKLAND 2x297G', categoria:'Lácteos', unidad:'pza', precio:162.66, proveedor:'Costco de México' },
+    { id:84, nombre:'QUESO GOUDA', categoria:'Lácteos', unidad:'kg', precio:140.00, proveedor:'AYALA' },
+    { id:85, nombre:'QUESO GOUDA HOLANDES REMBRANDT', categoria:'Lácteos', unidad:'kg', precio:214.00, proveedor:'Costco de México' },
+    { id:86, nombre:'QUESO MASCARPONE BELGIOIOSO 453G', categoria:'Lácteos', unidad:'pza', precio:128.00, proveedor:'Costco de México' },
+    { id:87, nombre:'QUESO MENONITA 1.1KG', categoria:'Lácteos', unidad:'pza', precio:193.35, proveedor:'Costco de México' },
+    { id:88, nombre:'QUESO MOZARELLA', categoria:'Lácteos', unidad:'kg', precio:120.00, proveedor:'AYALA' },
+    { id:89, nombre:'QUESO PARMESANO', categoria:'Lácteos', unidad:'kg', precio:315.00, proveedor:'AYALA' },
+    { id:90, nombre:'QUESO RICOTTA PORTALES 1KG', categoria:'Lácteos', unidad:'pza', precio:142.20, proveedor:'Costco de México' },
+    { id:91, nombre:'ROMERO', categoria:'Frutas y Verduras', unidad:'kg', precio:100.00, proveedor:'DISFRULEG' },
+    { id:92, nombre:'SAL DE GRANO', categoria:'Abarrotes', unidad:'kg', precio:12.00, proveedor:'DISFRULEG' },
+    { id:93, nombre:'SALMON LONJA', categoria:'Mariscos', unidad:'kg', precio:300.00, proveedor:'KRILL' },
+    { id:94, nombre:'SANTOS LIMA DESVARIO ALVARINHO BLANCO', categoria:'Vinos', unidad:'bot', precio:290.00, proveedor:'VIPARMEX' },
+    { id:95, nombre:'SANTOS LIMA TOPO VERDE BLANCO', categoria:'Vinos', unidad:'bot', precio:185.02, proveedor:'VIPARMEX' },
+    { id:96, nombre:'SERVILLETAS KIRKLAND 4x260PZS', categoria:'Abarrotes', unidad:'pza', precio:233.56, proveedor:'Costco de México' },
+    { id:97, nombre:'SETAS', categoria:'Frutas y Verduras', unidad:'kg', precio:38.00, proveedor:'DISFRULEG' },
+    { id:98, nombre:'SIDRAL MUNDET 2L', categoria:'Refrescos', unidad:'pza', precio:26.00, proveedor:'Walmart' },
+    { id:99, nombre:'STRACCIATELLA BELGIOIOSO 453G', categoria:'Lácteos', unidad:'pza', precio:168.80, proveedor:'Costco de México' },
+    { id:100, nombre:'TANQUERAY 750ML GIN', categoria:'Licores', unidad:'bot', precio:548.70, proveedor:'CAVA 1911' },
+    { id:101, nombre:'TOCINO', categoria:'Carnicería', unidad:'kg', precio:223.00, proveedor:'CARNICIERIA DIANA' },
+    { id:102, nombre:'TOMATES DESHIDRATADOS BELLA SUN LUCI 992G', categoria:'Abarrotes', unidad:'pza', precio:275.19, proveedor:'Costco de México' },
+    { id:103, nombre:'VINAGRE BALSAMICO', categoria:'Abarrotes', unidad:'lt', precio:65.00, proveedor:'Walmart' },
+    { id:104, nombre:'ZANAHORIA', categoria:'Frutas y Verduras', unidad:'kg', precio:19.00, proveedor:'DISFRULEG' },
+    { id:105, nombre:'AGUA 20L', categoria:'Abarrotes', unidad:'pza', precio:20.00, proveedor:'AGUA' },
+    { id:106, nombre:'BAGUETTE', categoria:'Panadería', unidad:'pza', precio:23.00, proveedor:'PANADERIA' },
+    { id:107, nombre:'PURE DE TOMATE 6KG', categoria:'Abarrotes', unidad:'pza', precio:214.00, proveedor:'Costco de México' },
+    { id:108, nombre:'ALBAHACA FRESCA', categoria:'Frutas y Verduras', unidad:'kg', precio:65.00, proveedor:'DISFRULEG' },
+    { id:109, nombre:'PASTA BARILLA COCIDA', categoria:'Abarrotes', unidad:'kg', precio:38.00, proveedor:'PRODUCCIÓN' },
+    { id:110, nombre:'ALMEJA', categoria:'Mariscos', unidad:'kg', precio:41.00, proveedor:'KRILL' },
+    { id:111, nombre:'MEJILLON', categoria:'Mariscos', unidad:'kg', precio:82.00, proveedor:'KRILL' },
+    { id:112, nombre:'CALDO DE CAMARON KNORR', categoria:'Abarrotes', unidad:'pza', precio:41.00, proveedor:'Walmart' },
+    { id:113, nombre:'VINO BLANCO CHAUVENET', categoria:'Vinos', unidad:'bot', precio:94.82, proveedor:'CEPATINTA' },
+    { id:114, nombre:'VINO TINTO CHAUVENET', categoria:'Vinos', unidad:'bot', precio:94.82, proveedor:'CEPATINTA' },
+    { id:115, nombre:'QUESO AZUL DANES EUROPE'S FINEST', categoria:'Lácteos', unidad:'pza', precio:306.00, proveedor:'Costco de México' },
+    { id:116, nombre:'GALLETA SAVOIARDI', categoria:'Abarrotes', unidad:'pza', precio:239.00, proveedor:'LA MEGA' },
+  ],
+  proveedores: [
+    { id:1, nombre:'Costco de México', tel:'800-000-1234', condicion:'Contado', saldo:0, compras:0 },
+    { id:2, nombre:'DISFRULEG', tel:'', condicion:'8 días', saldo:0, compras:0 },
+    { id:3, nombre:'Walmart', tel:'800-925-6278', condicion:'Contado', saldo:0, compras:0 },
+    { id:4, nombre:'KRILL', tel:'', condicion:'8 días', saldo:0, compras:0 },
+    { id:5, nombre:'CARNICIERIA DIANA', tel:'', condicion:'8 días', saldo:0, compras:0 },
+    { id:6, nombre:'VIPARMEX', tel:'', condicion:'8 días', saldo:0, compras:0 },
+    { id:7, nombre:'AYALA', tel:'', condicion:'8 días', saldo:0, compras:0 },
+    { id:8, nombre:'MIRANDA', tel:'', condicion:'Contado', saldo:0, compras:0 },
+    { id:9, nombre:'CEPATINTA', tel:'', condicion:'8 días', saldo:0, compras:0 },
+    { id:10, nombre:'CAVA 1911', tel:'', condicion:'8 días', saldo:0, compras:0 },
+    { id:11, nombre:'LA MEGA', tel:'', condicion:'Contado', saldo:0, compras:0 },
+    { id:12, nombre:'LECHUGAS', tel:'', condicion:'Contado', saldo:0, compras:0 },
+    { id:13, nombre:'PANADERIA', tel:'', condicion:'Contado', saldo:0, compras:0 },
+    { id:14, nombre:'AGUA', tel:'', condicion:'Contado', saldo:0, compras:0 },
+    { id:15, nombre:'PRODUCCIÓN', tel:'', condicion:'Contado', saldo:0, compras:0 },
+  ],
+  requisiciones: [
     { id:1, nombre:'Marco Rossi', area:'Cocina', producto:'Solomillo de Res', cantidad:15, unidad:'kg', prioridad:'Urgente', notas:'Stock crítico para cena de fin de semana', estatus:'pendiente', hora:'Hace 14 min' },
     { id:2, nombre:'Lucía Méndez', area:'Bar', producto:'Vino Tinto Reserva', cantidad:24, unidad:'bot', prioridad:'Urgente', notas:'Agotado en cava, cliente corporativo esperando', estatus:'pendiente', hora:'Hace 42 min' },
     { id:3, nombre:'Andreína Paz', area:'Cocina', producto:'Harina de Almendra', cantidad:5, unidad:'kg', prioridad:'Normal', notas:'Reposición semanal para postres', estatus:'pendiente', hora:'Hace 3 horas' },
@@ -714,6 +851,7 @@ function doLogin() {
   showSec('home');
   initDate();
   renderDashboard();
+  poblarProveedoresDatalist();
 }
 function doLogout() {
   hideAllPages();
@@ -742,6 +880,7 @@ function showSec(name) {
   document.getElementById('sec-title').textContent = titles[name] || name;
   // Render section data
   if (name === 'home') renderDashboard();
+  if (name === 'compras') poblarProveedoresDatalist();
   if (name === 'historial') renderHistorial('todo');
   if (name === 'cuentas') renderCuentas();
   if (name === 'proveedores') renderProveedores();
@@ -862,34 +1001,85 @@ function getVencimiento() {
   }
   return null;
 }
-function addItem() {
+function addItem(nombre, unidad, precio) {
+  const uid = Date.now() + Math.random();
   const div = document.createElement('div');
-  div.className = 'grid grid-cols-12 gap-2 items-center';
+  div.className = 'relative';
   div.innerHTML = `
-    <input class="col-span-5 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none" placeholder="Producto" oninput="calcTotal()"/>
-    <select class="col-span-2 px-2 py-2 bg-surface-container-low rounded-xl text-sm outline-none">
-      <option>kg</option><option>pza</option><option>lt</option><option>caja</option><option>bot</option>
-    </select>
-    <input type="number" min="0" class="col-span-2 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none" placeholder="0" oninput="calcTotal()"/>
-    <input type="number" min="0" class="col-span-2 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none" placeholder="$0" oninput="calcTotal()"/>
-    <button type="button" onclick="this.closest('.grid').remove();calcTotal()" class="col-span-1 text-slate-300 hover:text-error flex justify-center"><span class="ms">delete</span></button>`;
+    <div class="grid grid-cols-12 gap-2 items-center">
+      <div class="col-span-5 relative">
+        <input class="w-full px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none" placeholder="Buscar producto..." 
+          oninput="buscarProducto(this)" 
+          onfocus="buscarProducto(this)"
+          onblur="setTimeout(()=>cerrarSugerencias(this),200)"
+          value="${nombre||''}"/>
+        <div class="sugerencias hidden absolute z-10 left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-slate-100 max-h-48 overflow-y-auto"></div>
+      </div>
+      <select class="col-span-2 px-2 py-2 bg-surface-container-low rounded-xl text-sm outline-none">
+        <option ${unidad==='kg'?'selected':''}>kg</option>
+        <option ${unidad==='pza'?'selected':''}>pza</option>
+        <option ${unidad==='lt'?'selected':''}>lt</option>
+        <option ${unidad==='caja'?'selected':''}>caja</option>
+        <option ${unidad==='bot'?'selected':''}>bot</option>
+      </select>
+      <input type="number" min="0" class="col-span-2 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none" placeholder="0" oninput="calcTotal()" value=""/>
+      <input type="number" min="0" class="col-span-2 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none" placeholder="$0" oninput="calcTotal()" value="${precio||''}"/>
+      <button type="button" onclick="this.closest('.relative').remove();calcTotal()" class="col-span-1 text-slate-300 hover:text-error flex justify-center"><span class="ms">delete</span></button>
+    </div>`;
   document.getElementById('items-container').appendChild(div);
+  if (precio) calcTotal();
+}
+
+function buscarProducto(input) {
+  const val = input.value.toLowerCase().trim();
+  const sug = input.nextElementSibling;
+  if (!val) { sug.classList.add('hidden'); return; }
+  const matches = DB.productos.filter(p => p.nombre.toLowerCase().includes(val)).slice(0,8);
+  if (!matches.length) { sug.classList.add('hidden'); return; }
+  sug.innerHTML = matches.map(p => `
+    <div class="px-3 py-2.5 hover:bg-surface-container-low cursor-pointer text-sm border-b border-slate-50 last:border-0" 
+      onmousedown="selProducto(this,'${p.nombre}','${p.unidad}',${p.precio})">
+      <span class="font-medium">${p.nombre}</span>
+      <span class="text-xs text-slate-400 ml-2">${p.categoria}</span>
+      <span class="float-right text-xs text-primary font-semibold">${fmt(p.precio)}/${p.unidad}</span>
+    </div>`).join('');
+  sug.classList.remove('hidden');
+}
+
+function selProducto(el, nombre, unidad, precio) {
+  const row = el.closest('.relative').querySelector('.grid');
+  const input = row.querySelector('input[placeholder="Buscar producto..."]');
+  const sel = row.querySelector('select');
+  const nums = row.querySelectorAll('input[type="number"]');
+  input.value = nombre;
+  if (sel) {
+    Array.from(sel.options).forEach(o => { if(o.value===unidad) o.selected=true; });
+  }
+  if (nums[1]) { nums[1].value = precio; calcTotal(); }
+  el.closest('.relative.z-10')?.classList.add('hidden');
+}
+
+function cerrarSugerencias(input) {
+  const sug = input.nextElementSibling;
+  if (sug) sug.classList.add('hidden');
 }
 function calcTotal() {
   let total = 0;
-  document.querySelectorAll('#items-container .grid').forEach(row => {
-    const inputs = row.querySelectorAll('input[type="number"]');
-    total += (parseFloat(inputs[0]?.value)||0) * (parseFloat(inputs[1]?.value)||0);
+  document.querySelectorAll('#items-container .relative').forEach(wrap => {
+    const nums = wrap.querySelectorAll('input[type="number"]');
+    total += (parseFloat(nums[0]?.value)||0) * (parseFloat(nums[1]?.value)||0);
   });
   document.getElementById('total-display').textContent = fmt(total);
 }
 function getItems() {
   const items = [];
-  document.querySelectorAll('#items-container .grid').forEach(row => {
-    const inputs = row.querySelectorAll('input');
+  document.querySelectorAll('#items-container .relative').forEach(wrap => {
+    const row = wrap.querySelector('.grid');
+    if (!row) return;
+    const textInput = row.querySelector('input[placeholder="Buscar producto..."]');
     const nums = row.querySelectorAll('input[type="number"]');
     const sel = row.querySelector('select');
-    const nombre = inputs[0]?.value?.trim();
+    const nombre = textInput?.value?.trim();
     const cant = parseFloat(nums[0]?.value)||0;
     const precio = parseFloat(nums[1]?.value)||0;
     if (nombre || cant || precio) {
@@ -900,8 +1090,8 @@ function getItems() {
 }
 function getTotal() {
   let t = 0;
-  document.querySelectorAll('#items-container .grid').forEach(row => {
-    const nums = row.querySelectorAll('input[type="number"]');
+  document.querySelectorAll('#items-container .relative').forEach(wrap => {
+    const nums = wrap.querySelectorAll('input[type="number"]');
     t += (parseFloat(nums[0]?.value)||0) * (parseFloat(nums[1]?.value)||0);
   });
   return t;
@@ -1532,6 +1722,15 @@ async function handleFileUpload(event) {
   } catch(e) {
     txt.textContent = '⚠ Error de conexión — llena los campos manualmente';
   }
+}
+
+// ============================================================
+// AUTOCOMPLETE HELPERS
+// ============================================================
+function poblarProveedoresDatalist() {
+  const dl = document.getElementById('proveedores-list');
+  if (!dl) return;
+  dl.innerHTML = DB.proveedores.map(p => `<option value="${p.nombre}">`).join('');
 }
 
 // ============================================================
