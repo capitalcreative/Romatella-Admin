@@ -114,6 +114,9 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         <span class="ms text-lg">priority_high</span>Requisiciones
         <span id="req-badge" class="ml-auto bg-error text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">4</span>
       </div>
+      <div onclick="showSec('ventas')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-ventas">
+        <span class="ms text-lg">point_of_sale</span>Ventas
+      </div>
       <div onclick="showSec('reportes')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-reportes">
         <span class="ms text-lg">assessment</span>Reportes
       </div>
@@ -179,6 +182,9 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         <div onclick="mobileNav('requisiciones')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
           <span class="ms text-lg">priority_high</span>Requisiciones
           <span id="mob-req-badge" class="ml-auto bg-error text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">4</span>
+        </div>
+        <div onclick="mobileNav('ventas')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
+          <span class="ms text-lg">point_of_sale</span>Ventas
         </div>
         <div onclick="mobileNav('reportes')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
           <span class="ms text-lg">assessment</span>Reportes
@@ -565,6 +571,165 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
       <div id="req-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
     </section>
 
+    <!-- VENTAS LOYVERSE -->
+    <section id="sec-ventas" class="sec p-5 fade">
+      <div class="flex justify-between items-center mb-4">
+        <div>
+          <h2 class="text-2xl font-bold text-slate-900">Ventas</h2>
+          <p class="text-sm text-slate-400">Sincronizado con Loyverse</p>
+        </div>
+        <div class="flex gap-2 items-center flex-wrap">
+          <input type="date" id="ventas-desde" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs outline-none"/>
+          <input type="date" id="ventas-hasta" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs outline-none"/>
+          <button type="button" onclick="renderVentas()" class="px-4 py-1.5 rounded-xl bg-primary-container text-white text-xs font-semibold flex items-center gap-1 hover:opacity-90">
+            <span class="ms text-sm">sync</span>Sincronizar
+          </button>
+        </div>
+      </div>
+      <!-- Sub tabs -->
+      <div class="flex gap-2 mb-5">
+        <button type="button" onclick="setVentasTab('ventas', this)" id="vtab-ventas" class="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold">Ventas</button>
+        <button type="button" onclick="setVentasTab('caja', this)" id="vtab-caja" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">Movimientos de Caja</button>
+        <button type="button" onclick="setVentasTab('cortes', this)" id="vtab-cortes" class="px-4 py-2 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">Cortes de Caja</button>
+      </div>
+
+      <!-- Loading state -->
+      <div id="ventas-loading" class="hidden flex-col items-center justify-center py-16">
+        <div class="w-12 h-12 border-4 border-primary-container border-t-transparent rounded-full animate-spin mb-4"></div>
+        <p class="text-slate-400 text-sm">Conectando con Loyverse...</p>
+      </div>
+
+      <!-- Error state -->
+      <div id="ventas-error" class="hidden bg-red-50 border border-red-200 rounded-2xl p-5 text-center">
+        <span class="ms text-4xl text-red-300 block mb-2">wifi_off</span>
+        <p class="font-semibold text-red-700" id="ventas-error-msg">Error de conexión</p>
+        <p class="text-sm text-red-400 mt-1">Verifica tu token de Loyverse en Vercel</p>
+      </div>
+
+      <!-- Content -->
+      <div id="ventas-content" class="hidden">
+        <!-- Metrics -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-5">
+          <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Ventas del período</p>
+            <p class="text-2xl font-bold text-slate-900" id="v-total">$0</p>
+            <p class="text-xs text-slate-400 mt-1">MXN</p>
+          </div>
+          <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Tickets</p>
+            <p class="text-2xl font-bold text-slate-900" id="v-tickets">0</p>
+          </div>
+          <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Ticket promedio</p>
+            <p class="text-2xl font-bold text-slate-900" id="v-promedio">$0</p>
+          </div>
+          <div class="bg-green-50 rounded-2xl p-4 border border-green-100">
+            <p class="text-xs text-green-600 uppercase tracking-wider font-semibold mb-1">Food Cost</p>
+            <p class="text-2xl font-bold text-green-700" id="v-foodcost">—%</p>
+            <p class="text-xs text-green-500 mt-1">Compras / Ventas</p>
+          </div>
+        </div>
+
+        <!-- Por forma de pago -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+            <h3 class="font-bold text-slate-900 mb-4">Por Forma de Pago</h3>
+            <div id="v-pagos" class="space-y-3"></div>
+          </div>
+          <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+            <h3 class="font-bold text-slate-900 mb-4">Productos más vendidos</h3>
+            <div id="v-productos" class="space-y-2"></div>
+          </div>
+        </div>
+
+        <!-- Últimos cortes / recibos -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div class="p-4 border-b border-slate-100 flex justify-between items-center">
+            <h3 class="font-bold text-slate-900">Últimas Ventas</h3>
+            <span id="v-periodo-label" class="text-xs text-slate-400"></span>
+          </div>
+          <table class="w-full">
+            <thead class="bg-surface-container-low">
+              <tr class="text-xs text-slate-400 uppercase tracking-wider">
+                <th class="text-left p-4 font-medium">Fecha/Hora</th>
+                <th class="text-left p-4 font-medium hidden md:table-cell">Folio</th>
+                <th class="text-left p-4 font-medium hidden md:table-cell">Forma de pago</th>
+                <th class="text-right p-4 font-medium">Total</th>
+              </tr>
+            </thead>
+            <tbody id="v-recibos" class="divide-y divide-slate-50">
+              <tr><td colspan="4" class="py-8 text-center text-slate-300 text-sm">Sin datos</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CAJA -->
+      <div id="ventas-caja" class="hidden">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div class="p-4 border-b border-slate-100 flex justify-between items-center">
+            <h3 class="font-bold text-slate-900">Movimientos de Caja</h3>
+            <div class="flex gap-3 text-sm">
+              <span class="flex items-center gap-1 text-green-600"><span class="ms text-base">arrow_downward</span>Entradas</span>
+              <span class="flex items-center gap-1 text-red-600"><span class="ms text-base">arrow_upward</span>Salidas</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-3 gap-4 p-4 border-b border-slate-100">
+            <div class="bg-green-50 rounded-xl p-3 text-center">
+              <p class="text-xs text-green-600 font-semibold uppercase tracking-wider mb-1">Total Entradas</p>
+              <p class="text-xl font-bold text-green-700" id="caja-entradas">$0.00</p>
+            </div>
+            <div class="bg-red-50 rounded-xl p-3 text-center">
+              <p class="text-xs text-red-500 font-semibold uppercase tracking-wider mb-1">Total Salidas</p>
+              <p class="text-xl font-bold text-red-600" id="caja-salidas">$0.00</p>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-3 text-center">
+              <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-1">Balance</p>
+              <p class="text-xl font-bold" id="caja-balance">$0.00</p>
+            </div>
+          </div>
+          <table class="w-full">
+            <thead class="bg-surface-container-low">
+              <tr class="text-xs text-slate-400 uppercase tracking-wider">
+                <th class="text-left p-4 font-medium">Fecha/Hora</th>
+                <th class="text-left p-4 font-medium">Tipo</th>
+                <th class="text-left p-4 font-medium hidden md:table-cell">Descripción</th>
+                <th class="text-right p-4 font-medium">Monto</th>
+              </tr>
+            </thead>
+            <tbody id="caja-list" class="divide-y divide-slate-50">
+              <tr><td colspan="4" class="py-8 text-center text-slate-300 text-sm">Sin movimientos</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- CORTES -->
+      <div id="ventas-cortes" class="hidden">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div class="p-4 border-b border-slate-100">
+            <h3 class="font-bold text-slate-900">Cortes de Caja</h3>
+          </div>
+          <table class="w-full">
+            <thead class="bg-surface-container-low">
+              <tr class="text-xs text-slate-400 uppercase tracking-wider">
+                <th class="text-left p-4 font-medium">Apertura</th>
+                <th class="text-left p-4 font-medium hidden md:table-cell">Cierre</th>
+                <th class="text-right p-4 font-medium">Efectivo inicio</th>
+                <th class="text-right p-4 font-medium">Ventas</th>
+                <th class="text-right p-4 font-medium hidden md:table-cell">Efectivo fin</th>
+                <th class="text-center p-4 font-medium">Estado</th>
+              </tr>
+            </thead>
+            <tbody id="cortes-list" class="divide-y divide-slate-50">
+              <tr><td colspan="6" class="py-8 text-center text-slate-300 text-sm">Sin cortes</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
     <!-- REPORTES -->
     <section id="sec-reportes" class="sec p-5 fade">
       <div class="flex justify-between items-center mb-5">
@@ -925,8 +1090,76 @@ function doLogin() {
   document.getElementById('page-app').style.setProperty('display','flex','important');
   showSec('home');
   initDate();
-  renderDashboard();
+  loadFromSupabase();
   poblarProveedoresDatalist();
+}
+
+async function loadFromSupabase() {
+  try {
+    // Load compras with detalle
+    const resp = await fetch('/api/supabase', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ table:'compras', action:'select' })
+    });
+    const comprasDB = await resp.json();
+    if (!Array.isArray(comprasDB)) { renderDashboard(); return; }
+
+    // Load detalle_compras
+    const respD = await fetch('/api/supabase', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ table:'detalle_compras', action:'select' })
+    });
+    const detalles = await respD.json();
+    const detallesArr = Array.isArray(detalles) ? detalles : [];
+
+    // Map to local DB format
+    DB.compras = comprasDB.map(c => ({
+      id: c.id,
+      fecha: c.fecha,
+      proveedor: c.proveedor_nombre || 'Sin proveedor',
+      folio: c.folio || 'S/F',
+      categoria: c.categoria || c.notas || '',
+      forma_pago: c.forma_pago || 'Efectivo',
+      estatus: c.estatus_pago || 'Pendiente',
+      total: parseFloat(c.total) || 0,
+      vencimiento: c.vencimiento || null,
+      items: detallesArr
+        .filter(d => d.compra_id === c.id)
+        .map(d => ({
+          nombre: d.nombre_producto || '',
+          unidad: d.unidad || 'pza',
+          cantidad: parseFloat(d.cantidad) || 0,
+          costo_unitario: parseFloat(d.costo_unitario) || 0
+        }))
+    }));
+
+    // Rebuild proveedores from compras
+    const provMap = {};
+    DB.compras.forEach(c => {
+      if (!c.proveedor) return;
+      if (!provMap[c.proveedor]) provMap[c.proveedor] = { nombre: c.proveedor, saldo: 0, compras: 0 };
+      provMap[c.proveedor].compras++;
+      if (c.estatus !== 'Pagado') provMap[c.proveedor].saldo += c.total;
+    });
+    // Merge with existing proveedores (keep preconfigured ones)
+    Object.values(provMap).forEach(p => {
+      const existing = DB.proveedores.find(x => x.nombre === p.nombre);
+      if (existing) {
+        existing.saldo = p.saldo;
+        existing.compras = p.compras;
+      } else {
+        DB.proveedores.push({ id: Date.now()+Math.random(), ...p, tel:'', condicion:'8 días' });
+      }
+    });
+
+    renderDashboard();
+    poblarProveedoresDatalist();
+    toast('✓ Datos cargados desde Supabase');
+  } catch(e) {
+    renderDashboard();
+  }
 }
 function doLogout() {
   hideAllPages();
@@ -951,10 +1184,11 @@ function showSec(name) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const nav = document.getElementById('nav-'+name);
   if (nav) nav.classList.add('active');
-  const titles = {home:'Dashboard',compras:'Nueva Compra',historial:'Historial de Compras',productos:'Productos',proveedores:'Proveedores',cuentas:'Cuentas por Pagar',requisiciones:'Requisiciones',reportes:'Reportes'};
+  const titles = {home:'Dashboard',compras:'Nueva Compra',historial:'Historial de Compras',productos:'Productos',proveedores:'Proveedores',cuentas:'Cuentas por Pagar',requisiciones:'Requisiciones',ventas:'Ventas Loyverse',reportes:'Reportes'};
   document.getElementById('sec-title').textContent = titles[name] || name;
   // Render section data
   if (name === 'home') renderDashboard();
+  if (name === 'ventas') renderVentas();
   if (name === 'compras') poblarProveedoresDatalist();
   if (name === 'historial') renderHistorial('todo');
   if (name === 'cuentas') renderCuentas();
@@ -1454,12 +1688,14 @@ function openPayModal(id) {
   document.getElementById('pay-monto').value = c.total;
   document.getElementById('modal-pay').classList.remove('hidden');
 }
-function confirmarPago() {
+async function confirmarPago() {
+  const idsToUpdate = [];
+
   if (DB.currentPayProveedorNombre) {
-    // Bulk payment for all compras of a proveedor
     const nombre = DB.currentPayProveedorNombre;
     DB.compras.filter(c => c.proveedor === nombre && c.estatus !== 'Pagado').forEach(c => {
       c.estatus = 'Pagado';
+      idsToUpdate.push(c.id);
     });
     const p = DB.proveedores.find(x => x.nombre === nombre);
     if (p) p.saldo = 0;
@@ -1468,10 +1704,23 @@ function confirmarPago() {
     const c = DB.compras.find(x => x.id === DB.currentPayId);
     if (c) {
       c.estatus = 'Pagado';
+      idsToUpdate.push(c.id);
       const p = DB.proveedores.find(x => x.nombre.toLowerCase() === c.proveedor.toLowerCase());
       if (p) p.saldo = Math.max(0, (p.saldo||0) - c.total);
     }
   }
+
+  // Update in Supabase
+  for (const id of idsToUpdate) {
+    try {
+      await fetch('/api/supabase', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ table:'compras', action:'update', id, data:{ estatus_pago:'Pagado' } })
+      });
+    } catch(e) {}
+  }
+
   closeModal('modal-pay');
   renderCuentas();
   if (DB.cxpVista === 'proveedor') renderCxPProveedor();
@@ -1965,6 +2214,234 @@ function poblarProveedoresDatalist() {
   const dl = document.getElementById('proveedores-list');
   if (!dl) return;
   dl.innerHTML = DB.proveedores.map(p => `<option value="${p.nombre}">`).join('');
+}
+
+// ============================================================
+// VENTAS LOYVERSE
+// ============================================================
+async function renderVentas() {
+  const loading = document.getElementById('ventas-loading');
+  const error = document.getElementById('ventas-error');
+  const contentDiv = document.getElementById('ventas-content');
+
+  loading.classList.remove('hidden');
+  loading.style.display = 'flex';
+  error.classList.add('hidden');
+  contentDiv.classList.add('hidden');
+
+  // Set default dates if empty
+  const hoy = new Date();
+  const desde = document.getElementById('ventas-desde');
+  const hasta = document.getElementById('ventas-hasta');
+  if (!desde.value) desde.value = new Date(hoy.getFullYear(), hoy.getMonth(), 1).toISOString().split('T')[0];
+  if (!hasta.value) hasta.value = hoy.toISOString().split('T')[0];
+
+  const dateFrom = desde.value + 'T00:00:00.000Z';
+  const dateTo = hasta.value + 'T23:59:59.000Z';
+
+  try {
+    const resp = await fetch(`/api/loyverse?endpoint=summary&date_from=${encodeURIComponent(dateFrom)}&date_to=${encodeURIComponent(dateTo)}`);
+    const data = await resp.json();
+
+    if (data.error) throw new Error(data.error);
+
+    const receipts = data.receipts || [];
+    loading.classList.add('hidden');
+    loading.style.display = 'none';
+    contentDiv.classList.remove('hidden');
+
+    // Metrics
+    const totalVentas = receipts.reduce((a, r) => a + (r.total_money || 0), 0);
+    const ticketProm = receipts.length ? totalVentas / receipts.length : 0;
+
+    document.getElementById('v-total').textContent = fmt(totalVentas);
+    document.getElementById('v-tickets').textContent = receipts.length;
+    document.getElementById('v-promedio').textContent = fmt(ticketProm);
+
+    // Food cost
+    const totalCompras = DB.compras.reduce((a, c) => a + c.total, 0);
+    const foodCost = totalVentas > 0 ? ((totalCompras / totalVentas) * 100).toFixed(1) : '—';
+    const fcEl = document.getElementById('v-foodcost');
+    fcEl.textContent = totalVentas > 0 ? foodCost + '%' : '—';
+    const fc = parseFloat(foodCost);
+    fcEl.className = 'text-2xl font-bold ' + (fc < 30 ? 'text-green-700' : fc < 35 ? 'text-orange-600' : 'text-red-600');
+
+    // Formas de pago
+    const pagoMap = {};
+    receipts.forEach(r => {
+      (r.payments || []).forEach(p => {
+        const tipo = p.payment_type || 'OTRO';
+        pagoMap[tipo] = (pagoMap[tipo] || 0) + (p.money_amount || 0);
+      });
+    });
+    const maxPago = Math.max(...Object.values(pagoMap), 1);
+    document.getElementById('v-pagos').innerHTML = Object.entries(pagoMap)
+      .sort((a,b) => b[1]-a[1])
+      .map(([tipo, monto]) => `
+        <div>
+          <div class="flex justify-between text-sm mb-1">
+            <span class="font-medium">${tipo}</span>
+            <span class="font-semibold">${fmt(monto)}</span>
+          </div>
+          <div class="h-2 bg-slate-100 rounded-full">
+            <div class="h-2 bg-primary-container rounded-full" style="width:${(monto/maxPago*100).toFixed(0)}%"></div>
+          </div>
+        </div>`).join('') || '<p class="text-slate-300 text-sm">Sin datos de pagos</p>';
+
+    // Productos vendidos
+    const prodMap = {};
+    receipts.forEach(r => {
+      (r.line_items || []).forEach(item => {
+        const nombre = item.item_name || 'Desconocido';
+        if (!prodMap[nombre]) prodMap[nombre] = { qty: 0, total: 0 };
+        prodMap[nombre].qty += (item.quantity || 0);
+        prodMap[nombre].total += (item.total_money || 0);
+      });
+    });
+    const topProds = Object.entries(prodMap).sort((a,b) => b[1].total - a[1].total).slice(0, 10);
+    const maxProd = topProds[0]?.[1].total || 1;
+    document.getElementById('v-productos').innerHTML = topProds.map(([nombre, d]) => `
+      <div class="flex items-center gap-3 text-sm">
+        <div class="flex-1 min-w-0">
+          <div class="flex justify-between mb-0.5">
+            <span class="font-medium truncate">${nombre}</span>
+            <span class="text-slate-400 ml-2 shrink-0">${d.qty.toFixed(1)} uds</span>
+          </div>
+          <div class="h-1.5 bg-slate-100 rounded-full">
+            <div class="h-1.5 bg-green-400 rounded-full" style="width:${(d.total/maxProd*100).toFixed(0)}%"></div>
+          </div>
+        </div>
+        <span class="font-semibold shrink-0">${fmt(d.total)}</span>
+      </div>`).join('') || '<p class="text-slate-300 text-sm">Sin productos</p>';
+
+    // Últimos recibos
+    document.getElementById('v-periodo-label').textContent = desde.value + ' al ' + hasta.value;
+    const last20 = [...receipts].sort((a,b) => b.receipt_number - a.receipt_number).slice(0,20);
+    document.getElementById('v-recibos').innerHTML = last20.length ? last20.map(r => {
+      const fecha = new Date(r.created_at);
+      const fechaStr = fecha.toLocaleDateString('es-MX', {day:'2-digit', month:'short'}) + ' ' + fecha.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+      const pago = r.payments?.[0]?.payment_type || '—';
+      return `<tr class="text-sm hover:bg-slate-50/50">
+        <td class="p-4 text-slate-500">${fechaStr}</td>
+        <td class="p-4 text-slate-400 hidden md:table-cell text-xs">#${r.receipt_number || '—'}</td>
+        <td class="p-4 text-slate-400 hidden md:table-cell text-xs">${pago}</td>
+        <td class="p-4 text-right font-semibold">${fmt(r.total_money || 0)}</td>
+      </tr>`;
+    }).join('') : '<tr><td colspan="4" class="py-8 text-center text-slate-300 text-sm">Sin ventas en este período</td></tr>';
+
+  } catch(e) {
+    loading.classList.add('hidden');
+    loading.style.display = 'none';
+    error.classList.remove('hidden');
+    document.getElementById('ventas-error-msg').textContent = e.message;
+  }
+}
+
+// ============================================================
+// VENTAS TABS
+// ============================================================
+function setVentasTab(tab, btn) {
+  ['ventas','caja','cortes'].forEach(t => {
+    const el = document.getElementById('ventas-' + (t==='ventas'?'content':t));
+    if (el) el.classList.add('hidden');
+    const b = document.getElementById('vtab-' + t);
+    if (b) b.className = 'px-4 py-2 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200';
+  });
+  const target = document.getElementById('ventas-' + (tab==='ventas'?'content':tab));
+  if (target) target.classList.remove('hidden');
+  if (btn) btn.className = 'px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold';
+  
+  if (tab === 'caja') renderCaja();
+  if (tab === 'cortes') renderCortes();
+}
+
+async function renderCaja() {
+  const desde = document.getElementById('ventas-desde').value || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+  const hasta = document.getElementById('ventas-hasta').value || new Date().toISOString().split('T')[0];
+  const dateFrom = desde + 'T00:00:00.000Z';
+  const dateTo = hasta + 'T23:59:59.000Z';
+
+  try {
+    const resp = await fetch(`/api/loyverse?endpoint=cash&date_from=${encodeURIComponent(dateFrom)}&date_to=${encodeURIComponent(dateTo)}`);
+    const data = await resp.json();
+    const ops = data.cash_operations || [];
+
+    let entradas = 0, salidas = 0;
+    ops.forEach(op => {
+      if (op.amount > 0) entradas += op.amount;
+      else salidas += Math.abs(op.amount);
+    });
+    const balance = entradas - salidas;
+
+    document.getElementById('caja-entradas').textContent = fmt(entradas);
+    document.getElementById('caja-salidas').textContent = fmt(salidas);
+    const balEl = document.getElementById('caja-balance');
+    balEl.textContent = fmt(Math.abs(balance));
+    balEl.className = 'text-xl font-bold ' + (balance >= 0 ? 'text-green-700' : 'text-red-600');
+
+    const tbody = document.getElementById('caja-list');
+    if (!ops.length) {
+      tbody.innerHTML = '<tr><td colspan="4" class="py-8 text-center text-slate-300 text-sm">Sin movimientos de caja en este período</td></tr>';
+      return;
+    }
+    tbody.innerHTML = [...ops].sort((a,b) => new Date(b.created_at)-new Date(a.created_at)).map(op => {
+      const fecha = new Date(op.created_at);
+      const fechaStr = fecha.toLocaleDateString('es-MX', {day:'2-digit', month:'short'}) + ' ' + fecha.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+      const esEntrada = op.amount > 0;
+      return `<tr class="text-sm hover:bg-slate-50/50">
+        <td class="p-4 text-slate-500">${fechaStr}</td>
+        <td class="p-4">
+          <span class="flex items-center gap-1 ${esEntrada?'text-green-600':'text-red-600'} font-semibold text-xs">
+            <span class="ms text-base">${esEntrada?'arrow_downward':'arrow_upward'}</span>
+            ${esEntrada?'ENTRADA':'SALIDA'}
+          </span>
+        </td>
+        <td class="p-4 text-slate-400 hidden md:table-cell text-xs">${op.comment || '—'}</td>
+        <td class="p-4 text-right font-bold ${esEntrada?'text-green-700':'text-red-600'}">${esEntrada?'+':'-'}${fmt(Math.abs(op.amount))}</td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('caja-list').innerHTML = `<tr><td colspan="4" class="py-4 text-center text-red-400 text-sm">${e.message}</td></tr>`;
+  }
+}
+
+async function renderCortes() {
+  const desde = document.getElementById('ventas-desde').value || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+  const hasta = document.getElementById('ventas-hasta').value || new Date().toISOString().split('T')[0];
+  const dateFrom = desde + 'T00:00:00.000Z';
+  const dateTo = hasta + 'T23:59:59.000Z';
+
+  try {
+    const resp = await fetch(`/api/loyverse?endpoint=shifts&date_from=${encodeURIComponent(dateFrom)}&date_to=${encodeURIComponent(dateTo)}`);
+    const data = await resp.json();
+    const shifts = data.shifts || [];
+
+    const tbody = document.getElementById('cortes-list');
+    if (!shifts.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-300 text-sm">Sin cortes en este período</td></tr>';
+      return;
+    }
+    tbody.innerHTML = [...shifts].sort((a,b) => new Date(b.opened_at)-new Date(a.opened_at)).map(s => {
+      const apertura = new Date(s.opened_at);
+      const cierre = s.closed_at ? new Date(s.closed_at) : null;
+      const totalVentas = (s.gross_sales || 0);
+      const abierto = !s.closed_at;
+      return `<tr class="text-sm hover:bg-slate-50/50 ${abierto?'bg-green-50/30':''}">
+        <td class="p-4 text-slate-500">${apertura.toLocaleDateString('es-MX',{day:'2-digit',month:'short'})} ${apertura.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}</td>
+        <td class="p-4 text-slate-400 hidden md:table-cell">${cierre ? cierre.toLocaleDateString('es-MX',{day:'2-digit',month:'short'}) + ' ' + cierre.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}) : '—'}</td>
+        <td class="p-4 text-right font-medium">${fmt(s.opening_cash || 0)}</td>
+        <td class="p-4 text-right font-bold">${fmt(totalVentas)}</td>
+        <td class="p-4 text-right font-medium hidden md:table-cell">${cierre ? fmt(s.closing_cash || 0) : '—'}</td>
+        <td class="p-4 text-center">
+          ${abierto 
+            ? '<span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">ABIERTO</span>'
+            : '<span class="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-1 rounded-full">CERRADO</span>'}
+        </td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    document.getElementById('cortes-list').innerHTML = `<tr><td colspan="6" class="py-4 text-center text-red-400 text-sm">${e.message}</td></tr>`;
+  }
 }
 
 // ============================================================
