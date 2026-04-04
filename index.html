@@ -1595,7 +1595,7 @@ function renderCuentas(filtro) {
       <td class="p-4 text-right font-semibold">${fmt(c.total)}</td>
       <td class="p-4 text-center">${estatusBadge(c.estatus)}</td>
       <td class="p-4 text-right">
-        ${c.estatus !== 'Pagado' ? `<button type="button" onclick="openPayModal(${c.id})" class="${venc?'bg-error':'bg-primary-container'} text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:opacity-90">Registrar pago</button>` : '<span class="text-xs text-green-600 font-semibold">✓ Pagado</span>'}
+        ${c.estatus !== 'Pagado' ? `<button type="button" onclick="openPayModal('${c.id}')" class="${venc?'bg-error':'bg-primary-container'} text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:opacity-90">Registrar pago</button>` : '<span class="text-xs text-green-600 font-semibold">✓ Pagado</span>'}
       </td>
     </tr>`;
   }).join('');
@@ -1682,7 +1682,7 @@ function filterCxP(tipo, btn) {
 }
 function openPayModal(id) {
   DB.currentPayId = id;
-  const c = DB.compras.find(x => x.id === id);
+  const c = DB.compras.find(x => String(x.id) === String(id));
   if (!c) return;
   document.getElementById('pay-prov').textContent = c.proveedor + ' — ' + c.folio;
   document.getElementById('pay-monto').value = c.total;
@@ -2015,7 +2015,7 @@ function renderHistorial(filtro, categoriaFiltro) {
   }
   
   tbody.innerHTML = compras.map(c => `
-    <tr class="text-sm hover:bg-slate-50/50 cursor-pointer" onclick="verDetalle(${c.id})">
+    <tr class="text-sm hover:bg-slate-50/50 cursor-pointer" onclick="verDetalle('${c.id}')">
       <td class="p-4 text-slate-500">${fmtDate(c.fecha)}</td>
       <td class="p-4 font-medium">${c.proveedor}</td>
       <td class="p-4 text-slate-400 hidden md:table-cell"><span class="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">${c.categoria||'—'}</span></td>
@@ -2024,8 +2024,8 @@ function renderHistorial(filtro, categoriaFiltro) {
       <td class="p-4 text-right font-semibold">${fmt(c.total)}</td>
       <td class="p-4 text-center">${estatusBadge(c.estatus)}</td>
       <td class="p-4 text-right text-slate-300 flex items-center justify-end gap-2">
-        <span class="ms cursor-pointer hover:text-primary" onclick="event.stopPropagation();verDetalle(${c.id})">chevron_right</span>
-        <span class="ms cursor-pointer hover:text-error" onclick="event.stopPropagation();borrarCompra(${c.id})">delete</span>
+        <span class="ms cursor-pointer hover:text-primary" onclick="event.stopPropagation();verDetalle('${c.id}')">chevron_right</span>
+        <span class="ms cursor-pointer hover:text-error" onclick="event.stopPropagation();borrarCompra('${c.id}')">delete</span>
       </td>
     </tr>`).join('');
 }
@@ -2053,7 +2053,7 @@ function filtrarHistorial(tipo, btnOrValue) {
 }
 
 function verDetalle(id) {
-  const c = DB.compras.find(x => x.id === id);
+  const c = DB.compras.find(x => String(x.id) === String(id));
   if (!c) return;
   const items = (c.items||[]).length ? c.items.map(it => `
     <tr class="text-sm">
@@ -2093,7 +2093,7 @@ function verDetalle(id) {
         <span class="text-2xl font-bold text-white">${fmt(c.total)}</span>
       </div>
       <div class="flex gap-3">
-        ${c.estatus !== 'Pagado' ? `<button type="button" onclick="closeModal('modal-detalle');openPayModal(${c.id})" class="flex-1 bg-primary-container text-white py-3 rounded-2xl font-semibold hover:opacity-90">Registrar Pago</button>` : ''}
+        ${c.estatus !== 'Pagado' ? `<button type="button" onclick="closeModal('modal-detalle');openPayModal('${c.id}')" class="flex-1 bg-primary-container text-white py-3 rounded-2xl font-semibold hover:opacity-90">Registrar Pago</button>` : ''}
         <button type="button" onclick="closeModal('modal-detalle');borrarCompra(${c.id})" class="flex-1 bg-red-50 text-error border border-red-200 py-3 rounded-2xl font-semibold hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
           <span class="ms text-lg">delete</span>Eliminar compra
         </button>
@@ -2106,7 +2106,7 @@ function verDetalle(id) {
 // BORRAR COMPRA
 // ============================================================
 function borrarCompra(id) {
-  const c = DB.compras.find(x => x.id === id);
+  const c = DB.compras.find(x => String(x.id) === String(id));
   if (!c) return;
   if (!confirm(`¿Eliminar la compra de ${c.proveedor} por ${fmt(c.total)}? Esta acción no se puede deshacer.`)) return;
   
