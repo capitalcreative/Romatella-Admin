@@ -706,8 +706,6 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
 
       <!-- CORTES -->
       <div id="ventas-cortes" class="hidden">
-        <!-- Alerta de discrepancias -->
-        <div id="cortes-alertas" class="mb-4 space-y-2"></div>
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
           <div class="p-4 border-b border-slate-100">
             <h3 class="font-bold text-slate-900">Cortes de Caja</h3>
@@ -715,12 +713,13 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           <table class="w-full">
             <thead class="bg-surface-container-low">
               <tr class="text-xs text-slate-400 uppercase tracking-wider">
+                <th class="text-left p-4 font-medium" style="width:28px"></th>
                 <th class="text-left p-4 font-medium">Fecha / Horario</th>
-                <th class="text-left p-4 font-medium hidden md:table-cell">Fondo inicial</th>
-                <th class="text-right p-4 font-medium">Venta Total</th>
+                <th class="text-right p-4 font-medium">Venta total</th>
                 <th class="text-left p-4 font-medium hidden lg:table-cell">Por forma de pago</th>
-                <th class="text-right p-4 font-medium hidden md:table-cell">Efectivo real / Diferencia</th>
-                <th class="text-center p-4 font-medium">Estado</th>
+                <th class="text-right p-4 font-medium hidden md:table-cell">Efectivo real</th>
+                <th class="text-center p-4 font-medium hidden md:table-cell">Descuadre</th>
+                <th class="text-center p-4 font-medium">Apertura</th>
               </tr>
             </thead>
             <tbody id="cortes-list" class="divide-y divide-slate-50">
@@ -1093,6 +1092,12 @@ const DB = {
   ],
   periodo: 'semana',
   cxpVista: 'detalle',
+  paymentTypes: {
+    '139bdbdf-85c2-4b5b-bc6d-2a31871f2925': 'Banamex',
+    '5176a2bf-d62e-4a61-a0db-16954f61c4be': 'Efectivo',
+    'c53c37a0-b021-4be2-ba15-aca364d71007': 'UberEats',
+    'f26c7ccb-08e4-4a22-bb42-f42b726c2c34': 'Mercado Pago'
+  },
   currentPayId: null,
   currentEstatus: 'Pendiente',
   currentArea: null,
@@ -2284,11 +2289,11 @@ async function renderVentas() {
     const fc = parseFloat(foodCost);
     fcEl.className = 'text-2xl font-bold ' + (fc < 30 ? 'text-green-700' : fc < 35 ? 'text-orange-600' : 'text-red-600');
 
-    // Formas de pago - Loyverse usa 'name' para el tipo de pago
+    // Formas de pago - usar nombre del receipt o mapear por ID
     const pagoMap = {};
     receipts.forEach(r => {
       (r.payments || []).forEach(p => {
-        const tipo = p.name || p.payment_type || 'OTRO';
+        const tipo = p.name || DB.paymentTypes[p.payment_type_id] || 'Otro';
         pagoMap[tipo] = (pagoMap[tipo] || 0) + (p.money_amount || 0);
       });
     });
@@ -2449,10 +2454,8 @@ async function renderCortes() {
     const shifts = data.shifts || [];
 
     const tbody = document.getElementById('cortes-list');
-    const alertasDiv = document.getElementById('cortes-alertas');
     if (!shifts.length) {
       tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-300 text-sm">Sin cortes en este período</td></tr>';
-      alertasDiv.innerHTML = '';
       return;
     }
 
@@ -2476,63 +2479,73 @@ async function renderCortes() {
       }
     }
 
-    // Show alerts
-    if (discrepancias.length) {
-      alertasDiv.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-2xl p-4">' +
-        '<div class="flex items-center gap-2 mb-3">' +
-        '<span class="ms text-red-500 text-xl">warning</span>' +
-        '<p class="font-bold text-red-700">Discrepancias de apertura detectadas (' + discrepancias.length + ')</p>' +
-        '</div>' +
-        '<p class="text-sm text-red-500 mb-3">La caja se abrió con un monto diferente al que se cerró el turno anterior.</p>' +
-        discrepancias.map(d => {
-          const fecha = new Date(d.fecha);
-          const fechaStr = fecha.toLocaleDateString('es-MX', {weekday:'short', day:'2-digit', month:'short'}) + ' ' +
-                           fecha.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
-          const esFaltante = d.diferencia < 0;
-          return '<div class="flex items-center justify-between bg-white rounded-xl px-4 py-3 mb-2 border border-red-100">' +
-            '<div>' +
-            '<p class="font-semibold text-slate-800 text-sm">' + fechaStr + '</p>' +
-            '<p class="text-xs text-slate-400">Cierre previo: ' + fmt(d.cierrePrevio) + ' → Apertura: ' + fmt(d.apertura) + '</p>' +
-            '</div>' +
-            '<span class="font-bold text-base ' + (esFaltante ? 'text-red-600' : 'text-orange-500') + '">' +
-            (esFaltante ? '▼ FALTA ' : '▲ SOBRA ') + fmt(Math.abs(d.diferencia)) +
-            '</span></div>';
-        }).join('') +
-        '</div>';
-    } else {
-      alertasDiv.innerHTML = '<div class="bg-green-50 border border-green-200 rounded-2xl px-4 py-3 flex items-center gap-2">' +
-        '<span class="ms text-green-500">check_circle</span>' +
-        '<p class="text-sm font-semibold text-green-700">Sin discrepancias de apertura en este período</p></div>';
+    // ---- TABLA DE CORTES ----
+    const ptMap = DB.paymentTypes || {};
+
+    const discMap = {};
+    for (let i = 1; i < sorted.length; i++) {
+      const prev = sorted[i-1];
+      const curr = sorted[i];
+      if (!prev.closed_at) continue;
+      const cPrev = prev.actual_cash || 0;
+      const aActual = curr.starting_cash || 0;
+      const diff = aActual - cPrev;
+      if (Math.abs(diff) > 0.5) discMap[curr.id] = { cierrePrevio: cPrev, apertura: aActual, diff };
     }
 
-    // ---- TABLA DE CORTES ----
-    tbody.innerHTML = [...shifts].sort((a,b) => new Date(b.opened_at)-new Date(a.opened_at)).map(s => {
-      const apertura = new Date(s.opened_at);
-      const cierre = s.closed_at ? new Date(s.closed_at) : null;
-      const abierto = !s.closed_at;
-      const pagos = (s.payments || []).map(p =>
-        '<span class="inline-flex text-xs bg-slate-100 px-2 py-0.5 rounded-full">' + (p.name||'Otro') + ': ' + fmt(p.money_amount||0) + '</span>'
-      ).join(' ');
-      const diferencia = (s.actual_cash || 0) - (s.expected_cash || 0);
-      const difColor = diferencia >= 0 ? 'text-green-600' : 'text-red-600';
-      const difSign = diferencia >= 0 ? '+' : '';
-      const shiftEncoded = encodeURIComponent(JSON.stringify(s));
-      return '<tr class="text-sm hover:bg-slate-50/50 cursor-pointer ' + (abierto?'bg-green-50/30':'') + '" onclick="verCorte(this.dataset.shift)" data-shift="' + shiftEncoded + '">' +
-        '<td class="p-4"><p class="font-medium">' + apertura.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) + '</p>' +
-        '<p class="text-xs text-slate-400">' + apertura.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}) + ' → ' +
-        (cierre ? cierre.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}) : 'Abierto') + '</p></td>' +
-        '<td class="p-4 hidden md:table-cell"><p class="font-semibold text-slate-700">' + fmt(s.starting_cash||0) + '</p>' +
-        '<p class="text-xs text-slate-400">Fondo inicial</p></td>' +
-        '<td class="p-4 text-right"><p class="font-bold text-lg">' + fmt(s.gross_sales||0) + '</p>' +
-        '<p class="text-xs text-slate-400">Venta bruta</p></td>' +
-        '<td class="p-4 hidden lg:table-cell"><div class="flex flex-wrap gap-1">' + (pagos || '<span class="text-xs text-slate-300">—</span>') + '</div></td>' +
-        '<td class="p-4 text-right hidden md:table-cell"><p class="font-semibold">' + fmt(s.actual_cash||0) + '</p>' +
-        '<p class="text-xs ' + difColor + ' font-semibold">' + difSign + fmt(Math.abs(diferencia)) + ' dif.</p></td>' +
-        '<td class="p-4 text-center">' +
-        (abierto ? '<span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">ABIERTO</span>'
-                 : '<span class="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-1 rounded-full">CERRADO</span>') +
-        '</td></tr>';
-    }).join('');
+    const rows = [];
+    [...shifts].sort((a,b) => new Date(b.opened_at)-new Date(a.opened_at)).forEach(s => {
+      const ap = new Date(s.opened_at);
+      const ci = s.closed_at ? new Date(s.closed_at) : null;
+      const disc = discMap[s.id];
+      const dif = (s.actual_cash||0) - (s.expected_cash||0);
+      const difColor = dif >= 0 ? 'color:#3B6D11' : 'color:#A32D2D';
+      const difSign = dif >= 0 ? '+' : '';
+
+      const colorMap = {
+        'Banamex':      'background:#E6F1FB;color:#185FA5',
+        'Efectivo':     'background:#EAF3DE;color:#3B6D11',
+        'UberEats':     'background:#FAEEDA;color:#854F0B',
+        'Mercado Pago': 'background:#EEEDFE;color:#534AB7'
+      };
+      const pagos = (s.payments||[]).map(p => {
+        const n = p.name || ptMap[p.payment_type_id] || 'Otro';
+        const st = colorMap[n] || 'background:#F1EFE8;color:#5F5E5A';
+        return '<span style="' + st + ';font-size:11px;border-radius:4px;padding:2px 6px;display:inline-block;margin:1px">' + n + ' ' + fmt(p.money_amount||0) + '</span>';
+      }).join(' ');
+
+      const dot = '<span style="width:8px;height:8px;border-radius:50%;display:inline-block;background:' + (disc ? '#E24B4A' : '#639922') + '"></span>';
+
+      const aperturaBadge = disc
+        ? '<span style="background:#FCEBEB;color:#A32D2D;font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px;white-space:nowrap">&#9660; falta ' + fmt(Math.abs(disc.diff)) + '</span>'
+        : '<span style="background:#EAF3DE;color:#3B6D11;font-size:11px;font-weight:600;padding:3px 8px;border-radius:99px">&#10003; OK</span>';
+
+      const se = encodeURIComponent(JSON.stringify(s));
+
+      rows.push('<tr class="text-sm cursor-pointer hover:bg-slate-50/50" onclick="verCorte(this.dataset.shift)" data-shift="' + se + '">' +
+        '<td class="p-3 pl-4">' + dot + '</td>' +
+        '<td class="p-3"><p class="font-medium text-sm">' + ap.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) + '</p>' +
+        '<p class="text-xs text-slate-400">' + ap.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}) + ' &#8594; ' +
+        (ci ? ci.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}) : '<span style="color:#639922">Abierto</span>') + '</p></td>' +
+        '<td class="p-3 text-right"><p class="font-bold">' + fmt(s.gross_sales||0) + '</p></td>' +
+        '<td class="p-3 hidden lg:table-cell"><div style="display:flex;flex-wrap:wrap;gap:2px">' + (pagos || '<span class="text-xs text-slate-300">&#8212;</span>') + '</div></td>' +
+        '<td class="p-3 text-right hidden md:table-cell font-semibold">' + fmt(s.actual_cash||0) + '</td>' +
+        '<td class="p-3 text-center hidden md:table-cell"><span style="font-size:12px;font-weight:600;' + difColor + '">' + difSign + fmt(Math.abs(dif)) + '</span></td>' +
+        '<td class="p-3 text-center">' + aperturaBadge + '</td>' +
+        '</tr>');
+
+      if (disc) {
+        rows.push('<tr style="background:#FCEBEB;border-top:0.5px solid #F7C1C1">' +
+          '<td colspan="7" style="padding:8px 14px 8px 40px">' +
+          '<div style="display:flex;align-items:center;justify-content:space-between">' +
+          '<div><p style="font-size:12px;font-weight:600;color:#A32D2D;margin-bottom:2px">Discrepancia de apertura detectada</p>' +
+          '<p style="font-size:11px;color:#A32D2D">Turno anterior cerr&#243; con <strong>' + fmt(disc.cierrePrevio) + '</strong> &middot; Este turno abri&#243; con <strong>' + fmt(disc.apertura) + '</strong></p></div>' +
+          '<span style="font-size:13px;font-weight:700;color:#A32D2D">&#9660; ' + fmt(Math.abs(disc.diff)) + '</span>' +
+          '</div></td></tr>');
+      }
+    });
+    tbody.innerHTML = rows.join('');
+
   } catch(e) {
     document.getElementById('cortes-list').innerHTML = '<tr><td colspan="6" class="py-4 text-center text-red-400 text-sm">' + e.message + '</td></tr>';
   }
@@ -2554,11 +2567,12 @@ function verCorte(shiftData) {
   const difLabel = diferencia === 0 ? 'Sin descuadre' : diferencia > 0 ? 'Sobrante' : 'Faltante';
 
   // Payment breakdown
-  const pagosHTML = (s.payments||[]).map(p =>
-    '<div class="flex justify-between text-sm py-1">' +
-    '<span class="text-slate-600">' + (p.name||'Otro') + '</span>' +
-    '<span class="font-semibold">' + fmt(p.money_amount||0) + '</span></div>'
-  ).join('') || '<p class="text-slate-300 text-sm">Sin pagos</p>';
+  const pagosHTML = (s.payments||[]).map(p => {
+    const nombre = p.name || DB.paymentTypes[p.payment_type_id] || 'Otro';
+    return '<div class="flex justify-between text-sm py-1.5 border-b border-slate-50 last:border-0">' +
+    '<span class="text-slate-600 flex items-center gap-2"><span class="w-2 h-2 rounded-full bg-primary-container inline-block"></span>' + nombre + '</span>' +
+    '<span class="font-semibold">' + fmt(p.money_amount||0) + '</span></div>';
+  }).join('') || '<p class="text-slate-300 text-sm">Sin pagos</p>';
 
   // Cash movements
   const movHTML = (s.cash_movements||[]).map(m => {
