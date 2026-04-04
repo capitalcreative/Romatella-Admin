@@ -713,11 +713,11 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           <table class="w-full">
             <thead class="bg-surface-container-low">
               <tr class="text-xs text-slate-400 uppercase tracking-wider">
-                <th class="text-left p-4 font-medium">Apertura</th>
-                <th class="text-left p-4 font-medium hidden md:table-cell">Cierre</th>
-                <th class="text-right p-4 font-medium">Efectivo inicio</th>
-                <th class="text-right p-4 font-medium">Ventas</th>
-                <th class="text-right p-4 font-medium hidden md:table-cell">Efectivo fin</th>
+                <th class="text-left p-4 font-medium">Fecha / Horario</th>
+                <th class="text-left p-4 font-medium hidden md:table-cell">Fondo inicial</th>
+                <th class="text-right p-4 font-medium">Venta Total</th>
+                <th class="text-left p-4 font-medium hidden lg:table-cell">Por forma de pago</th>
+                <th class="text-right p-4 font-medium hidden md:table-cell">Efectivo real / Diferencia</th>
                 <th class="text-center p-4 font-medium">Estado</th>
               </tr>
             </thead>
@@ -2266,11 +2266,11 @@ async function renderVentas() {
     const fc = parseFloat(foodCost);
     fcEl.className = 'text-2xl font-bold ' + (fc < 30 ? 'text-green-700' : fc < 35 ? 'text-orange-600' : 'text-red-600');
 
-    // Formas de pago
+    // Formas de pago - Loyverse usa 'name' para el tipo de pago
     const pagoMap = {};
     receipts.forEach(r => {
       (r.payments || []).forEach(p => {
-        const tipo = p.payment_type || 'OTRO';
+        const tipo = p.name || p.payment_type || 'OTRO';
         pagoMap[tipo] = (pagoMap[tipo] || 0) + (p.money_amount || 0);
       });
     });
@@ -2358,46 +2358,81 @@ function setVentasTab(tab, btn) {
 async function renderCaja() {
   const desde = document.getElementById('ventas-desde').value || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
   const hasta = document.getElementById('ventas-hasta').value || new Date().toISOString().split('T')[0];
-  const dateFrom = desde + 'T00:00:00.000Z';
-  const dateTo = hasta + 'T23:59:59.000Z';
+  const dateFrom = encodeURIComponent(desde + 'T00:00:00.000Z');
+  const dateTo = encodeURIComponent(hasta + 'T23:59:59.000Z');
 
   try {
-    const resp = await fetch(`/api/loyverse?endpoint=cash&date_from=${encodeURIComponent(dateFrom)}&date_to=${encodeURIComponent(dateTo)}`);
+    // Cash movements come from shifts in Loyverse
+    const resp = await fetch(`/api/loyverse?endpoint=shifts&date_from=${dateFrom}&date_to=${dateTo}`);
     const data = await resp.json();
-    const ops = data.cash_operations || [];
+    const shifts = data.shifts || [];
 
-    let entradas = 0, salidas = 0;
-    ops.forEach(op => {
-      if (op.amount > 0) entradas += op.amount;
-      else salidas += Math.abs(op.amount);
+    // Extract all cash movements from all shifts
+    const allMovements = [];
+    let totalEntradas = 0, totalSalidas = 0;
+
+    shifts.forEach(s => {
+      // paid_in = entradas manuales, paid_out = salidas manuales
+      if (s.paid_in > 0) {
+        totalEntradas += s.paid_in;
+        allMovements.push({
+          fecha: s.opened_at,
+          tipo: 'ENTRADA',
+          descripcion: 'Entrada de efectivo',
+          monto: s.paid_in,
+          esEntrada: true
+        });
+      }
+      if (s.paid_out > 0) {
+        totalSalidas += s.paid_out;
+        allMovements.push({
+          fecha: s.opened_at,
+          tipo: 'SALIDA',
+          descripcion: 'Salida de efectivo',
+          monto: s.paid_out,
+          esEntrada: false
+        });
+      }
+      // cash_movements detail if available
+      (s.cash_movements || []).forEach(m => {
+        const esEntrada = m.amount > 0;
+        if (esEntrada) totalEntradas += m.amount;
+        else totalSalidas += Math.abs(m.amount);
+        allMovements.push({
+          fecha: m.created_at || s.opened_at,
+          tipo: esEntrada ? 'ENTRADA' : 'SALIDA',
+          descripcion: m.comment || (esEntrada ? 'Entrada de caja' : 'Salida de caja'),
+          monto: Math.abs(m.amount),
+          esEntrada
+        });
+      });
     });
-    const balance = entradas - salidas;
 
-    document.getElementById('caja-entradas').textContent = fmt(entradas);
-    document.getElementById('caja-salidas').textContent = fmt(salidas);
+    const balance = totalEntradas - totalSalidas;
+    document.getElementById('caja-entradas').textContent = fmt(totalEntradas);
+    document.getElementById('caja-salidas').textContent = fmt(totalSalidas);
     const balEl = document.getElementById('caja-balance');
     balEl.textContent = fmt(Math.abs(balance));
     balEl.className = 'text-xl font-bold ' + (balance >= 0 ? 'text-green-700' : 'text-red-600');
 
     const tbody = document.getElementById('caja-list');
-    if (!ops.length) {
+    if (!allMovements.length) {
       tbody.innerHTML = '<tr><td colspan="4" class="py-8 text-center text-slate-300 text-sm">Sin movimientos de caja en este período</td></tr>';
       return;
     }
-    tbody.innerHTML = [...ops].sort((a,b) => new Date(b.created_at)-new Date(a.created_at)).map(op => {
-      const fecha = new Date(op.created_at);
+    tbody.innerHTML = [...allMovements].sort((a,b) => new Date(b.fecha)-new Date(a.fecha)).map(op => {
+      const fecha = new Date(op.fecha);
       const fechaStr = fecha.toLocaleDateString('es-MX', {day:'2-digit', month:'short'}) + ' ' + fecha.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
-      const esEntrada = op.amount > 0;
       return `<tr class="text-sm hover:bg-slate-50/50">
         <td class="p-4 text-slate-500">${fechaStr}</td>
         <td class="p-4">
-          <span class="flex items-center gap-1 ${esEntrada?'text-green-600':'text-red-600'} font-semibold text-xs">
-            <span class="ms text-base">${esEntrada?'arrow_downward':'arrow_upward'}</span>
-            ${esEntrada?'ENTRADA':'SALIDA'}
+          <span class="flex items-center gap-1 ${op.esEntrada?'text-green-600':'text-red-600'} font-semibold text-xs">
+            <span class="ms text-base">${op.esEntrada?'arrow_downward':'arrow_upward'}</span>
+            ${op.tipo}
           </span>
         </td>
-        <td class="p-4 text-slate-400 hidden md:table-cell text-xs">${op.comment || '—'}</td>
-        <td class="p-4 text-right font-bold ${esEntrada?'text-green-700':'text-red-600'}">${esEntrada?'+':'-'}${fmt(Math.abs(op.amount))}</td>
+        <td class="p-4 text-slate-400 hidden md:table-cell text-xs">${op.descripcion}</td>
+        <td class="p-4 text-right font-bold ${op.esEntrada?'text-green-700':'text-red-600'}">${op.esEntrada?'+':'-'}${fmt(op.monto)}</td>
       </tr>`;
     }).join('');
   } catch(e) {
@@ -2408,11 +2443,11 @@ async function renderCaja() {
 async function renderCortes() {
   const desde = document.getElementById('ventas-desde').value || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
   const hasta = document.getElementById('ventas-hasta').value || new Date().toISOString().split('T')[0];
-  const dateFrom = desde + 'T00:00:00.000Z';
-  const dateTo = hasta + 'T23:59:59.000Z';
+  const dateFrom = encodeURIComponent(desde + 'T00:00:00.000Z');
+  const dateTo = encodeURIComponent(hasta + 'T23:59:59.000Z');
 
   try {
-    const resp = await fetch(`/api/loyverse?endpoint=shifts&date_from=${encodeURIComponent(dateFrom)}&date_to=${encodeURIComponent(dateTo)}`);
+    const resp = await fetch(`/api/loyverse?endpoint=shifts&date_from=${dateFrom}&date_to=${dateTo}`);
     const data = await resp.json();
     const shifts = data.shifts || [];
 
@@ -2421,17 +2456,42 @@ async function renderCortes() {
       tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-300 text-sm">Sin cortes en este período</td></tr>';
       return;
     }
+
     tbody.innerHTML = [...shifts].sort((a,b) => new Date(b.opened_at)-new Date(a.opened_at)).map(s => {
       const apertura = new Date(s.opened_at);
       const cierre = s.closed_at ? new Date(s.closed_at) : null;
-      const totalVentas = (s.gross_sales || 0);
       const abierto = !s.closed_at;
+
+      // Build payment breakdown
+      const pagos = (s.payments || []).map(p =>
+        `<span class="inline-flex items-center gap-1 text-xs bg-slate-100 px-2 py-0.5 rounded-full">${p.name||p.payment_type_name||'Otro'}: ${fmt(p.money_amount||0)}</span>`
+      ).join(' ');
+
+      // Difference cash
+      const diferencia = (s.actual_cash || 0) - (s.expected_cash || 0);
+      const difColor = diferencia >= 0 ? 'text-green-600' : 'text-red-600';
+      const difSign = diferencia >= 0 ? '+' : '';
+
       return `<tr class="text-sm hover:bg-slate-50/50 ${abierto?'bg-green-50/30':''}">
-        <td class="p-4 text-slate-500">${apertura.toLocaleDateString('es-MX',{day:'2-digit',month:'short'})} ${apertura.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})}</td>
-        <td class="p-4 text-slate-400 hidden md:table-cell">${cierre ? cierre.toLocaleDateString('es-MX',{day:'2-digit',month:'short'}) + ' ' + cierre.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}) : '—'}</td>
-        <td class="p-4 text-right font-medium">${fmt(s.opening_cash || 0)}</td>
-        <td class="p-4 text-right font-bold">${fmt(totalVentas)}</td>
-        <td class="p-4 text-right font-medium hidden md:table-cell">${cierre ? fmt(s.closing_cash || 0) : '—'}</td>
+        <td class="p-4">
+          <p class="font-medium">${apertura.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}</p>
+          <p class="text-xs text-slate-400">${apertura.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})} → ${cierre ? cierre.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}) : 'Abierto'}</p>
+        </td>
+        <td class="p-4 hidden md:table-cell">
+          <p class="font-semibold text-slate-700">${fmt(s.starting_cash||0)}</p>
+          <p class="text-xs text-slate-400">Fondo inicial</p>
+        </td>
+        <td class="p-4 text-right">
+          <p class="font-bold text-lg">${fmt(s.gross_sales||0)}</p>
+          <p class="text-xs text-slate-400">Venta bruta</p>
+        </td>
+        <td class="p-4 hidden lg:table-cell">
+          <div class="flex flex-wrap gap-1">${pagos || '<span class="text-xs text-slate-300">—</span>'}</div>
+        </td>
+        <td class="p-4 text-right hidden md:table-cell">
+          <p class="font-semibold">${fmt(s.actual_cash||0)}</p>
+          <p class="text-xs ${difColor} font-semibold">${difSign}${fmt(Math.abs(diferencia))} dif.</p>
+        </td>
         <td class="p-4 text-center">
           ${abierto 
             ? '<span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">ABIERTO</span>'
