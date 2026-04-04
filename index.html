@@ -510,6 +510,134 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
 
     <!-- CUENTAS POR PAGAR -->
     <section id="sec-cuentas" class="sec p-5 fade">
+
+      <!-- Header -->
+      <div class="flex justify-between items-center mb-4">
+        <div><h2 class="text-2xl font-bold text-slate-900">Cuentas por Pagar</h2>
+          <p class="text-sm text-slate-400">Facturas y obligaciones pendientes</p></div>
+      </div>
+
+      <!-- Métricas -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        <div class="bg-surface-container-low rounded-2xl p-4">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Total pendiente</p>
+          <p class="text-2xl font-bold text-slate-900" id="cxp-m-total">$0</p>
+        </div>
+        <div class="bg-red-50 rounded-2xl p-4">
+          <p class="text-xs text-red-400 uppercase tracking-wider font-semibold mb-1">Vencido</p>
+          <p class="text-2xl font-bold text-red-600" id="cxp-m-vencido">$0</p>
+        </div>
+        <div class="bg-blue-50 rounded-2xl p-4">
+          <p class="text-xs text-blue-500 uppercase tracking-wider font-semibold mb-1">Por Banamex</p>
+          <p class="text-2xl font-bold text-blue-700" id="cxp-m-banamex">$0</p>
+        </div>
+        <div class="rounded-2xl p-4" style="background:#F3F0FE">
+          <p class="text-xs uppercase tracking-wider font-semibold mb-1" style="color:#7F77DD">Por Mercado Pago</p>
+          <p class="text-2xl font-bold" style="color:#3C3489" id="cxp-m-mp">$0</p>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="flex flex-wrap gap-2 mb-5 items-center">
+        <!-- Período -->
+        <div class="flex gap-1 bg-slate-100 p-1 rounded-xl">
+          <button type="button" id="cxp-f-semana" onclick="setCxPFiltro('semana',this)" class="px-3 py-1 rounded-lg bg-white text-slate-900 text-xs font-semibold shadow-sm">Esta semana</button>
+          <button type="button" id="cxp-f-mes" onclick="setCxPFiltro('mes',this)" class="px-3 py-1 rounded-lg text-slate-500 text-xs font-semibold">Este mes</button>
+          <button type="button" id="cxp-f-todo" onclick="setCxPFiltro('todo',this)" class="px-3 py-1 rounded-lg text-slate-500 text-xs font-semibold">Todo</button>
+          <button type="button" id="cxp-f-rango" onclick="setCxPFiltro('rango',this)" class="px-3 py-1 rounded-lg text-slate-500 text-xs font-semibold">Rango</button>
+        </div>
+        <!-- Rango fechas (oculto por defecto) -->
+        <div id="cxp-rango-fechas" class="hidden flex gap-2 items-center">
+          <input type="date" id="cxp-desde" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs outline-none"/>
+          <span class="text-slate-300 text-xs">→</span>
+          <input type="date" id="cxp-hasta" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs outline-none"/>
+          <button type="button" onclick="renderCuentasNuevo()" class="px-3 py-1.5 bg-primary-container text-white rounded-xl text-xs font-semibold">Aplicar</button>
+        </div>
+        <div class="w-px h-5 bg-slate-200"></div>
+        <!-- Estado -->
+        <div class="flex gap-1 bg-slate-100 p-1 rounded-xl">
+          <button type="button" id="cxp-e-pendientes" onclick="setCxPEstado('pendientes',this)" class="px-3 py-1 rounded-lg bg-white text-slate-900 text-xs font-semibold shadow-sm">Pendientes</button>
+          <button type="button" id="cxp-e-pagadas" onclick="setCxPEstado('pagadas',this)" class="px-3 py-1 rounded-lg text-slate-500 text-xs font-semibold">Pagadas</button>
+          <button type="button" id="cxp-e-todas" onclick="setCxPEstado('todas',this)" class="px-3 py-1 rounded-lg text-slate-500 text-xs font-semibold">Todas</button>
+        </div>
+        <div class="w-px h-5 bg-slate-200"></div>
+        <!-- Cuenta -->
+        <button type="button" id="cxp-c-todos" onclick="setCxPCuenta('todos',this)" class="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold">Todas las cuentas</button>
+        <button type="button" id="cxp-c-banamex" onclick="setCxPCuenta('banamex',this)" class="px-3 py-1.5 rounded-xl text-xs font-semibold" style="background:#E6F1FB;color:#185FA5">Banamex</button>
+        <button type="button" id="cxp-c-mp" onclick="setCxPCuenta('mp',this)" class="px-3 py-1.5 rounded-xl text-xs font-semibold" style="background:#EEEDFE;color:#534AB7">Mercado Pago</button>
+      </div>
+
+      <!-- Lista acordeón por proveedor -->
+      <div id="cxp-acordeon" class="space-y-2"></div>
+
+    </section>
+
+        <!-- MODAL DETALLE COMPRA -->
+    <div id="modal-detalle" class="hidden fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-bold text-lg">Detalle de Compra</h3>
+          <button type="button" onclick="closeModal('modal-detalle')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200"><span class="ms">close</span></button>
+        </div>
+        <div id="detalle-content"></div>
+      </div>
+    </div>
+
+    <!-- PRODUCTOS -->
+    <!-- PRODUCTOS -->
+    <section id="sec-productos" class="sec p-5 fade">
+      <div class="flex justify-between items-center mb-5">
+        <div><h2 class="text-2xl font-bold text-slate-900">Productos</h2><p class="text-sm text-slate-400">Base de datos de ingredientes</p></div>
+        <button type="button" class="bg-primary-container text-white px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 shadow-md"><span class="ms">add</span>Agregar</button>
+      </div>
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="p-4 border-b border-slate-100">
+          <input class="w-full px-4 py-2 bg-surface-container-low rounded-xl text-sm outline-none" placeholder="Buscar producto..."/>
+        </div>
+        <table class="w-full">
+          <thead class="bg-surface-container-low"><tr class="text-xs text-slate-400 uppercase tracking-wider">
+            <th class="text-left p-4 font-medium">Producto</th>
+            <th class="text-left p-4 font-medium hidden md:table-cell">Categoría</th>
+            <th class="text-right p-4 font-medium">Último precio</th>
+            <th class="text-right p-4 font-medium hidden md:table-cell">Veces comprado</th>
+          </tr></thead>
+          <tbody id="productos-list" class="divide-y divide-slate-50">
+            <tr><td colspan="4" class="py-8 text-center text-slate-300 text-sm">Los productos aparecerán aquí al registrar compras</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- PROVEEDORES -->
+    <section id="sec-proveedores" class="sec p-5 fade">
+      <div class="flex justify-between items-center mb-5">
+        <div><h2 class="text-2xl font-bold text-slate-900">Proveedores</h2><p class="text-sm text-slate-400">Gestión de cuentas y saldos</p></div>
+        <button type="button" onclick="showAddProveedor()" class="bg-primary-container text-white px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 shadow-md"><span class="ms">person_add</span>Agregar</button>
+      </div>
+      <div class="grid grid-cols-3 gap-4 mb-5">
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Total Proveedores</p>
+          <p class="text-2xl font-bold" id="prov-total">0</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Por Pagar</p>
+          <p class="text-2xl font-bold" id="prov-total-cxp">$0</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Vencidos</p>
+          <p class="text-2xl font-bold text-error" id="prov-vencidos">$0</p>
+        </div>
+      </div>
+      <div id="proveedores-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div class="bg-surface-container-low rounded-2xl p-5 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center cursor-pointer hover:border-primary/40 transition-colors" onclick="showAddProveedor()">
+          <span class="ms text-3xl text-slate-300 mb-2">add</span>
+          <p class="font-semibold text-slate-400">Agregar Proveedor</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- CUENTAS POR PAGAR -->
+    <section id="sec-cuentas" class="sec p-5 fade">
       <div class="flex justify-between items-center mb-5">
         <div><h2 class="text-2xl font-bold text-slate-900">Cuentas por Pagar</h2><p class="text-sm text-slate-400">Facturas y obligaciones pendientes</p></div>
         <div class="flex gap-2">
@@ -1098,6 +1226,7 @@ const DB = {
     'c53c37a0-b021-4be2-ba15-aca364d71007': 'UberEats',
     'f26c7ccb-08e4-4a22-bb42-f42b726c2c34': 'Mercado Pago'
   },
+  proveedoresBanamex: ['VIPARMEX','AYALA','CAVA 1911','CEPATINTA'],
   currentPayId: null,
   currentEstatus: 'Pendiente',
   currentArea: null,
@@ -1211,6 +1340,7 @@ function showSec(name) {
   document.getElementById('sec-title').textContent = titles[name] || name;
   // Render section data
   if (name === 'home') renderDashboard();
+  if (name === 'cuentas') renderCuentasNuevo();
   if (name === 'ventas') renderVentas();
   if (name === 'compras') poblarProveedoresDatalist();
   if (name === 'historial') renderHistorial('todo');
@@ -2624,6 +2754,233 @@ function verCorte(shiftData) {
     '<div class="bg-slate-50 rounded-xl p-3">' + movHTML + '</div></div>' : '');
 
   document.getElementById('modal-corte').classList.remove('hidden');
+}
+
+// ============================================================
+// CUENTAS POR PAGAR — NUEVO
+// ============================================================
+DB.cxpFiltro  = 'semana';
+DB.cxpEstado  = 'pendientes';
+DB.cxpCuenta  = 'todos';
+
+function getCxPSemanaRango() {
+  // Semana operativa: martes → domingo
+  const hoy = new Date();
+  const dia = hoy.getDay(); // 0=dom,1=lun,2=mar,...,6=sab
+  // Días desde el martes más reciente
+  const diasDesdeMartes = dia === 0 ? 5 : dia === 1 ? 6 : dia - 2;
+  const martes = new Date(hoy);
+  martes.setDate(hoy.getDate() - diasDesdeMartes);
+  martes.setHours(0,0,0,0);
+  // Domingo siguiente
+  const domingo = new Date(martes);
+  domingo.setDate(martes.getDate() + 6);
+  domingo.setHours(23,59,59,999);
+  return { desde: martes, hasta: domingo };
+}
+
+function setCxPFiltro(filtro, btn) {
+  DB.cxpFiltro = filtro;
+  ['semana','mes','todo','rango'].forEach(f => {
+    const b = document.getElementById('cxp-f-' + f);
+    if (b) b.className = f === filtro
+      ? 'px-3 py-1 rounded-lg bg-white text-slate-900 text-xs font-semibold shadow-sm'
+      : 'px-3 py-1 rounded-lg text-slate-500 text-xs font-semibold';
+  });
+  const rangoDiv = document.getElementById('cxp-rango-fechas');
+  if (filtro === 'rango') {
+    rangoDiv.classList.remove('hidden');
+    return; // wait for user to pick dates
+  } else {
+    rangoDiv.classList.add('hidden');
+  }
+  renderCuentasNuevo();
+}
+
+function setCxPEstado(estado, btn) {
+  DB.cxpEstado = estado;
+  ['pendientes','pagadas','todas'].forEach(e => {
+    const b = document.getElementById('cxp-e-' + e);
+    if (b) b.className = e === estado
+      ? 'px-3 py-1 rounded-lg bg-white text-slate-900 text-xs font-semibold shadow-sm'
+      : 'px-3 py-1 rounded-lg text-slate-500 text-xs font-semibold';
+  });
+  renderCuentasNuevo();
+}
+
+function setCxPCuenta(cuenta, btn) {
+  DB.cxpCuenta = cuenta;
+  const styles = {
+    todos:   'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold',
+    banamex: 'px-3 py-1.5 rounded-xl text-xs font-semibold',
+    mp:      'px-3 py-1.5 rounded-xl text-xs font-semibold'
+  };
+  document.getElementById('cxp-c-todos').className   = cuenta === 'todos'   ? styles.todos : 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 text-xs font-semibold';
+  document.getElementById('cxp-c-banamex').className = 'px-3 py-1.5 rounded-xl text-xs font-semibold';
+  document.getElementById('cxp-c-mp').className      = 'px-3 py-1.5 rounded-xl text-xs font-semibold';
+  document.getElementById('cxp-c-banamex').style = cuenta === 'banamex' ? 'background:#0C447C;color:#E6F1FB' : 'background:#E6F1FB;color:#185FA5';
+  document.getElementById('cxp-c-mp').style      = cuenta === 'mp'      ? 'background:#3C3489;color:#EEEDFE' : 'background:#EEEDFE;color:#534AB7';
+  renderCuentasNuevo();
+}
+
+function esBanamex(proveedor) {
+  return (DB.proveedoresBanamex || []).includes(proveedor.toUpperCase());
+}
+
+function renderCuentasNuevo() {
+  const hoy = new Date();
+  hoy.setHours(23,59,59,999);
+
+  // Determine date range
+  let desde = null, hasta = null;
+  if (DB.cxpFiltro === 'semana') {
+    const r = getCxPSemanaRango();
+    desde = r.desde; hasta = r.hasta;
+  } else if (DB.cxpFiltro === 'mes') {
+    desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+    hasta = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
+    hasta.setHours(23,59,59,999);
+  } else if (DB.cxpFiltro === 'rango') {
+    const d = document.getElementById('cxp-desde').value;
+    const h = document.getElementById('cxp-hasta').value;
+    if (d) { desde = new Date(d); desde.setHours(0,0,0,0); }
+    if (h) { hasta = new Date(h); hasta.setHours(23,59,59,999); }
+  }
+  // 'todo' → no date filter
+
+  // Filter compras
+  let compras = [...DB.compras];
+  if (desde || hasta) {
+    compras = compras.filter(c => {
+      const f = new Date(c.fecha);
+      if (desde && f < desde) return false;
+      if (hasta && f > hasta) return false;
+      return true;
+    });
+  }
+  if (DB.cxpEstado === 'pendientes') compras = compras.filter(c => c.estatus !== 'Pagado');
+  if (DB.cxpEstado === 'pagadas')    compras = compras.filter(c => c.estatus === 'Pagado');
+  if (DB.cxpCuenta === 'banamex')    compras = compras.filter(c => esBanamex(c.proveedor));
+  if (DB.cxpCuenta === 'mp')         compras = compras.filter(c => !esBanamex(c.proveedor));
+
+  // Metrics (always on pendientes regardless of estado filter)
+  const pendAll = DB.compras.filter(c => c.estatus !== 'Pagado');
+  const totalPend = pendAll.reduce((a,c) => a+c.total, 0);
+  const vencido   = pendAll.filter(c => c.vencimiento && new Date(c.vencimiento) < new Date()).reduce((a,c) => a+c.total, 0);
+  const banamexPend = pendAll.filter(c => esBanamex(c.proveedor)).reduce((a,c) => a+c.total, 0);
+  const mpPend      = pendAll.filter(c => !esBanamex(c.proveedor)).reduce((a,c) => a+c.total, 0);
+
+  document.getElementById('cxp-m-total').textContent   = fmt(totalPend);
+  document.getElementById('cxp-m-vencido').textContent = fmt(vencido);
+  document.getElementById('cxp-m-banamex').textContent = fmt(banamexPend);
+  document.getElementById('cxp-m-mp').textContent      = fmt(mpPend);
+
+  // Group by proveedor
+  const provMap = {};
+  compras.forEach(c => {
+    if (!provMap[c.proveedor]) provMap[c.proveedor] = { facturas: [], total: 0, esVencida: false };
+    provMap[c.proveedor].facturas.push(c);
+    provMap[c.proveedor].total += c.total;
+    if (c.vencimiento && new Date(c.vencimiento) < new Date() && c.estatus !== 'Pagado')
+      provMap[c.proveedor].esVencida = true;
+  });
+
+  // Sort: vencidas primero, luego por total desc
+  const provs = Object.entries(provMap).sort((a,b) => {
+    if (a[1].esVencida && !b[1].esVencida) return -1;
+    if (!a[1].esVencida && b[1].esVencida) return 1;
+    return b[1].total - a[1].total;
+  });
+
+  const acordeon = document.getElementById('cxp-acordeon');
+  if (!provs.length) {
+    acordeon.innerHTML = '<div class="text-center py-12 text-slate-300"><p class="text-sm">Sin compras en este período</p></div>';
+    return;
+  }
+
+  acordeon.innerHTML = provs.map(([nombre, data]) => {
+    const bnm = esBanamex(nombre);
+    const initials = nombre.substring(0,3);
+    const avatarStyle = bnm
+      ? 'background:#E6F1FB;color:#0C447C'
+      : 'background:#EEEDFE;color:#3C3489';
+    const cuentaBadge = bnm
+      ? '<span style="background:#E6F1FB;color:#185FA5;font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px">Banamex</span>'
+      : '<span style="background:#EEEDFE;color:#534AB7;font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px">Mercado Pago</span>';
+
+    const nFacturas = data.facturas.length;
+    const proxVence = data.facturas
+      .filter(f => f.vencimiento && f.estatus !== 'Pagado')
+      .sort((a,b) => new Date(a.vencimiento)-new Date(b.vencimiento))[0]?.vencimiento;
+    const subLabel = nFacturas + ' factura' + (nFacturas>1?'s':'') +
+      (proxVence ? ' · vence ' + new Date(proxVence).toLocaleDateString('es-MX',{day:'2-digit',month:'short'}) : '');
+
+    const totalColor = data.esVencida ? 'color:#A32D2D' : 'color:var(--color-text-primary)';
+    const cardBorder = data.esVencida ? 'border-color:#F7C1C1' : '';
+
+    // Facturas detail rows
+    const facturasHTML = data.facturas
+      .sort((a,b) => new Date(b.fecha)-new Date(a.fecha))
+      .map(c => {
+        const isPend = c.estatus !== 'Pagado';
+        const estBadge = isPend
+          ? '<span style="background:#FAEEDA;color:#854F0B;font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px">Pendiente</span>'
+          : '<span style="background:#EAF3DE;color:#3B6D11;font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px">Pagado</span>';
+        const fechaFmt = new Date(c.fecha).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
+        const productosResumen = c.items?.length
+          ? c.items.slice(0,3).map(i=>i.nombre).join(', ') + (c.items.length>3?' +' + (c.items.length-3) + ' más':'')
+          : 'Sin detalle';
+        const vencLabel = c.vencimiento
+          ? ' · Vence ' + new Date(c.vencimiento).toLocaleDateString('es-MX',{day:'2-digit',month:'short'})
+          : '';
+        const payBtns = isPend
+          ? '<button type="button" onclick="event.stopPropagation();openPayModal(\'' + c.id + '\')" style="font-size:11px;font-weight:600;color:#185FA5;background:#E6F1FB;border:none;padding:3px 10px;border-radius:8px;cursor:pointer">Pagar</button>'
+          : '';
+        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px 10px 58px;border-bottom:0.5px solid var(--color-border-tertiary)" class="hover:bg-slate-50/50">' +
+          '<div style="flex:1;min-width:0">' +
+          '<p style="font-size:12px;color:var(--color-text-secondary)">' + fechaFmt + vencLabel + '</p>' +
+          '<p style="font-size:11px;color:var(--color-text-tertiary);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px">' + productosResumen + '</p>' +
+          '</div>' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-left:12px">' +
+          '<p style="font-size:13px;font-weight:500;white-space:nowrap">' + fmt(c.total) + '</p>' +
+          estBadge + payBtns +
+          '</div></div>';
+      }).join('');
+
+    const cardId = 'card-' + nombre.replace(/\s+/g,'_');
+    const facturasId = 'facturas-' + nombre.replace(/\s+/g,'_');
+
+    return '<div class="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm" style="' + cardBorder + '" id="' + cardId + '">' +
+      '<div class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50/30" onclick="toggleAcordeon(\'' + facturasId + '\')">' +
+        '<div style="display:flex;align-items:center;gap:10px">' +
+          '<div style="width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;' + avatarStyle + '">' + initials + '</div>' +
+          '<div>' +
+            '<p style="font-size:13px;font-weight:500;color:var(--color-text-primary)">' + nombre + '</p>' +
+            '<p style="font-size:11px;color:var(--color-text-tertiary)">' + subLabel + '</p>' +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:10px">' +
+          '<div style="text-align:right">' +
+            '<p style="font-size:15px;font-weight:500;' + totalColor + '">' + fmt(data.total) + '</p>' +
+            cuentaBadge +
+          '</div>' +
+          '<span style="font-size:12px;color:var(--color-text-tertiary)" id="chev-' + facturasId + '">&#9660;</span>' +
+        '</div>' +
+      '</div>' +
+      '<div id="' + facturasId + '" style="border-top:0.5px solid var(--color-border-tertiary)">' +
+        facturasHTML +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function toggleAcordeon(id) {
+  const el = document.getElementById(id);
+  const chev = document.getElementById('chev-' + id);
+  if (!el) return;
+  const isOpen = el.style.display !== 'none';
+  el.style.display = isOpen ? 'none' : 'block';
+  if (chev) chev.innerHTML = isOpen ? '&#9654;' : '&#9660;';
 }
 
 // ============================================================
