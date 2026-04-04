@@ -11,15 +11,13 @@ export default async function handler(req, res) {
 
   const endpoints = {
     receipts: `https://api.loyverse.com/v1.0/receipts?limit=${limit||50}${date_from?'&created_at_min='+date_from:''}${date_to?'&created_at_max='+date_to:''}`,
-    items: 'https://api.loyverse.com/v1.0/items?limit=250',
-    categories: 'https://api.loyverse.com/v1.0/categories',
-    summary: `https://api.loyverse.com/v1.0/receipts?limit=250${date_from?'&created_at_min='+date_from:''}${date_to?'&created_at_max='+date_to:''}`,
-    cash: `https://api.loyverse.com/v1.0/cash_operations?limit=250${date_from?'&created_at_min='+date_from:''}${date_to?'&created_at_max='+date_to:''}`,
-    shifts: `https://api.loyverse.com/v1.0/shifts?limit=50${date_from?'&opened_at_min='+date_from:''}${date_to?'&opened_at_max='+date_to:''}`,
+    summary:  `https://api.loyverse.com/v1.0/receipts?limit=250${date_from?'&created_at_min='+date_from:''}${date_to?'&created_at_max='+date_to:''}`,
+    items:    'https://api.loyverse.com/v1.0/items?limit=250',
+    shifts:   `https://api.loyverse.com/v1.0/shifts?limit=50${date_from?'&opened_at_min='+date_from:''}${date_to?'&opened_at_max='+date_to:''}`,
   };
 
   const url = endpoints[endpoint];
-  if (!url) return res.status(400).json({ error: 'Endpoint inválido: ' + endpoint });
+  if (!url) return res.status(400).json({ error: 'Endpoint invalido: ' + endpoint });
 
   try {
     const response = await fetch(url, {
