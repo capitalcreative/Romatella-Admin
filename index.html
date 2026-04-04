@@ -732,6 +732,22 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
 
     </section>
 
+    <!-- MODAL CORTE DETALLE -->
+    <div id="modal-corte" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div class="p-5 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white rounded-t-3xl">
+          <div>
+            <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Cuadre de Efectivo</p>
+            <p class="font-bold text-slate-900" id="mc-titulo">Corte #</p>
+          </div>
+          <button onclick="closeModal('modal-corte')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200">
+            <span class="ms text-lg">close</span>
+          </button>
+        </div>
+        <div id="modal-corte-content" class="p-5 space-y-5"></div>
+      </div>
+    </div>
+
     <!-- REPORTES -->
     <section id="sec-reportes" class="sec p-5 fade">
       <div class="flex justify-between items-center mb-5">
@@ -2500,7 +2516,8 @@ async function renderCortes() {
       const diferencia = (s.actual_cash || 0) - (s.expected_cash || 0);
       const difColor = diferencia >= 0 ? 'text-green-600' : 'text-red-600';
       const difSign = diferencia >= 0 ? '+' : '';
-      return '<tr class="text-sm hover:bg-slate-50/50 ' + (abierto?'bg-green-50/30':'') + '">' +
+      const shiftEncoded = encodeURIComponent(JSON.stringify(s));
+      return '<tr class="text-sm hover:bg-slate-50/50 cursor-pointer ' + (abierto?'bg-green-50/30':'') + '" onclick="verCorte(this.dataset.shift)" data-shift="' + shiftEncoded + '">' +
         '<td class="p-4"><p class="font-medium">' + apertura.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) + '</p>' +
         '<p class="text-xs text-slate-400">' + apertura.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}) + ' → ' +
         (cierre ? cierre.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}) : 'Abierto') + '</p></td>' +
@@ -2519,6 +2536,80 @@ async function renderCortes() {
   } catch(e) {
     document.getElementById('cortes-list').innerHTML = '<tr><td colspan="6" class="py-4 text-center text-red-400 text-sm">' + e.message + '</td></tr>';
   }
+}
+
+// ============================================================
+// DETALLE CORTE
+// ============================================================
+function verCorte(shiftData) {
+  const s = JSON.parse(decodeURIComponent(shiftData));
+  const apertura = new Date(s.opened_at);
+  const cierre = s.closed_at ? new Date(s.closed_at) : null;
+
+  document.getElementById('mc-titulo').textContent =
+    apertura.toLocaleDateString('es-MX',{weekday:'long',day:'2-digit',month:'short',year:'numeric'});
+
+  const diferencia = (s.actual_cash||0) - (s.expected_cash||0);
+  const difColor = diferencia === 0 ? 'text-green-600' : diferencia > 0 ? 'text-orange-500' : 'text-red-600';
+  const difLabel = diferencia === 0 ? 'Sin descuadre' : diferencia > 0 ? 'Sobrante' : 'Faltante';
+
+  // Payment breakdown
+  const pagosHTML = (s.payments||[]).map(p =>
+    '<div class="flex justify-between text-sm py-1">' +
+    '<span class="text-slate-600">' + (p.name||'Otro') + '</span>' +
+    '<span class="font-semibold">' + fmt(p.money_amount||0) + '</span></div>'
+  ).join('') || '<p class="text-slate-300 text-sm">Sin pagos</p>';
+
+  // Cash movements
+  const movHTML = (s.cash_movements||[]).map(m => {
+    const hora = new Date(m.created_at).toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'});
+    const esEntrada = m.type === 'PAY_IN';
+    return '<div class="flex justify-between items-center text-sm py-1.5 border-b border-slate-50 last:border-0">' +
+      '<div class="flex items-center gap-2">' +
+      '<span class="text-xs text-slate-400 w-10">' + hora + '</span>' +
+      '<span class="text-slate-600">' + (m.comment || (esEntrada?'Entrada':'Salida')) + '</span></div>' +
+      '<span class="font-bold ' + (esEntrada?'text-green-600':'text-red-600') + '">' +
+      (esEntrada?'+':'-') + fmt(m.money_amount||0) + '</span></div>';
+  }).join('') || '<p class="text-slate-300 text-sm text-center py-2">Sin movimientos</p>';
+
+  document.getElementById('modal-corte-content').innerHTML =
+    // Info header
+    '<div class="grid grid-cols-2 gap-3 text-sm">' +
+    '<div class="bg-slate-50 rounded-xl p-3"><p class="text-xs text-slate-400 mb-1">Abierto</p><p class="font-semibold">' +
+    apertura.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}) + '</p></div>' +
+    '<div class="bg-slate-50 rounded-xl p-3"><p class="text-xs text-slate-400 mb-1">Cerrado</p><p class="font-semibold">' +
+    (cierre ? cierre.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}) : 'Abierto') + '</p></div></div>' +
+
+    // Cajon de efectivo
+    '<div>' +
+    '<p class="text-xs font-bold text-primary-container uppercase tracking-wider mb-3">Cajón de Efectivo</p>' +
+    '<div class="space-y-2 text-sm">' +
+    '<div class="flex justify-between"><span class="text-slate-500">Fondo de caja anterior</span><span class="font-medium">' + fmt(s.starting_cash||0) + '</span></div>' +
+    '<div class="flex justify-between"><span class="text-slate-500">Cobros en efectivo</span><span class="font-medium">' + fmt(s.cash_payments||0) + '</span></div>' +
+    '<div class="flex justify-between"><span class="text-slate-500">Reembolsos en efectivo</span><span class="font-medium">-' + fmt(s.cash_refunds||0) + '</span></div>' +
+    '<div class="flex justify-between"><span class="text-slate-500">Pagos / Salidas</span><span class="font-medium text-red-500">-' + fmt(s.paid_out||0) + '</span></div>' +
+    '<div class="flex justify-between border-t border-slate-100 pt-2"><span class="text-slate-500">Efectivo teórico</span><span class="font-semibold">' + fmt(s.expected_cash||0) + '</span></div>' +
+    '<div class="flex justify-between"><span class="text-slate-500">Efectivo real contado</span><span class="font-semibold">' + fmt(s.actual_cash||0) + '</span></div>' +
+    '<div class="flex justify-between border-t border-slate-200 pt-2 mt-1"><span class="font-bold">Descuadre</span>' +
+    '<span class="font-bold text-lg ' + difColor + '">' + (diferencia >= 0 ? '+' : '') + fmt(diferencia) + '</span></div>' +
+    '</div></div>' +
+
+    // Resumen ventas
+    '<div>' +
+    '<p class="text-xs font-bold text-primary-container uppercase tracking-wider mb-3">Resumen de Ventas</p>' +
+    '<div class="space-y-2 text-sm">' +
+    '<div class="flex justify-between border-b border-slate-100 pb-2"><span class="font-bold">Ventas brutas</span><span class="font-bold text-lg">' + fmt(s.gross_sales||0) + '</span></div>' +
+    '<div class="flex justify-between text-slate-400 text-xs"><span>Reembolsos</span><span>-' + fmt(s.refunds||0) + '</span></div>' +
+    '<div class="flex justify-between text-slate-400 text-xs"><span>Descuentos</span><span>-' + fmt(s.discounts||0) + '</span></div>' +
+    '<div class="flex justify-between border-t border-slate-100 pt-2"><span class="font-bold">Ventas netas</span><span class="font-bold">' + fmt(s.net_sales||0) + '</span></div>' +
+    '</div>' +
+    '<div class="mt-3 space-y-1">' + pagosHTML + '</div></div>' +
+
+    // Depósitos / Salidas
+    (s.cash_movements?.length ? '<div><p class="text-xs font-bold text-primary-container uppercase tracking-wider mb-3">Depósitos / Salidas</p>' +
+    '<div class="bg-slate-50 rounded-xl p-3">' + movHTML + '</div></div>' : '');
+
+  document.getElementById('modal-corte').classList.remove('hidden');
 }
 
 // ============================================================
