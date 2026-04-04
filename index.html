@@ -706,6 +706,8 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
 
       <!-- CORTES -->
       <div id="ventas-cortes" class="hidden">
+        <!-- Alerta de discrepancias -->
+        <div id="cortes-alertas" class="mb-4 space-y-2"></div>
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
           <div class="p-4 border-b border-slate-100">
             <h3 class="font-bold text-slate-900">Cortes de Caja</h3>
@@ -2362,47 +2364,26 @@ async function renderCaja() {
   const dateTo = encodeURIComponent(hasta + 'T23:59:59.000Z');
 
   try {
-    // Cash movements come from shifts in Loyverse
-    const resp = await fetch(`/api/loyverse?endpoint=shifts&date_from=${dateFrom}&date_to=${dateTo}`);
+    const resp = await fetch('/api/loyverse?endpoint=shifts&date_from=' + dateFrom + '&date_to=' + dateTo);
     const data = await resp.json();
     const shifts = data.shifts || [];
 
-    // Extract all cash movements from all shifts
+    // Los movimientos reales están en cash_movements[] de cada shift
+    // cash_movements tiene: type (PAY_IN/PAY_OUT), money_amount, comment, created_at
     const allMovements = [];
     let totalEntradas = 0, totalSalidas = 0;
 
     shifts.forEach(s => {
-      // paid_in = entradas manuales, paid_out = salidas manuales
-      if (s.paid_in > 0) {
-        totalEntradas += s.paid_in;
-        allMovements.push({
-          fecha: s.opened_at,
-          tipo: 'ENTRADA',
-          descripcion: 'Entrada de efectivo',
-          monto: s.paid_in,
-          esEntrada: true
-        });
-      }
-      if (s.paid_out > 0) {
-        totalSalidas += s.paid_out;
-        allMovements.push({
-          fecha: s.opened_at,
-          tipo: 'SALIDA',
-          descripcion: 'Salida de efectivo',
-          monto: s.paid_out,
-          esEntrada: false
-        });
-      }
-      // cash_movements detail if available
       (s.cash_movements || []).forEach(m => {
-        const esEntrada = m.amount > 0;
-        if (esEntrada) totalEntradas += m.amount;
-        else totalSalidas += Math.abs(m.amount);
+        const esEntrada = m.type === 'PAY_IN';
+        const monto = m.money_amount || 0;
+        if (esEntrada) totalEntradas += monto;
+        else totalSalidas += monto;
         allMovements.push({
           fecha: m.created_at || s.opened_at,
           tipo: esEntrada ? 'ENTRADA' : 'SALIDA',
-          descripcion: m.comment || (esEntrada ? 'Entrada de caja' : 'Salida de caja'),
-          monto: Math.abs(m.amount),
+          descripcion: m.comment || (esEntrada ? 'Entrada de efectivo' : 'Salida de efectivo'),
+          monto,
           esEntrada
         });
       });
@@ -2420,23 +2401,23 @@ async function renderCaja() {
       tbody.innerHTML = '<tr><td colspan="4" class="py-8 text-center text-slate-300 text-sm">Sin movimientos de caja en este período</td></tr>';
       return;
     }
-    tbody.innerHTML = [...allMovements].sort((a,b) => new Date(b.fecha)-new Date(a.fecha)).map(op => {
-      const fecha = new Date(op.fecha);
-      const fechaStr = fecha.toLocaleDateString('es-MX', {day:'2-digit', month:'short'}) + ' ' + fecha.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
-      return `<tr class="text-sm hover:bg-slate-50/50">
-        <td class="p-4 text-slate-500">${fechaStr}</td>
-        <td class="p-4">
-          <span class="flex items-center gap-1 ${op.esEntrada?'text-green-600':'text-red-600'} font-semibold text-xs">
-            <span class="ms text-base">${op.esEntrada?'arrow_downward':'arrow_upward'}</span>
-            ${op.tipo}
-          </span>
-        </td>
-        <td class="p-4 text-slate-400 hidden md:table-cell text-xs">${op.descripcion}</td>
-        <td class="p-4 text-right font-bold ${op.esEntrada?'text-green-700':'text-red-600'}">${op.esEntrada?'+':'-'}${fmt(op.monto)}</td>
-      </tr>`;
-    }).join('');
+    tbody.innerHTML = [...allMovements]
+      .sort((a,b) => new Date(b.fecha) - new Date(a.fecha))
+      .map(op => {
+        const fecha = new Date(op.fecha);
+        const fechaStr = fecha.toLocaleDateString('es-MX', {day:'2-digit', month:'short'}) + ' ' +
+                         fecha.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+        return '<tr class="text-sm hover:bg-slate-50/50">' +
+          '<td class="p-4 text-slate-500">' + fechaStr + '</td>' +
+          '<td class="p-4"><span class="flex items-center gap-1 ' + (op.esEntrada?'text-green-600':'text-red-600') + ' font-semibold text-xs">' +
+          '<span class="ms text-base">' + (op.esEntrada?'arrow_downward':'arrow_upward') + '</span>' +
+          op.tipo + '</span></td>' +
+          '<td class="p-4 text-slate-600 hidden md:table-cell text-sm">' + op.descripcion + '</td>' +
+          '<td class="p-4 text-right font-bold ' + (op.esEntrada?'text-green-700':'text-red-600') + '">' +
+          (op.esEntrada?'+':'-') + fmt(op.monto) + '</td></tr>';
+      }).join('');
   } catch(e) {
-    document.getElementById('caja-list').innerHTML = `<tr><td colspan="4" class="py-4 text-center text-red-400 text-sm">${e.message}</td></tr>`;
+    document.getElementById('caja-list').innerHTML = '<tr><td colspan="4" class="py-4 text-center text-red-400 text-sm">' + e.message + '</td></tr>';
   }
 }
 
@@ -2447,60 +2428,96 @@ async function renderCortes() {
   const dateTo = encodeURIComponent(hasta + 'T23:59:59.000Z');
 
   try {
-    const resp = await fetch(`/api/loyverse?endpoint=shifts&date_from=${dateFrom}&date_to=${dateTo}`);
+    const resp = await fetch('/api/loyverse?endpoint=shifts&date_from=' + dateFrom + '&date_to=' + dateTo);
     const data = await resp.json();
     const shifts = data.shifts || [];
 
     const tbody = document.getElementById('cortes-list');
+    const alertasDiv = document.getElementById('cortes-alertas');
     if (!shifts.length) {
       tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-300 text-sm">Sin cortes en este período</td></tr>';
+      alertasDiv.innerHTML = '';
       return;
     }
 
+    // ---- DETECCIÓN DE DISCREPANCIAS DE APERTURA ----
+    const sorted = [...shifts].sort((a,b) => new Date(a.opened_at) - new Date(b.opened_at));
+    const discrepancias = [];
+    for (let i = 1; i < sorted.length; i++) {
+      const anterior = sorted[i-1];
+      const actual = sorted[i];
+      if (!anterior.closed_at) continue; // turno anterior aún abierto, skip
+      const cierrePrevio = anterior.actual_cash || 0;
+      const apertura = actual.starting_cash || 0;
+      const diferencia = apertura - cierrePrevio;
+      if (Math.abs(diferencia) > 0.5) {
+        discrepancias.push({
+          fecha: actual.opened_at,
+          cierrePrevio,
+          apertura,
+          diferencia
+        });
+      }
+    }
+
+    // Show alerts
+    if (discrepancias.length) {
+      alertasDiv.innerHTML = '<div class="bg-red-50 border border-red-200 rounded-2xl p-4">' +
+        '<div class="flex items-center gap-2 mb-3">' +
+        '<span class="ms text-red-500 text-xl">warning</span>' +
+        '<p class="font-bold text-red-700">Discrepancias de apertura detectadas (' + discrepancias.length + ')</p>' +
+        '</div>' +
+        '<p class="text-sm text-red-500 mb-3">La caja se abrió con un monto diferente al que se cerró el turno anterior.</p>' +
+        discrepancias.map(d => {
+          const fecha = new Date(d.fecha);
+          const fechaStr = fecha.toLocaleDateString('es-MX', {weekday:'short', day:'2-digit', month:'short'}) + ' ' +
+                           fecha.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+          const esFaltante = d.diferencia < 0;
+          return '<div class="flex items-center justify-between bg-white rounded-xl px-4 py-3 mb-2 border border-red-100">' +
+            '<div>' +
+            '<p class="font-semibold text-slate-800 text-sm">' + fechaStr + '</p>' +
+            '<p class="text-xs text-slate-400">Cierre previo: ' + fmt(d.cierrePrevio) + ' → Apertura: ' + fmt(d.apertura) + '</p>' +
+            '</div>' +
+            '<span class="font-bold text-base ' + (esFaltante ? 'text-red-600' : 'text-orange-500') + '">' +
+            (esFaltante ? '▼ FALTA ' : '▲ SOBRA ') + fmt(Math.abs(d.diferencia)) +
+            '</span></div>';
+        }).join('') +
+        '</div>';
+    } else {
+      alertasDiv.innerHTML = '<div class="bg-green-50 border border-green-200 rounded-2xl px-4 py-3 flex items-center gap-2">' +
+        '<span class="ms text-green-500">check_circle</span>' +
+        '<p class="text-sm font-semibold text-green-700">Sin discrepancias de apertura en este período</p></div>';
+    }
+
+    // ---- TABLA DE CORTES ----
     tbody.innerHTML = [...shifts].sort((a,b) => new Date(b.opened_at)-new Date(a.opened_at)).map(s => {
       const apertura = new Date(s.opened_at);
       const cierre = s.closed_at ? new Date(s.closed_at) : null;
       const abierto = !s.closed_at;
-
-      // Build payment breakdown
       const pagos = (s.payments || []).map(p =>
-        `<span class="inline-flex items-center gap-1 text-xs bg-slate-100 px-2 py-0.5 rounded-full">${p.name||p.payment_type_name||'Otro'}: ${fmt(p.money_amount||0)}</span>`
+        '<span class="inline-flex text-xs bg-slate-100 px-2 py-0.5 rounded-full">' + (p.name||'Otro') + ': ' + fmt(p.money_amount||0) + '</span>'
       ).join(' ');
-
-      // Difference cash
       const diferencia = (s.actual_cash || 0) - (s.expected_cash || 0);
       const difColor = diferencia >= 0 ? 'text-green-600' : 'text-red-600';
       const difSign = diferencia >= 0 ? '+' : '';
-
-      return `<tr class="text-sm hover:bg-slate-50/50 ${abierto?'bg-green-50/30':''}">
-        <td class="p-4">
-          <p class="font-medium">${apertura.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'})}</p>
-          <p class="text-xs text-slate-400">${apertura.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'})} → ${cierre ? cierre.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}) : 'Abierto'}</p>
-        </td>
-        <td class="p-4 hidden md:table-cell">
-          <p class="font-semibold text-slate-700">${fmt(s.starting_cash||0)}</p>
-          <p class="text-xs text-slate-400">Fondo inicial</p>
-        </td>
-        <td class="p-4 text-right">
-          <p class="font-bold text-lg">${fmt(s.gross_sales||0)}</p>
-          <p class="text-xs text-slate-400">Venta bruta</p>
-        </td>
-        <td class="p-4 hidden lg:table-cell">
-          <div class="flex flex-wrap gap-1">${pagos || '<span class="text-xs text-slate-300">—</span>'}</div>
-        </td>
-        <td class="p-4 text-right hidden md:table-cell">
-          <p class="font-semibold">${fmt(s.actual_cash||0)}</p>
-          <p class="text-xs ${difColor} font-semibold">${difSign}${fmt(Math.abs(diferencia))} dif.</p>
-        </td>
-        <td class="p-4 text-center">
-          ${abierto 
-            ? '<span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">ABIERTO</span>'
-            : '<span class="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-1 rounded-full">CERRADO</span>'}
-        </td>
-      </tr>`;
+      return '<tr class="text-sm hover:bg-slate-50/50 ' + (abierto?'bg-green-50/30':'') + '">' +
+        '<td class="p-4"><p class="font-medium">' + apertura.toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) + '</p>' +
+        '<p class="text-xs text-slate-400">' + apertura.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}) + ' → ' +
+        (cierre ? cierre.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}) : 'Abierto') + '</p></td>' +
+        '<td class="p-4 hidden md:table-cell"><p class="font-semibold text-slate-700">' + fmt(s.starting_cash||0) + '</p>' +
+        '<p class="text-xs text-slate-400">Fondo inicial</p></td>' +
+        '<td class="p-4 text-right"><p class="font-bold text-lg">' + fmt(s.gross_sales||0) + '</p>' +
+        '<p class="text-xs text-slate-400">Venta bruta</p></td>' +
+        '<td class="p-4 hidden lg:table-cell"><div class="flex flex-wrap gap-1">' + (pagos || '<span class="text-xs text-slate-300">—</span>') + '</div></td>' +
+        '<td class="p-4 text-right hidden md:table-cell"><p class="font-semibold">' + fmt(s.actual_cash||0) + '</p>' +
+        '<p class="text-xs ' + difColor + ' font-semibold">' + difSign + fmt(Math.abs(diferencia)) + ' dif.</p></td>' +
+        '<td class="p-4 text-center">' +
+        (abierto ? '<span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full">ABIERTO</span>'
+                 : '<span class="bg-slate-100 text-slate-600 text-xs font-bold px-2 py-1 rounded-full">CERRADO</span>') +
+        '</td></tr>';
     }).join('');
   } catch(e) {
-    document.getElementById('cortes-list').innerHTML = `<tr><td colspan="6" class="py-4 text-center text-red-400 text-sm">${e.message}</td></tr>`;
+    document.getElementById('cortes-list').innerHTML = '<tr><td colspan="6" class="py-4 text-center text-red-400 text-sm">' + e.message + '</td></tr>';
   }
 }
 
