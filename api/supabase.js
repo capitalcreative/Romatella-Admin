@@ -35,6 +35,9 @@ export default async function handler(req, res) {
       method = 'POST';
       body = JSON.stringify(data);
       prefer = 'return=representation,resolution=merge-duplicates';
+    } else if (action === 'delete_by_compra') {
+      method = 'DELETE';
+      url += `?compra_id=eq.${id}`;
     }
 
     const response = await fetch(url, {

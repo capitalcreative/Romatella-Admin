@@ -10,10 +10,11 @@ export default async function handler(req, res) {
   const { endpoint, date_from, date_to, limit } = req.query;
 
   const endpoints = {
-    receipts: `https://api.loyverse.com/v1.0/receipts?limit=${limit||50}${date_from?'&created_at_min='+date_from:''}${date_to?'&created_at_max='+date_to:''}`,
-    summary:  `https://api.loyverse.com/v1.0/receipts?limit=250${date_from?'&created_at_min='+date_from:''}${date_to?'&created_at_max='+date_to:''}`,
-    items:    'https://api.loyverse.com/v1.0/items?limit=250',
-    shifts:   `https://api.loyverse.com/v1.0/shifts?limit=50${date_from?'&opened_at_min='+date_from:''}${date_to?'&opened_at_max='+date_to:''}`,
+    receipts:      `https://api.loyverse.com/v1.0/receipts?limit=${limit||50}${date_from?'&created_at_min='+date_from:''}${date_to?'&created_at_max='+date_to:''}`,
+    summary:       `https://api.loyverse.com/v1.0/receipts?limit=250${date_from?'&created_at_min='+date_from:''}${date_to?'&created_at_max='+date_to:''}`,
+    items:         'https://api.loyverse.com/v1.0/items?limit=250',
+    shifts:        `https://api.loyverse.com/v1.0/shifts?limit=50${date_from?'&opened_at_min='+date_from:''}${date_to?'&opened_at_max='+date_to:''}`,
+    payment_types: 'https://api.loyverse.com/v1.0/payment_types',
   };
 
   const url = endpoints[endpoint];
