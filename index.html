@@ -104,10 +104,7 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
       <div onclick="showSec('productos')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-productos">
         <span class="ms text-lg">inventory_2</span>Productos
       </div>
-      <div onclick="showSec('proveedores')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-proveedores">
-        <span class="ms text-lg">group</span>Proveedores
-      </div>
-      <div onclick="showSec('cuentas')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-cuentas">
+<div onclick="showSec('cuentas')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-cuentas">
         <span class="ms text-lg">payments</span>Cuentas por Pagar
       </div>
       <div onclick="showSec('requisiciones')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600 relative" id="nav-requisiciones">
@@ -173,10 +170,7 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         <div onclick="mobileNav('productos')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
           <span class="ms text-lg">inventory_2</span>Productos
         </div>
-        <div onclick="mobileNav('proveedores')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
-          <span class="ms text-lg">group</span>Proveedores
-        </div>
-        <div onclick="mobileNav('cuentas')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
+<div onclick="mobileNav('cuentas')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
           <span class="ms text-lg">payments</span>Cuentas por Pagar
         </div>
         <div onclick="mobileNav('requisiciones')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
@@ -2765,18 +2759,18 @@ DB.cxpCuenta  = 'todos';
 
 function getCxPSemanaRango() {
   // Semana operativa: martes → domingo
+  // Usamos fechas locales como strings YYYY-MM-DD para evitar bugs de zona horaria
   const hoy = new Date();
   const dia = hoy.getDay(); // 0=dom,1=lun,2=mar,...,6=sab
-  // Días desde el martes más reciente
   const diasDesdeMartes = dia === 0 ? 5 : dia === 1 ? 6 : dia - 2;
   const martes = new Date(hoy);
   martes.setDate(hoy.getDate() - diasDesdeMartes);
-  martes.setHours(0,0,0,0);
-  // Domingo siguiente
   const domingo = new Date(martes);
   domingo.setDate(martes.getDate() + 6);
-  domingo.setHours(23,59,59,999);
-  return { desde: martes, hasta: domingo };
+  // Return as YYYY-MM-DD strings to compare with c.fecha directly
+  const pad = n => String(n).padStart(2,'0');
+  const toStr = d => d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+  return { desdeStr: toStr(martes), hastaStr: toStr(domingo) };
 }
 
 function setCxPFiltro(filtro, btn) {
@@ -2831,30 +2825,32 @@ function renderCuentasNuevo() {
   const hoy = new Date();
   hoy.setHours(23,59,59,999);
 
-  // Determine date range
-  let desde = null, hasta = null;
+  // Determine date range — always compare as YYYY-MM-DD strings to avoid timezone bugs
+  let desdeStr = null, hastaStr = null;
+  const pad = n => String(n).padStart(2,'0');
+  const toStr = d => d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+
   if (DB.cxpFiltro === 'semana') {
     const r = getCxPSemanaRango();
-    desde = r.desde; hasta = r.hasta;
+    desdeStr = r.desdeStr; hastaStr = r.hastaStr;
   } else if (DB.cxpFiltro === 'mes') {
-    desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-    hasta = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0);
-    hasta.setHours(23,59,59,999);
+    const h2 = new Date(); 
+    desdeStr = h2.getFullYear() + '-' + pad(h2.getMonth()+1) + '-01';
+    const lastDay = new Date(h2.getFullYear(), h2.getMonth()+1, 0);
+    hastaStr = toStr(lastDay);
   } else if (DB.cxpFiltro === 'rango') {
-    const d = document.getElementById('cxp-desde').value;
-    const h = document.getElementById('cxp-hasta').value;
-    if (d) { desde = new Date(d); desde.setHours(0,0,0,0); }
-    if (h) { hasta = new Date(h); hasta.setHours(23,59,59,999); }
+    desdeStr = document.getElementById('cxp-desde').value || null;
+    hastaStr = document.getElementById('cxp-hasta').value || null;
   }
-  // 'todo' → no date filter
+  // 'todo' → desdeStr/hastaStr remain null → no date filter
 
-  // Filter compras
+  // Filter compras using string comparison (YYYY-MM-DD sorts lexicographically)
   let compras = [...DB.compras];
-  if (desde || hasta) {
+  if (desdeStr || hastaStr) {
     compras = compras.filter(c => {
-      const f = new Date(c.fecha);
-      if (desde && f < desde) return false;
-      if (hasta && f > hasta) return false;
+      const f = c.fecha; // already YYYY-MM-DD string from Supabase
+      if (desdeStr && f < desdeStr) return false;
+      if (hastaStr && f > hastaStr) return false;
       return true;
     });
   }
