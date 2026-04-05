@@ -2236,6 +2236,7 @@ function renderHistorial(filtro, categoriaFiltro) {
       <td class="p-4 text-center">${estatusBadge(c.estatus)}</td>
       <td class="p-4 text-right text-slate-300 flex items-center justify-end gap-2">
         <span class="ms cursor-pointer hover:text-primary" onclick="event.stopPropagation();verDetalle('${c.id}')">chevron_right</span>
+        <span class="ms cursor-pointer hover:text-blue-400" onclick="event.stopPropagation();editarCompra('${c.id}')">edit</span>
         <span class="ms cursor-pointer hover:text-error" onclick="event.stopPropagation();borrarCompra('${c.id}')">delete</span>
       </td>
     </tr>`).join('');
