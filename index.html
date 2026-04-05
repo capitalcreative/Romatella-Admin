@@ -2772,8 +2772,13 @@ async function renderCaja() {
     const allMovements = [];
     let totalEntradas = 0, totalSalidas = 0;
 
+    const cajaDesde = document.getElementById('ventas-desde')?.value || desde;
+    const cajaHasta = document.getElementById('ventas-hasta')?.value || hasta;
     shifts.forEach(s => {
-      (s.cash_movements || []).forEach(m => {
+      (s.cash_movements || []).filter(m => {
+        const md = (m.created_at || s.opened_at || '').substring(0,10);
+        return md >= cajaDesde && md <= cajaHasta;
+      }).forEach(m => {
         const esEntrada = m.type === 'PAY_IN';
         const monto = m.money_amount || 0;
         if (esEntrada) totalEntradas += monto;
@@ -3308,8 +3313,17 @@ async function exportarCaja() {
     const data = await resp.json();
     const shifts = data.shifts || [];
     const rows = [['Fecha','Hora','Tipo','Descripción','Monto']];
-    shifts.forEach(s => {
-      (s.cash_movements||[]).forEach(m => {
+    const desdeStr = desde, hastaStr = hasta;
+    // Filter shifts and movements strictly by date
+    const filteredShifts = shifts.filter(s => {
+      const d = (s.opened_at||'').substring(0,10);
+      return d >= desdeStr && d <= hastaStr;
+    });
+    filteredShifts.forEach(s => {
+      (s.cash_movements||[]).filter(m => {
+        const md = (m.created_at||s.opened_at||'').substring(0,10);
+        return md >= desdeStr && md <= hastaStr;
+      }).forEach(m => {
         const fecha = new Date(m.created_at || s.opened_at);
         rows.push([
           fecha.toLocaleDateString('es-MX'),
@@ -3335,7 +3349,11 @@ async function exportarCortes() {
     const shifts = data.shifts || [];
     const ptMap = DB.paymentTypes || {};
     const rows = [['Fecha Apertura','Hora Apertura','Hora Cierre','Fondo Inicial','Venta Bruta','Efectivo','Banamex','UberEats','Mercado Pago','Efectivo Real','Descuadre','Salidas']];
-    shifts.forEach(s => {
+    const cortesFiltered = shifts.filter(s => {
+      const d = (s.opened_at||'').substring(0,10);
+      return d >= desde && d <= hasta;
+    });
+    cortesFiltered.forEach(s => {
       const ap = new Date(s.opened_at);
       const ci = s.closed_at ? new Date(s.closed_at) : null;
       const pagos = {};
@@ -3402,12 +3420,21 @@ async function exportarSemanalCompleto() {
     // Salidas de caja
     const sResp = await fetch('/api/loyverse?endpoint=shifts&date_from=' + encodeURIComponent(desde + 'T00:00:00.000Z') + '&date_to=' + encodeURIComponent(hasta + 'T23:59:59.000Z'));
     const sData = await sResp.json();
-    const shifts = sData.shifts || [];
+    const allShifts = sData.shifts || [];
+    // Filter shifts by date range strictly
+    const shifts = allShifts.filter(s => {
+      const d = (s.opened_at || '').substring(0,10);
+      return d >= desde && d <= hasta;
+    });
 
     rows.push(['=== SALIDAS DE CAJA ===']);
     rows.push(['Fecha','Hora','Descripción','Monto']);
     shifts.forEach(s => {
-      (s.cash_movements||[]).filter(m=>m.type==='PAY_OUT').forEach(m => {
+      (s.cash_movements||[]).filter(m => {
+        // Also filter individual movements by date
+        const md = (m.created_at || s.opened_at || '').substring(0,10);
+        return m.type === 'PAY_OUT' && md >= desde && md <= hasta;
+      }).forEach(m => {
         const f = new Date(m.created_at || s.opened_at);
         rows.push([f.toLocaleDateString('es-MX'), f.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}), m.comment||'', m.money_amount||0]);
       });
