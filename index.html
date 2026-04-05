@@ -107,10 +107,6 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
 <div onclick="showSec('cuentas')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-cuentas">
         <span class="ms text-lg">payments</span>Cuentas por Pagar
       </div>
-      <div onclick="showSec('requisiciones')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600 relative" id="nav-requisiciones">
-        <span class="ms text-lg">priority_high</span>Requisiciones
-        <span id="req-badge" class="ml-auto bg-error text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">4</span>
-      </div>
       <div onclick="showSec('ventas')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-ventas">
         <span class="ms text-lg">point_of_sale</span>Ventas
       </div>
@@ -172,10 +168,6 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         </div>
 <div onclick="mobileNav('cuentas')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
           <span class="ms text-lg">payments</span>Cuentas por Pagar
-        </div>
-        <div onclick="mobileNav('requisiciones')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
-          <span class="ms text-lg">priority_high</span>Requisiciones
-          <span id="mob-req-badge" class="ml-auto bg-error text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">4</span>
         </div>
         <div onclick="mobileNav('ventas')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
           <span class="ms text-lg">point_of_sale</span>Ventas
@@ -878,7 +870,7 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
             <span class="ms text-lg">close</span>
           </button>
         </div>
-        <div class="p-5 space-y-4">
+        <div class="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
           <input type="hidden" id="edit-id"/>
           <div class="grid grid-cols-2 gap-3">
             <div>
@@ -924,6 +916,16 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
             <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Fecha de vencimiento</label>
             <input id="edit-vencimiento" type="date" class="w-full px-4 py-3 bg-surface-container-low rounded-xl text-sm outline-none"/>
           </div>
+          <!-- Productos -->
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Productos</label>
+              <button type="button" onclick="addEditItem()" class="text-xs text-primary-container font-semibold flex items-center gap-1">
+                <span class="ms text-sm">add</span>Agregar
+              </button>
+            </div>
+            <div id="edit-items" class="space-y-2"></div>
+          </div>
         </div>
         <div class="p-5 pt-0">
           <button type="button" onclick="guardarEdicion()" class="w-full bg-primary-container text-white py-3 rounded-2xl font-semibold hover:opacity-90 transition-opacity">
@@ -949,6 +951,85 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
       <div class="grid grid-cols-3 gap-4 mb-5">
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
           <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Gasto Total</p>
+
+      <!-- Exportar -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-5">
+        <h3 class="font-bold text-slate-900 mb-1">Exportar datos</h3>
+        <p class="text-sm text-slate-400 mb-4">Descarga tus registros en Excel para análisis externo</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <!-- Compras -->
+          <div class="border border-slate-100 rounded-xl p-4">
+            <div class="flex items-center gap-3 mb-3">
+              <span class="ms text-2xl text-blue-500">shopping_cart</span>
+              <div><p class="font-semibold text-sm">Compras</p><p class="text-xs text-slate-400">Historial completo con detalle de productos</p></div>
+            </div>
+            <div class="flex gap-2 mb-3">
+              <input type="date" id="exp-compras-desde" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
+              <input type="date" id="exp-compras-hasta" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
+            </div>
+            <button type="button" onclick="exportarCompras()" class="w-full py-2.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-blue-100">
+              <span class="ms text-base">download</span>Descargar Excel
+            </button>
+          </div>
+          <!-- Ventas -->
+          <div class="border border-slate-100 rounded-xl p-4">
+            <div class="flex items-center gap-3 mb-3">
+              <span class="ms text-2xl text-green-500">point_of_sale</span>
+              <div><p class="font-semibold text-sm">Ventas Loyverse</p><p class="text-xs text-slate-400">Recibos con forma de pago y productos</p></div>
+            </div>
+            <div class="flex gap-2 mb-3">
+              <input type="date" id="exp-ventas-desde" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
+              <input type="date" id="exp-ventas-hasta" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
+            </div>
+            <button type="button" onclick="exportarVentas()" class="w-full py-2.5 bg-green-50 text-green-700 border border-green-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-green-100">
+              <span class="ms text-base">download</span>Descargar Excel
+            </button>
+          </div>
+          <!-- Salidas de caja -->
+          <div class="border border-slate-100 rounded-xl p-4">
+            <div class="flex items-center gap-3 mb-3">
+              <span class="ms text-2xl text-orange-500">payments</span>
+              <div><p class="font-semibold text-sm">Salidas de Caja</p><p class="text-xs text-slate-400">Movimientos de efectivo por turno</p></div>
+            </div>
+            <div class="flex gap-2 mb-3">
+              <input type="date" id="exp-caja-desde" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
+              <input type="date" id="exp-caja-hasta" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
+            </div>
+            <button type="button" onclick="exportarCaja()" class="w-full py-2.5 bg-orange-50 text-orange-700 border border-orange-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-orange-100">
+              <span class="ms text-base">download</span>Descargar Excel
+            </button>
+          </div>
+          <!-- Cortes de caja -->
+          <div class="border border-slate-100 rounded-xl p-4">
+            <div class="flex items-center gap-3 mb-3">
+              <span class="ms text-2xl text-purple-500">receipt_long</span>
+              <div><p class="font-semibold text-sm">Cortes de Caja</p><p class="text-xs text-slate-400">Turnos con totales y formas de pago</p></div>
+            </div>
+            <div class="flex gap-2 mb-3">
+              <input type="date" id="exp-cortes-desde" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
+              <input type="date" id="exp-cortes-hasta" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
+            </div>
+            <button type="button" onclick="exportarCortes()" class="w-full py-2.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-purple-100">
+              <span class="ms text-base">download</span>Descargar Excel
+            </button>
+          </div>
+          <!-- Reporte combinado -->
+          <div class="border border-blue-100 bg-blue-50/30 rounded-xl p-4 md:col-span-2">
+            <div class="flex items-center gap-3 mb-3">
+              <span class="ms text-2xl text-primary-container">summarize</span>
+              <div><p class="font-semibold text-sm">Reporte Semanal Completo</p><p class="text-xs text-slate-400">Compras + Ventas + Salidas de caja en un solo archivo (martes a domingo)</p></div>
+            </div>
+            <div class="flex gap-2 mb-3 max-w-sm">
+              <input type="date" id="exp-semana-desde" class="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none"/>
+              <input type="date" id="exp-semana-hasta" class="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none"/>
+            </div>
+            <button type="button" onclick="exportarSemanalCompleto()" class="py-2.5 px-6 bg-primary-container text-white rounded-xl text-xs font-semibold flex items-center gap-2 hover:opacity-90">
+              <span class="ms text-base">download</span>Reporte semanal completo
+            </button>
+          </div>
+        </div>
+      </div>
+
           <p class="text-2xl font-bold" id="rep-total">$0.00</p>
         </div>
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
@@ -1365,8 +1446,9 @@ async function loadFromSupabase() {
     });
 
     renderDashboard();
+    renderCuentasNuevo();
     poblarProveedoresDatalist();
-    toast('✓ Datos cargados desde Supabase');
+    toast('✓ ' + DB.compras.length + ' compras cargadas');
   } catch(e) {
     renderDashboard();
   }
@@ -1394,7 +1476,7 @@ function showSec(name) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const nav = document.getElementById('nav-'+name);
   if (nav) nav.classList.add('active');
-  const titles = {home:'Dashboard',compras:'Nueva Compra',historial:'Historial de Compras',productos:'Productos',proveedores:'Proveedores',cuentas:'Cuentas por Pagar',requisiciones:'Requisiciones',ventas:'Ventas Loyverse',reportes:'Reportes'};
+  const titles = {home:'Dashboard',compras:'Nueva Compra',historial:'Historial de Compras',productos:'Productos',proveedores:'Proveedores',cuentas:'Cuentas por Pagar',requisiciones:'Requisiciones',ventas:'Ventas Loyverse',reportes:'Reportes & Exportar'};
   document.getElementById('sec-title').textContent = titles[name] || name;
   // Render section data
   if (name === 'home') renderDashboard();
@@ -2328,7 +2410,22 @@ function editarCompra(id) {
   document.getElementById('edit-total').value = c.total || 0;
   document.getElementById('edit-estatus').value = c.estatus || 'Pendiente';
   document.getElementById('edit-vencimiento').value = c.vencimiento || '';
+  // Populate items
+  const itemsDiv = document.getElementById('edit-items');
+  itemsDiv.innerHTML = '';
+  (c.items || []).forEach(item => addEditItem(item));
   document.getElementById('modal-editar').classList.remove('hidden');
+}
+
+function addEditItem(item) {
+  const div = document.createElement('div');
+  div.className = 'grid grid-cols-12 gap-1 items-center';
+  div.innerHTML = '<input class="col-span-5 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none" placeholder="Producto" value="' + (item?.nombre||'') + '"/>' +
+    '<input class="col-span-2 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none" placeholder="Unid" value="' + (item?.unidad||'pza') + '"/>' +
+    '<input type="number" class="col-span-2 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none" placeholder="Cant" value="' + (item?.cantidad||'') + '"/>' +
+    '<input type="number" class="col-span-2 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none" placeholder="Precio" value="' + (item?.costo_unitario||'') + '"/>' +
+    '<span class="ms col-span-1 text-red-300 cursor-pointer hover:text-error text-center" onclick="this.parentElement.remove()">close</span>';
+  document.getElementById('edit-items').appendChild(div);
 }
 
 async function guardarEdicion() {
@@ -2344,6 +2441,21 @@ async function guardarEdicion() {
   const estatus = document.getElementById('edit-estatus').value;
   const vencimiento = document.getElementById('edit-vencimiento').value || null;
 
+  // Get items from edit form
+  const itemRows = document.getElementById('edit-items').querySelectorAll('div');
+  const newItems = [];
+  itemRows.forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    if (inputs[0]?.value.trim()) {
+      newItems.push({
+        nombre: inputs[0].value.trim().toUpperCase(),
+        unidad: inputs[1]?.value.trim() || 'pza',
+        cantidad: parseFloat(inputs[2]?.value) || 0,
+        costo_unitario: parseFloat(inputs[3]?.value) || 0
+      });
+    }
+  });
+
   // Update local DB
   c.proveedor = proveedor;
   c.fecha = fecha;
@@ -2352,22 +2464,33 @@ async function guardarEdicion() {
   c.total = total;
   c.estatus = estatus;
   c.vencimiento = vencimiento;
+  c.items = newItems;
 
-  // Update Supabase
+  // Update Supabase - compra header
   try {
     await fetch('/api/supabase', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({
         table: 'compras', action: 'update', id,
-        data: {
-          proveedor_nombre: proveedor,
-          fecha, categoria, forma_pago,
-          total, estatus_pago: estatus,
-          vencimiento: vencimiento || null
-        }
+        data: { proveedor_nombre: proveedor, fecha, categoria, forma_pago, total, estatus_pago: estatus, vencimiento: vencimiento || null }
       })
     });
+    // Delete old items and reinsert
+    if (newItems.length > 0) {
+      await fetch('/api/supabase', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ table: 'detalle_compras', action: 'delete_by_compra', id })
+      });
+      for (const item of newItems) {
+        await fetch('/api/supabase', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({ table: 'detalle_compras', action: 'insert', data: { compra_id: id, nombre_producto: item.nombre, unidad: item.unidad, cantidad: item.cantidad, costo_unitario: item.costo_unitario } })
+        });
+      }
+    }
     closeModal('modal-editar');
     renderHistorial();
     renderDashboard();
@@ -3105,6 +3228,191 @@ function toggleAcordeon(id) {
   const isOpen = el.style.display !== 'none';
   el.style.display = isOpen ? 'none' : 'block';
   if (chev) chev.innerHTML = isOpen ? '&#9654;' : '&#9660;';
+}
+
+// ============================================================
+// EXPORTAR (CSV descargable)
+// ============================================================
+function csvDownload(filename, rows) {
+  const bom = '\uFEFF'; // UTF-8 BOM for Excel
+  const csv = bom + rows.map(r => r.map(c => {
+    const s = String(c ?? '').replace(/"/g, '""');
+    return s.includes(',') || s.includes('\n') || s.includes('"') ? '"' + s + '"' : s;
+  }).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+}
+
+function getExpDates(prefix) {
+  return {
+    desde: document.getElementById('exp-' + prefix + '-desde')?.value || '',
+    hasta: document.getElementById('exp-' + prefix + '-hasta')?.value || ''
+  };
+}
+
+function exportarCompras() {
+  const {desde, hasta} = getExpDates('compras');
+  let compras = [...DB.compras];
+  if (desde) compras = compras.filter(c => c.fecha >= desde);
+  if (hasta) compras = compras.filter(c => c.fecha <= hasta);
+  compras.sort((a,b) => a.fecha > b.fecha ? -1 : 1);
+
+  const rows = [['Fecha','Proveedor','Categoría','Forma de Pago','Estatus','Vencimiento','Total','Productos']];
+  compras.forEach(c => {
+    const prods = (c.items||[]).map(i => i.nombre + ' x' + i.cantidad + ' ' + i.unidad + ' $' + i.costo_unitario).join(' | ');
+    rows.push([c.fecha, c.proveedor, c.categoria, c.forma_pago, c.estatus, c.vencimiento||'', c.total, prods]);
+  });
+  csvDownload('romatella-compras-' + (desde||'all') + '.csv', rows);
+  toast('✓ Exportando ' + compras.length + ' compras');
+}
+
+async function exportarVentas() {
+  const {desde, hasta} = getExpDates('ventas');
+  if (!desde || !hasta) { toast('Selecciona rango de fechas'); return; }
+  toast('Descargando ventas...');
+  try {
+    const resp = await fetch('/api/loyverse?endpoint=summary&date_from=' + encodeURIComponent(desde + 'T00:00:00.000Z') + '&date_to=' + encodeURIComponent(hasta + 'T23:59:59.000Z'));
+    const data = await resp.json();
+    const receipts = data.receipts || [];
+    const ptMap = DB.paymentTypes || {};
+    const rows = [['Fecha','Hora','Folio','Total','Forma de Pago','Descuento','Productos']];
+    receipts.forEach(r => {
+      const fecha = new Date(r.created_at);
+      const pago = (r.payments||[]).map(p => (p.name || ptMap[p.payment_type_id] || 'Otro') + ' $' + (p.money_amount||0)).join(' | ');
+      const prods = (r.line_items||[]).map(i => i.item_name + ' x' + i.quantity).join(' | ');
+      rows.push([
+        fecha.toLocaleDateString('es-MX'),
+        fecha.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),
+        r.receipt_number || '',
+        r.total_money || 0,
+        pago, r.total_discount || 0, prods
+      ]);
+    });
+    csvDownload('romatella-ventas-' + desde + '-' + hasta + '.csv', rows);
+    toast('✓ ' + receipts.length + ' ventas exportadas');
+  } catch(e) { toast('Error: ' + e.message); }
+}
+
+async function exportarCaja() {
+  const {desde, hasta} = getExpDates('caja');
+  if (!desde || !hasta) { toast('Selecciona rango de fechas'); return; }
+  toast('Descargando movimientos de caja...');
+  try {
+    const resp = await fetch('/api/loyverse?endpoint=shifts&date_from=' + encodeURIComponent(desde + 'T00:00:00.000Z') + '&date_to=' + encodeURIComponent(hasta + 'T23:59:59.000Z'));
+    const data = await resp.json();
+    const shifts = data.shifts || [];
+    const rows = [['Fecha','Hora','Tipo','Descripción','Monto']];
+    shifts.forEach(s => {
+      (s.cash_movements||[]).forEach(m => {
+        const fecha = new Date(m.created_at || s.opened_at);
+        rows.push([
+          fecha.toLocaleDateString('es-MX'),
+          fecha.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),
+          m.type === 'PAY_IN' ? 'ENTRADA' : 'SALIDA',
+          m.comment || '',
+          m.money_amount || 0
+        ]);
+      });
+    });
+    csvDownload('romatella-caja-' + desde + '-' + hasta + '.csv', rows);
+    toast('✓ ' + rows.length + ' movimientos exportados');
+  } catch(e) { toast('Error: ' + e.message); }
+}
+
+async function exportarCortes() {
+  const {desde, hasta} = getExpDates('cortes');
+  if (!desde || !hasta) { toast('Selecciona rango de fechas'); return; }
+  toast('Descargando cortes...');
+  try {
+    const resp = await fetch('/api/loyverse?endpoint=shifts&date_from=' + encodeURIComponent(desde + 'T00:00:00.000Z') + '&date_to=' + encodeURIComponent(hasta + 'T23:59:59.000Z'));
+    const data = await resp.json();
+    const shifts = data.shifts || [];
+    const ptMap = DB.paymentTypes || {};
+    const rows = [['Fecha Apertura','Hora Apertura','Hora Cierre','Fondo Inicial','Venta Bruta','Efectivo','Banamex','UberEats','Mercado Pago','Efectivo Real','Descuadre','Salidas']];
+    shifts.forEach(s => {
+      const ap = new Date(s.opened_at);
+      const ci = s.closed_at ? new Date(s.closed_at) : null;
+      const pagos = {};
+      (s.payments||[]).forEach(p => {
+        const n = p.name || ptMap[p.payment_type_id] || 'Otro';
+        pagos[n] = (pagos[n]||0) + (p.money_amount||0);
+      });
+      const dif = (s.actual_cash||0) - (s.expected_cash||0);
+      const salidas = (s.cash_movements||[]).filter(m=>m.type==='PAY_OUT').map(m=>m.comment+' $'+m.money_amount).join(' | ');
+      rows.push([
+        ap.toLocaleDateString('es-MX'),
+        ap.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),
+        ci ? ci.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}) : 'Abierto',
+        s.starting_cash||0, s.gross_sales||0,
+        pagos['Efectivo']||0, pagos['Banamex']||0, pagos['UberEats']||0, pagos['Mercado Pago']||0,
+        s.actual_cash||0, dif, salidas
+      ]);
+    });
+    csvDownload('romatella-cortes-' + desde + '-' + hasta + '.csv', rows);
+    toast('✓ ' + shifts.length + ' cortes exportados');
+  } catch(e) { toast('Error: ' + e.message); }
+}
+
+async function exportarSemanalCompleto() {
+  const desde = document.getElementById('exp-semana-desde')?.value;
+  const hasta = document.getElementById('exp-semana-hasta')?.value;
+  if (!desde || !hasta) { toast('Selecciona el rango de la semana'); return; }
+  toast('Generando reporte semanal...');
+
+  const rows = [];
+
+  // Sheet 1: Compras
+  rows.push(['=== COMPRAS ===']);
+  rows.push(['Fecha','Proveedor','Categoría','Forma Pago','Estatus','Total','Productos']);
+  DB.compras.filter(c => c.fecha >= desde && c.fecha <= hasta)
+    .sort((a,b) => a.fecha > b.fecha ? -1 : 1)
+    .forEach(c => {
+      const prods = (c.items||[]).map(i => i.nombre + ' x' + i.cantidad).join(' | ');
+      rows.push([c.fecha, c.proveedor, c.categoria, c.forma_pago, c.estatus, c.total, prods]);
+    });
+
+  rows.push([]);
+  rows.push(['Total compras semana', '', '', '', '', DB.compras.filter(c=>c.fecha>=desde&&c.fecha<=hasta).reduce((a,c)=>a+c.total,0)]);
+  rows.push([]);
+
+  try {
+    // Ventas
+    const vResp = await fetch('/api/loyverse?endpoint=summary&date_from=' + encodeURIComponent(desde + 'T00:00:00.000Z') + '&date_to=' + encodeURIComponent(hasta + 'T23:59:59.000Z'));
+    const vData = await vResp.json();
+    const receipts = vData.receipts || [];
+    const ptMap = DB.paymentTypes || {};
+
+    rows.push(['=== VENTAS ===']);
+    rows.push(['Fecha','Total','Forma de Pago','# Ticket']);
+    receipts.forEach(r => {
+      const pago = (r.payments||[]).map(p => p.name || ptMap[p.payment_type_id] || 'Otro').join('+');
+      rows.push([new Date(r.created_at).toLocaleDateString('es-MX'), r.total_money||0, pago, r.receipt_number||'']);
+    });
+    const totalVentas = receipts.reduce((a,r) => a+(r.total_money||0), 0);
+    rows.push([]);
+    rows.push(['Total ventas semana','',totalVentas]);
+    rows.push([]);
+
+    // Salidas de caja
+    const sResp = await fetch('/api/loyverse?endpoint=shifts&date_from=' + encodeURIComponent(desde + 'T00:00:00.000Z') + '&date_to=' + encodeURIComponent(hasta + 'T23:59:59.000Z'));
+    const sData = await sResp.json();
+    const shifts = sData.shifts || [];
+
+    rows.push(['=== SALIDAS DE CAJA ===']);
+    rows.push(['Fecha','Hora','Descripción','Monto']);
+    shifts.forEach(s => {
+      (s.cash_movements||[]).filter(m=>m.type==='PAY_OUT').forEach(m => {
+        const f = new Date(m.created_at || s.opened_at);
+        rows.push([f.toLocaleDateString('es-MX'), f.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}), m.comment||'', m.money_amount||0]);
+      });
+    });
+
+    csvDownload('romatella-semana-' + desde + '-' + hasta + '.csv', rows);
+    toast('✓ Reporte semanal listo');
+  } catch(e) { toast('Error: ' + e.message); }
 }
 
 // ============================================================
