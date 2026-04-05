@@ -213,6 +213,8 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           <p class="text-2xl font-bold text-slate-900" id="metric-compras">0</p>
         </div>
       </div>
+      <!-- Hidden badges for nav -->
+      <span id="req-badge" class="hidden"></span>
       <!-- Last purchases -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
         <div class="flex justify-between items-center mb-4">
@@ -1533,13 +1535,14 @@ function renderDashboard() {
   const compras = DB.compras;
   const totalMes = compras.reduce((a,c) => a + (c.total||0), 0);
   const cxpTotal = compras.filter(c => c.estatus !== 'Pagado').reduce((a,c) => a + (c.total||0), 0);
-  const pendReq = DB.requisiciones.filter(r => r.estatus === 'pendiente').length;
+  const pendReq = 0; // Requisiciones deshabilitadas
   
   document.getElementById('metric-total').textContent = fmt(totalMes);
   document.getElementById('metric-cxp').textContent = fmt(cxpTotal);
   document.getElementById('metric-req').textContent = pendReq;
   document.getElementById('metric-compras').textContent = compras.length;
-  document.getElementById('req-badge').textContent = pendReq;
+  const reqBadge = document.getElementById('req-badge');
+  if (reqBadge) reqBadge.textContent = pendReq;
   const mobBadge = document.getElementById('mob-req-badge');
   if (mobBadge) mobBadge.textContent = pendReq;
   
