@@ -448,27 +448,19 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
     <section id="sec-productos" class="sec p-5 fade">
       <div class="mb-5">
         <h2 class="text-2xl font-bold text-slate-900">Productos</h2>
-        <p class="text-sm text-slate-400">Historial de precios por ingrediente — clic para ver detalle</p>
+        <p class="text-sm text-slate-400">Historial de precios — clic en producto para ver detalle</p>
       </div>
-
-      <!-- Search -->
       <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-3">
         <input id="prod-search" class="w-full px-4 py-2.5 bg-surface-container-low rounded-xl text-sm outline-none" placeholder="Buscar por nombre, proveedor o categoría..." oninput="renderProductos(this.value)"/>
       </div>
-
-      <!-- Filtro categoría -->
       <div class="mb-2">
         <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">Categoría</p>
-        <div class="flex flex-wrap gap-1.5"><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-900 text-white" data-val="" onclick="renderProductos(undefined,'',undefined)">Todas</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Carnicería" onclick="renderProductos(undefined,'Carnicería',undefined)">Carnicería</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Mariscos" onclick="renderProductos(undefined,'Mariscos',undefined)">Mariscos</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Abarrotes" onclick="renderProductos(undefined,'Abarrotes',undefined)">Abarrotes</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Lácteos" onclick="renderProductos(undefined,'Lácteos',undefined)">Lácteos</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Frutas y Verduras" onclick="renderProductos(undefined,'Frutas y Verduras',undefined)">Frutas y Verduras</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Vinos" onclick="renderProductos(undefined,'Vinos',undefined)">Vinos</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Licores" onclick="renderProductos(undefined,'Licores',undefined)">Licores</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Refrescos" onclick="renderProductos(undefined,'Refrescos',undefined)">Refrescos</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Panadería" onclick="renderProductos(undefined,'Panadería',undefined)">Panadería</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Limpieza" onclick="renderProductos(undefined,'Limpieza',undefined)">Limpieza</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Otros insumos" onclick="renderProductos(undefined,'Otros insumos',undefined)">Otros insumos</button></div>
+        <div class="flex flex-wrap gap-1.5"><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-900 text-white" data-cat="" onclick="filterProdCat(this)">Todas</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Carnicería" onclick="filterProdCat(this)">Carnicería</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Mariscos" onclick="filterProdCat(this)">Mariscos</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Abarrotes" onclick="filterProdCat(this)">Abarrotes</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Lácteos" onclick="filterProdCat(this)">Lácteos</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Frutas y Verduras" onclick="filterProdCat(this)">Frutas y Verduras</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Vinos" onclick="filterProdCat(this)">Vinos</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Licores" onclick="filterProdCat(this)">Licores</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Refrescos" onclick="filterProdCat(this)">Refrescos</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Panadería" onclick="filterProdCat(this)">Panadería</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Limpieza" onclick="filterProdCat(this)">Limpieza</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Otros insumos" onclick="filterProdCat(this)">Otros insumos</button></div>
       </div>
-
-      <!-- Filtro proveedor -->
       <div class="mb-4">
         <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">Proveedor</p>
-        <div class="flex flex-wrap gap-1.5"><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-primary-container text-white" data-val="" onclick="renderProductos(undefined,undefined,'')">Todos</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="DISFRULEG" onclick="renderProductos(undefined,undefined,'DISFRULEG')">DISFRULEG</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="KRILL" onclick="renderProductos(undefined,undefined,'KRILL')">KRILL</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="CARNICIERIA DIANA" onclick="renderProductos(undefined,undefined,'CARNICIERIA DIANA')">CARNICIERIA DIANA</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="COSTCO DE MÉXICO" onclick="renderProductos(undefined,undefined,'COSTCO DE MÉXICO')">COSTCO DE MÉXICO</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="WALMART" onclick="renderProductos(undefined,undefined,'WALMART')">WALMART</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="VIPARMEX" onclick="renderProductos(undefined,undefined,'VIPARMEX')">VIPARMEX</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="AYALA" onclick="renderProductos(undefined,undefined,'AYALA')">AYALA</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="SAMS CLUB" onclick="renderProductos(undefined,undefined,'SAMS CLUB')">SAMS CLUB</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="SORIANA" onclick="renderProductos(undefined,undefined,'SORIANA')">SORIANA</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="PANADERIA" onclick="renderProductos(undefined,undefined,'PANADERIA')">PANADERIA</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="AGRUPAMIENTO TIGRE" onclick="renderProductos(undefined,undefined,'AGRUPAMIENTO TIGRE')">AGRUPAMIENTO TIGRE</button></div>
+        <div class="flex flex-wrap gap-1.5"><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-primary-container text-white" data-prov="" onclick="filterProdProv(this)">Todos</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="DISFRULEG" onclick="filterProdProv(this)">DISFRULEG</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="KRILL" onclick="filterProdProv(this)">KRILL</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="CARNICIERIA DIANA" onclick="filterProdProv(this)">CARNICIERIA DIANA</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="COSTCO DE MÉXICO" onclick="filterProdProv(this)">COSTCO DE MÉXICO</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="WALMART" onclick="filterProdProv(this)">WALMART</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="VIPARMEX" onclick="filterProdProv(this)">VIPARMEX</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="AYALA" onclick="filterProdProv(this)">AYALA</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="SAMS CLUB" onclick="filterProdProv(this)">SAMS CLUB</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="SORIANA" onclick="filterProdProv(this)">SORIANA</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="PANADERIA" onclick="filterProdProv(this)">PANADERIA</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="AGRUPAMIENTO TIGRE" onclick="filterProdProv(this)">AGRUPAMIENTO TIGRE</button></div>
       </div>
-
-      <!-- Tabla -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full">
@@ -1832,12 +1824,10 @@ async function registerCompra() {
 // ============================================================
 // PRODUCTOS
 // ============================================================
-function renderProductos(filtro, filtroCategoria, filtroProveedor) {
+function renderProductos(filtro) {
   filtro = (filtro !== undefined ? filtro : document.getElementById('prod-search')?.value || '').toLowerCase().trim();
-  filtroCategoria = filtroCategoria !== undefined ? filtroCategoria : (DB.prodFiltroCategoria || '');
-  filtroProveedor = filtroProveedor !== undefined ? filtroProveedor : (DB.prodFiltroProveedor || '');
-  DB.prodFiltroCategoria = filtroCategoria;
-  DB.prodFiltroProveedor = filtroProveedor;
+  const filtroCategoria = DB.prodFiltroCategoria || '';
+  const filtroProveedor = DB.prodFiltroProveedor || '';
 
   // Build product map from compras items + historialPrecios
   const prodMap = {};
@@ -1870,17 +1860,7 @@ function renderProductos(filtro, filtroCategoria, filtroProveedor) {
   if (filtroProveedor) prods = prods.filter(p => p.proveedor === filtroProveedor);
   prods.sort((a,b) => a.nombre.localeCompare(b.nombre));
 
-  // Update filter buttons state
-  document.querySelectorAll('.prod-cat-btn').forEach(b => {
-    b.className = b.dataset.val === filtroCategoria
-      ? 'prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-900 text-white'
-      : 'prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200';
-  });
-  document.querySelectorAll('.prod-prov-btn').forEach(b => {
-    b.className = b.dataset.val === filtroProveedor
-      ? 'prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-primary-container text-white'
-      : 'prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200';
-  });
+
 
   const tbody = document.getElementById('prod-list');
   if (!prods.length) {
@@ -1896,7 +1876,8 @@ function renderProductos(filtro, filtroCategoria, filtroProveedor) {
     const variacion = primero > 0 && sorted.length > 1 ? ((ultimo - primero) / primero * 100) : null;
     const varColor = variacion === null ? 'text-slate-300' : variacion > 5 ? 'text-red-500' : variacion < -5 ? 'text-green-600' : 'text-slate-400';
     const varTxt = variacion === null ? '—' : (variacion > 0 ? '▲ +' : '▼ ') + variacion.toFixed(1) + '%';
-    return '<tr class="text-sm hover:bg-blue-50/30 cursor-pointer" onclick="verProductoDetalle('' + p.nombre.replace(/'/g,"\'") + '')">' +
+    const encNombre = encodeURIComponent(p.nombre);
+    return '<tr class="text-sm hover:bg-blue-50/30 cursor-pointer" onclick="verProductoDetalle(decodeURIComponent(this.dataset.nombre))" data-nombre="' + encNombre + '">' +
       '<td class="p-3 font-medium">' + p.nombre + '</td>' +
       '<td class="p-3 hidden md:table-cell"><span class="text-xs px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full">' + (p.categoria||'—') + '</span></td>' +
       '<td class="p-3 text-slate-400 hidden md:table-cell text-xs">' + (p.proveedor||'—') + '</td>' +
@@ -3736,6 +3717,27 @@ function verHistorialPrecio(nombreProducto) {
     '</tbody></table>';
 
   document.getElementById('modal-historial-precio').classList.remove('hidden');
+}
+
+function filterProdCat(btn) {
+  const val = btn.dataset.cat || '';
+  DB.prodFiltroCategoria = val;
+  document.querySelectorAll('.prod-cat-btn').forEach(b => {
+    b.className = b.dataset.cat === val
+      ? 'prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-900 text-white'
+      : 'prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200';
+  });
+  renderProductos();
+}
+function filterProdProv(btn) {
+  const val = btn.dataset.prov || '';
+  DB.prodFiltroProveedor = val;
+  document.querySelectorAll('.prod-prov-btn').forEach(b => {
+    b.className = b.dataset.prov === val
+      ? 'prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-primary-container text-white'
+      : 'prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200';
+  });
+  renderProductos();
 }
 
 // ============================================================
