@@ -446,29 +446,45 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
     <!-- PRODUCTOS -->
     <!-- PRODUCTOS -->
     <section id="sec-productos" class="sec p-5 fade">
-      <div class="flex justify-between items-center mb-5">
-        <div><h2 class="text-2xl font-bold text-slate-900">Productos</h2>
-          <p class="text-sm text-slate-400">Historial de precios por ingrediente</p></div>
+      <div class="mb-5">
+        <h2 class="text-2xl font-bold text-slate-900">Productos</h2>
+        <p class="text-sm text-slate-400">Historial de precios por ingrediente — clic para ver detalle</p>
       </div>
+
+      <!-- Search -->
+      <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-3">
+        <input id="prod-search" class="w-full px-4 py-2.5 bg-surface-container-low rounded-xl text-sm outline-none" placeholder="Buscar por nombre, proveedor o categoría..." oninput="renderProductos(this.value)"/>
+      </div>
+
+      <!-- Filtro categoría -->
+      <div class="mb-2">
+        <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">Categoría</p>
+        <div class="flex flex-wrap gap-1.5"><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-900 text-white" data-val="" onclick="renderProductos(undefined,'',undefined)">Todas</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Carnicería" onclick="renderProductos(undefined,'Carnicería',undefined)">Carnicería</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Mariscos" onclick="renderProductos(undefined,'Mariscos',undefined)">Mariscos</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Abarrotes" onclick="renderProductos(undefined,'Abarrotes',undefined)">Abarrotes</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Lácteos" onclick="renderProductos(undefined,'Lácteos',undefined)">Lácteos</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Frutas y Verduras" onclick="renderProductos(undefined,'Frutas y Verduras',undefined)">Frutas y Verduras</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Vinos" onclick="renderProductos(undefined,'Vinos',undefined)">Vinos</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Licores" onclick="renderProductos(undefined,'Licores',undefined)">Licores</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Refrescos" onclick="renderProductos(undefined,'Refrescos',undefined)">Refrescos</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Panadería" onclick="renderProductos(undefined,'Panadería',undefined)">Panadería</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Limpieza" onclick="renderProductos(undefined,'Limpieza',undefined)">Limpieza</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="Otros insumos" onclick="renderProductos(undefined,'Otros insumos',undefined)">Otros insumos</button></div>
+      </div>
+
+      <!-- Filtro proveedor -->
+      <div class="mb-4">
+        <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">Proveedor</p>
+        <div class="flex flex-wrap gap-1.5"><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-primary-container text-white" data-val="" onclick="renderProductos(undefined,undefined,'')">Todos</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="DISFRULEG" onclick="renderProductos(undefined,undefined,'DISFRULEG')">DISFRULEG</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="KRILL" onclick="renderProductos(undefined,undefined,'KRILL')">KRILL</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="CARNICIERIA DIANA" onclick="renderProductos(undefined,undefined,'CARNICIERIA DIANA')">CARNICIERIA DIANA</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="COSTCO DE MÉXICO" onclick="renderProductos(undefined,undefined,'COSTCO DE MÉXICO')">COSTCO DE MÉXICO</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="WALMART" onclick="renderProductos(undefined,undefined,'WALMART')">WALMART</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="VIPARMEX" onclick="renderProductos(undefined,undefined,'VIPARMEX')">VIPARMEX</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="AYALA" onclick="renderProductos(undefined,undefined,'AYALA')">AYALA</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="SAMS CLUB" onclick="renderProductos(undefined,undefined,'SAMS CLUB')">SAMS CLUB</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="SORIANA" onclick="renderProductos(undefined,undefined,'SORIANA')">SORIANA</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="PANADERIA" onclick="renderProductos(undefined,undefined,'PANADERIA')">PANADERIA</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-val="AGRUPAMIENTO TIGRE" onclick="renderProductos(undefined,undefined,'AGRUPAMIENTO TIGRE')">AGRUPAMIENTO TIGRE</button></div>
+      </div>
+
+      <!-- Tabla -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div class="p-4 border-b border-slate-100">
-          <input id="prod-search" class="w-full px-4 py-2 bg-surface-container-low rounded-xl text-sm outline-none" placeholder="Buscar por nombre, proveedor o categoría..." oninput="renderProductos(this.value)"/>
-        </div>
         <div class="overflow-x-auto">
           <table class="w-full">
             <thead class="bg-surface-container-low">
               <tr class="text-xs text-slate-400 uppercase tracking-wider">
-                <th class="text-left p-4 font-medium">Producto</th>
-                <th class="text-left p-4 font-medium hidden md:table-cell">Categoría</th>
-                <th class="text-left p-4 font-medium hidden md:table-cell">Proveedor</th>
-                <th class="text-right p-4 font-medium">Último precio</th>
-                <th class="text-right p-4 font-medium hidden md:table-cell">Promedio</th>
-                <th class="text-right p-4 font-medium hidden lg:table-cell">Var. precio</th>
-                <th class="text-right p-4 font-medium hidden md:table-cell">Compras</th>
+                <th class="text-left p-3 font-medium">Producto</th>
+                <th class="text-left p-3 font-medium hidden md:table-cell">Categoría</th>
+                <th class="text-left p-3 font-medium hidden md:table-cell">Proveedor</th>
+                <th class="text-right p-3 font-medium">Último precio</th>
+                <th class="text-right p-3 font-medium hidden md:table-cell">Promedio</th>
+                <th class="text-right p-3 font-medium hidden lg:table-cell">Variación</th>
+                <th class="text-right p-3 font-medium hidden md:table-cell">Compras</th>
               </tr>
             </thead>
             <tbody id="prod-list" class="divide-y divide-slate-50">
-              <tr><td colspan="7" class="py-8 text-center text-slate-300 text-sm">Los productos aparecerán aquí al registrar compras</td></tr>
+              <tr><td colspan="7" class="py-8 text-center text-slate-300 text-sm">Cargando...</td></tr>
             </tbody>
           </table>
         </div>
@@ -874,6 +890,22 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           </button>
         </div>
         <div id="modal-hist-content" class="p-5"></div>
+      </div>
+    </div>
+
+    <!-- MODAL PRODUCTO DETALLE -->
+    <div id="modal-producto-detalle" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div class="p-5 border-b border-slate-100 flex justify-between items-center sticky top-0 bg-white rounded-t-3xl">
+          <div>
+            <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-0.5">Detalle de producto</p>
+            <p class="font-bold text-slate-900 text-lg" id="mpd-titulo">—</p>
+          </div>
+          <button onclick="closeModal('modal-producto-detalle')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center">
+            <span class="ms text-lg">close</span>
+          </button>
+        </div>
+        <div id="mpd-content" class="p-5"></div>
       </div>
     </div>
 
@@ -1800,31 +1832,79 @@ async function registerCompra() {
 // ============================================================
 // PRODUCTOS
 // ============================================================
-function renderProductos() {
-  const map = {};
+function renderProductos(filtro, filtroCategoria, filtroProveedor) {
+  filtro = (filtro !== undefined ? filtro : document.getElementById('prod-search')?.value || '').toLowerCase().trim();
+  filtroCategoria = filtroCategoria !== undefined ? filtroCategoria : (DB.prodFiltroCategoria || '');
+  filtroProveedor = filtroProveedor !== undefined ? filtroProveedor : (DB.prodFiltroProveedor || '');
+  DB.prodFiltroCategoria = filtroCategoria;
+  DB.prodFiltroProveedor = filtroProveedor;
+
+  // Build product map from compras items + historialPrecios
+  const prodMap = {};
+  const addEntry = (nombre, categoria, unidad, precio, proveedor, fecha) => {
+    const key = nombre.toUpperCase().trim();
+    if (!key) return;
+    if (!prodMap[key]) prodMap[key] = { nombre: key, categoria: categoria||'', unidad: unidad||'pza', proveedor: proveedor||'', precios: [] };
+    if (precio > 0) prodMap[key].precios.push({ precio, fecha, proveedor });
+    if (categoria) prodMap[key].categoria = categoria;
+    if (proveedor) prodMap[key].proveedor = proveedor;
+  };
+
   DB.compras.forEach(c => {
     (c.items||[]).forEach(item => {
-      if (!item.nombre || item.nombre === '—') return;
-      if (!map[item.nombre]) map[item.nombre] = { nombre:item.nombre, categoria:c.categoria, precios:[], veces:0 };
-      map[item.nombre].precios.push(item.costo_unitario);
-      map[item.nombre].veces++;
-      map[item.nombre].unidad = item.unidad;
+      if (item.nombre) addEntry(item.nombre, c.categoria, item.unidad, item.costo_unitario, c.proveedor, c.fecha);
     });
   });
+  (DB.historialPrecios||[]).forEach(h => {
+    if (h.producto_nombre) addEntry(h.producto_nombre, '', h.unidad, h.costo_unitario, h.proveedor_nombre, h.fecha);
+  });
+
+  // Apply filters
+  let prods = Object.values(prodMap);
+  if (filtro) prods = prods.filter(p =>
+    p.nombre.toLowerCase().includes(filtro) ||
+    p.proveedor.toLowerCase().includes(filtro) ||
+    p.categoria.toLowerCase().includes(filtro)
+  );
+  if (filtroCategoria) prods = prods.filter(p => p.categoria === filtroCategoria);
+  if (filtroProveedor) prods = prods.filter(p => p.proveedor === filtroProveedor);
+  prods.sort((a,b) => a.nombre.localeCompare(b.nombre));
+
+  // Update filter buttons state
+  document.querySelectorAll('.prod-cat-btn').forEach(b => {
+    b.className = b.dataset.val === filtroCategoria
+      ? 'prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-900 text-white'
+      : 'prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200';
+  });
+  document.querySelectorAll('.prod-prov-btn').forEach(b => {
+    b.className = b.dataset.val === filtroProveedor
+      ? 'prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-primary-container text-white'
+      : 'prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200';
+  });
+
   const tbody = document.getElementById('prod-list');
-  const prods = Object.values(map);
   if (!prods.length) {
-    tbody.innerHTML = '<tr><td colspan="4" class="py-8 text-center text-slate-300 text-sm">Los productos aparecerán aquí al registrar compras</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-300 text-sm">Sin productos que coincidan</td></tr>';
     return;
   }
+
   tbody.innerHTML = prods.map(p => {
-    const ultimo = p.precios[p.precios.length-1];
-    return `<tr class="text-sm hover:bg-slate-50/50">
-      <td class="p-4 font-medium">${p.nombre}</td>
-      <td class="p-4 text-slate-400 hidden md:table-cell"><span class="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">${p.categoria||'—'}</span></td>
-      <td class="p-4 text-right font-semibold">${fmt(ultimo)}</td>
-      <td class="p-4 text-right text-slate-400 hidden md:table-cell">${p.veces}</td>
-    </tr>`;
+    const sorted = [...p.precios].sort((a,b) => a.fecha > b.fecha ? 1 : -1);
+    const ultimo = sorted[sorted.length-1]?.precio || 0;
+    const primero = sorted[0]?.precio || 0;
+    const avg = p.precios.length ? p.precios.reduce((a,x) => a+x.precio, 0) / p.precios.length : 0;
+    const variacion = primero > 0 && sorted.length > 1 ? ((ultimo - primero) / primero * 100) : null;
+    const varColor = variacion === null ? 'text-slate-300' : variacion > 5 ? 'text-red-500' : variacion < -5 ? 'text-green-600' : 'text-slate-400';
+    const varTxt = variacion === null ? '—' : (variacion > 0 ? '▲ +' : '▼ ') + variacion.toFixed(1) + '%';
+    return '<tr class="text-sm hover:bg-blue-50/30 cursor-pointer" onclick="verProductoDetalle('' + p.nombre.replace(/'/g,"\'") + '')">' +
+      '<td class="p-3 font-medium">' + p.nombre + '</td>' +
+      '<td class="p-3 hidden md:table-cell"><span class="text-xs px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full">' + (p.categoria||'—') + '</span></td>' +
+      '<td class="p-3 text-slate-400 hidden md:table-cell text-xs">' + (p.proveedor||'—') + '</td>' +
+      '<td class="p-3 text-right font-semibold">' + fmt(ultimo) + '</td>' +
+      '<td class="p-3 text-right text-slate-500 hidden md:table-cell">' + (avg > 0 ? fmt(Math.round(avg*100)/100) : '—') + '</td>' +
+      '<td class="p-3 text-right hidden lg:table-cell"><span class="text-xs font-semibold ' + varColor + '">' + varTxt + '</span></td>' +
+      '<td class="p-3 text-right text-slate-400 hidden md:table-cell text-xs">' + p.precios.length + '</td>' +
+      '</tr>';
   }).join('');
 }
 
@@ -3513,6 +3593,79 @@ async function saveHistorialPrecio(item, compra) {
       })
     });
   } catch(e) {}
+}
+
+function verProductoDetalle(nombre) {
+  // Build full data for this product
+  const key = nombre.toUpperCase().trim();
+  const precios = [];
+
+  DB.compras.forEach(c => {
+    (c.items||[]).forEach(item => {
+      if (item.nombre?.toUpperCase().trim() === key && item.costo_unitario > 0) {
+        precios.push({ fecha: c.fecha, proveedor: c.proveedor, precio: item.costo_unitario, unidad: item.unidad, cantidad: item.cantidad });
+      }
+    });
+  });
+  (DB.historialPrecios||[]).forEach(h => {
+    if (h.producto_nombre?.toUpperCase().trim() === key && h.costo_unitario > 0) {
+      if (!precios.find(p => p.fecha === h.fecha && p.proveedor === h.proveedor_nombre)) {
+        precios.push({ fecha: h.fecha, proveedor: h.proveedor_nombre, precio: h.costo_unitario, unidad: h.unidad, cantidad: null });
+      }
+    }
+  });
+
+  precios.sort((a,b) => b.fecha > a.fecha ? 1 : -1);
+
+  if (!precios.length) {
+    document.getElementById('mpd-content').innerHTML = '<p class="text-slate-300 text-center py-8">Sin datos</p>';
+    document.getElementById('mpd-titulo').textContent = nombre;
+    document.getElementById('modal-producto-detalle').classList.remove('hidden');
+    return;
+  }
+
+  const avg = precios.reduce((a,p) => a+p.precio, 0) / precios.length;
+  const min = Math.min(...precios.map(p => p.precio));
+  const max = Math.max(...precios.map(p => p.precio));
+  const ultimo = precios[0].precio;
+  const anterior = precios[1]?.precio;
+  const cambioUlt = anterior ? ((ultimo - anterior) / anterior * 100) : null;
+  const totalCompras = precios.length;
+  const unidad = precios[0].unidad || '';
+
+  document.getElementById('mpd-titulo').textContent = nombre;
+  document.getElementById('mpd-content').innerHTML =
+    // Métricas clave
+    '<div class="grid grid-cols-2 gap-3 mb-5">' +
+    '<div class="bg-slate-50 rounded-xl p-3"><p class="text-xs text-slate-400 mb-1">Último precio</p><p class="text-xl font-bold">' + fmt(ultimo) + '</p><p class="text-xs text-slate-400">/' + unidad + '</p></div>' +
+    '<div class="bg-slate-50 rounded-xl p-3"><p class="text-xs text-slate-400 mb-1">Precio promedio</p><p class="text-xl font-bold">' + fmt(Math.round(avg*100)/100) + '</p></div>' +
+    '<div class="bg-green-50 rounded-xl p-3"><p class="text-xs text-green-500 mb-1">Mínimo histórico</p><p class="text-lg font-bold text-green-700">' + fmt(min) + '</p></div>' +
+    '<div class="bg-red-50 rounded-xl p-3"><p class="text-xs text-red-400 mb-1">Máximo histórico</p><p class="text-lg font-bold text-red-600">' + fmt(max) + '</p></div>' +
+    '</div>' +
+    // Cambio vs anterior
+    (cambioUlt !== null ? '<div class="mb-4 p-3 rounded-xl flex items-center justify-between ' + (cambioUlt > 0 ? 'bg-red-50' : 'bg-green-50') + '">' +
+    '<p class="text-sm ' + (cambioUlt > 0 ? 'text-red-700' : 'text-green-700') + '">Cambio vs. compra anterior</p>' +
+    '<p class="font-bold ' + (cambioUlt > 0 ? 'text-red-600' : 'text-green-600') + '">' + (cambioUlt > 0 ? '▲ +' : '▼ ') + cambioUlt.toFixed(1) + '%</p>' +
+    '</div>' : '') +
+    // Total compras
+    '<p class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-3">Historial (' + totalCompras + ' compras)</p>' +
+    '<div class="space-y-2">' +
+    precios.map((p, i) => {
+      const prev = precios[i+1];
+      const diff = prev ? ((p.precio - prev.precio) / prev.precio * 100) : null;
+      return '<div class="flex items-center justify-between p-3 rounded-xl ' + (i===0?'bg-blue-50 border border-blue-100':'bg-slate-50') + '">' +
+        '<div>' +
+        '<p class="text-sm font-medium">' + new Date(p.fecha).toLocaleDateString('es-MX',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}) + '</p>' +
+        '<p class="text-xs text-slate-400">' + p.proveedor + (p.cantidad ? ' · ' + p.cantidad + ' ' + (p.unidad||'') : '') + '</p>' +
+        '</div>' +
+        '<div class="text-right">' +
+        '<p class="font-bold">' + fmt(p.precio) + '</p>' +
+        (diff !== null && Math.abs(diff) > 0.5 ? '<p class="text-xs ' + (diff > 0 ? 'text-red-500' : 'text-green-600') + '">' + (diff > 0 ? '▲ +' : '▼ ') + diff.toFixed(1) + '%</p>' : '') +
+        '</div></div>';
+    }).join('') +
+    '</div>';
+
+  document.getElementById('modal-producto-detalle').classList.remove('hidden');
 }
 
 function verHistorialPrecio(nombreProducto) {
