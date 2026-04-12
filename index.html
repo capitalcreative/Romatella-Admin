@@ -183,6 +183,8 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
 
     <!-- DASHBOARD -->
     <section id="sec-home" class="sec active p-5 fade">
+
+      <!-- ALERTAS -->
       <div id="alert-vencidas" class="hidden bg-red-50 border border-red-200 rounded-2xl p-3 mb-4 flex items-center justify-between">
         <div class="flex items-center gap-2 text-sm text-red-800">
           <span class="ms text-error">warning</span>
@@ -190,36 +192,119 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         </div>
         <button type="button" onclick="showSec('cuentas')" class="text-sm font-semibold text-error hover:underline">Ver facturas</button>
       </div>
-      <h2 class="text-2xl font-bold text-slate-900 mb-1">Dashboard</h2>
-      <p class="text-slate-400 text-sm mb-5" id="dash-date"></p>
-      <!-- Metrics -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-2">Total comprado este mes</p>
-          <p class="text-2xl font-bold text-slate-900" id="metric-total">$0.00</p>
-          <p class="text-xs text-slate-400 mt-1">MXN</p>
+      <div id="alert-food-cost" class="hidden bg-orange-50 border border-orange-200 rounded-2xl p-3 mb-4 flex items-center justify-between">
+        <div class="flex items-center gap-2 text-sm text-orange-800">
+          <span class="ms">trending_up</span>
+          <span id="alert-food-cost-text"></span>
         </div>
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-2">Cuentas por pagar</p>
-          <p class="text-2xl font-bold text-slate-900" id="metric-cxp">$0.00</p>
-          <p class="text-xs text-slate-400 mt-1">MXN</p>
+        <button type="button" onclick="showSec('reportes')" class="text-sm font-semibold text-orange-700 hover:underline">Ver reportes</button>
+      </div>
+
+      <!-- HEADER + SELECTOR DE RANGO -->
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
+        <div>
+          <h2 class="text-2xl font-bold text-slate-900">Dashboard</h2>
+          <p class="text-slate-400 text-sm" id="dash-date"></p>
         </div>
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-2">Requisiciones pendientes</p>
-          <p class="text-2xl font-bold text-slate-900" id="metric-req">4</p>
-        </div>
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-2">Compras registradas</p>
-          <p class="text-2xl font-bold text-slate-900" id="metric-compras">0</p>
+        <div class="flex flex-wrap gap-2 items-center">
+          <button type="button" onclick="setDashPeriodo('semana',this)" id="dash-btn-semana" class="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold">Esta semana</button>
+          <button type="button" onclick="setDashPeriodo('mes',this)" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">Este mes</button>
+          <button type="button" onclick="setDashPeriodo('todo',this)" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">Histórico</button>
+          <div class="flex gap-1 items-center">
+            <input type="date" id="dash-desde" onchange="setDashPeriodo('custom')" class="px-2 py-1.5 bg-white border border-slate-200 rounded-xl text-xs outline-none"/>
+            <span class="text-slate-300 text-xs">—</span>
+            <input type="date" id="dash-hasta" onchange="setDashPeriodo('custom')" class="px-2 py-1.5 bg-white border border-slate-200 rounded-xl text-xs outline-none"/>
+          </div>
         </div>
       </div>
-      <!-- Hidden badges for nav -->
-      <span id="req-badge" class="hidden"></span>
-      <!-- Last purchases -->
+
+      <!-- KPIs FILA 1: Financieros principales -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Total Compras</p>
+          <p class="text-2xl font-bold text-slate-900" id="metric-total">$0.00</p>
+          <p class="text-xs text-slate-400 mt-1" id="metric-total-sub">período seleccionado</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Ventas del Período</p>
+          <p class="text-2xl font-bold text-slate-900" id="metric-ventas">—</p>
+          <p class="text-xs text-slate-400 mt-1">Loyverse · <button onclick="showSec('ventas')" class="text-primary hover:underline">sincronizar</button></p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Cuentas por Pagar</p>
+          <p class="text-2xl font-bold text-slate-900" id="metric-cxp">$0.00</p>
+          <p class="text-xs text-slate-400 mt-1">todas las pendientes</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Ticket Promedio Compra</p>
+          <p class="text-2xl font-bold text-slate-900" id="metric-promedio">$0.00</p>
+          <p class="text-xs text-slate-400 mt-1" id="metric-compras-sub">0 compras</p>
+        </div>
+      </div>
+
+      <!-- KPIs FILA 2: Indicadores de salud -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        <!-- Food Cost % -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <div class="flex items-center justify-between mb-1">
+            <p class="text-xs text-slate-400 uppercase tracking-wider">Food Cost %</p>
+            <span class="ms text-sm text-slate-300">restaurant</span>
+          </div>
+          <p class="text-2xl font-bold" id="metric-foodcost">—</p>
+          <p class="text-xs mt-1" id="metric-foodcost-sub" class="text-slate-400">Meta: &lt;35%</p>
+        </div>
+        <!-- Vencidas -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <div class="flex items-center justify-between mb-1">
+            <p class="text-xs text-slate-400 uppercase tracking-wider">Vencidas</p>
+            <span class="ms text-sm text-error">schedule</span>
+          </div>
+          <p class="text-2xl font-bold text-error" id="metric-vencidas">$0</p>
+          <p class="text-xs text-slate-400 mt-1" id="metric-vencidas-sub">0 facturas</p>
+        </div>
+        <!-- Por vencer -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <div class="flex items-center justify-between mb-1">
+            <p class="text-xs text-slate-400 uppercase tracking-wider">Por vencer (3d)</p>
+            <span class="ms text-sm text-orange-400">hourglass_bottom</span>
+          </div>
+          <p class="text-2xl font-bold text-orange-500" id="metric-por-vencer">$0</p>
+          <p class="text-xs text-slate-400 mt-1" id="metric-por-vencer-sub">0 facturas</p>
+        </div>
+        <!-- Compras registradas -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <div class="flex items-center justify-between mb-1">
+            <p class="text-xs text-slate-400 uppercase tracking-wider">Órdenes</p>
+            <span class="ms text-sm text-slate-300">receipt_long</span>
+          </div>
+          <p class="text-2xl font-bold text-slate-900" id="metric-compras">0</p>
+          <p class="text-xs text-slate-400 mt-1">compras registradas</p>
+        </div>
+      </div>
+
+      <!-- FILA 3: Top categorías + Top proveedores -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+        <!-- Top categorías -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+          <h3 class="font-bold text-slate-900 mb-4 text-sm uppercase tracking-wider">Gasto por Categoría</h3>
+          <div id="dash-categorias" class="space-y-2">
+            <p class="text-slate-300 text-xs text-center py-4">Sin datos en el período</p>
+          </div>
+        </div>
+        <!-- Top proveedores -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
+          <h3 class="font-bold text-slate-900 mb-4 text-sm uppercase tracking-wider">Top Proveedores</h3>
+          <div id="dash-proveedores" class="space-y-2">
+            <p class="text-slate-300 text-xs text-center py-4">Sin datos en el período</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Últimas compras del período (ordenadas por fecha real) -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
         <div class="flex justify-between items-center mb-4">
-          <h3 class="font-bold text-slate-900">Últimas Compras</h3>
-          <button type="button" onclick="showSec('compras')" class="text-sm text-primary font-medium hover:underline">Ver todas</button>
+          <h3 class="font-bold text-slate-900">Compras del período</h3>
+          <button type="button" onclick="showSec('historial')" class="text-sm text-primary font-medium hover:underline">Ver historial completo</button>
         </div>
         <table class="w-full">
           <thead>
@@ -236,6 +321,11 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           </tbody>
         </table>
       </div>
+
+      <!-- Hidden badges for nav -->
+      <span id="req-badge" class="hidden"></span>
+      <span id="mob-req-badge" class="hidden"></span>
+
       <button type="button" onclick="showSec('compras')" class="fixed bottom-6 right-6 bg-primary-container text-white px-4 py-3 rounded-2xl font-semibold text-sm flex items-center gap-2 shadow-xl shadow-blue-200 hover:opacity-90 transition-opacity z-20">
         <span class="ms">add</span> Nueva Compra
       </button>
@@ -1505,6 +1595,9 @@ async function loadFromSupabase() {
     renderCuentasNuevo();
     poblarProveedoresDatalist();
     loadHistorialPrecios();
+    // Activar "esta semana" por defecto en el dashboard
+    const btnSemana = document.getElementById('dash-btn-semana');
+    if (btnSemana) setDashPeriodo('semana', btnSemana);
     toast('✓ ' + DB.compras.length + ' compras cargadas');
   } catch(e) {
     renderDashboard();
@@ -1586,46 +1679,235 @@ function porVencer(vencimiento) {
 // ============================================================
 // DASHBOARD
 // ============================================================
-function renderDashboard() {
-  const compras = DB.compras;
-  const totalMes = compras.reduce((a,c) => a + (c.total||0), 0);
-  const cxpTotal = compras.filter(c => c.estatus !== 'Pagado').reduce((a,c) => a + (c.total||0), 0);
-  const pendReq = 0; // Requisiciones deshabilitadas
-  
-  document.getElementById('metric-total').textContent = fmt(totalMes);
-  document.getElementById('metric-cxp').textContent = fmt(cxpTotal);
-  document.getElementById('metric-req').textContent = pendReq;
-  document.getElementById('metric-compras').textContent = compras.length;
-  const reqBadge = document.getElementById('req-badge');
-  if (reqBadge) reqBadge.textContent = pendReq;
-  const mobBadge = document.getElementById('mob-req-badge');
-  if (mobBadge) mobBadge.textContent = pendReq;
-  
-  // Alert vencidas
-  const vencidas = compras.filter(c => c.estatus !== 'Pagado' && isVencida(c.vencimiento));
-  const alertEl = document.getElementById('alert-vencidas');
-  if (vencidas.length > 0) {
-    alertEl.classList.remove('hidden');
-    document.getElementById('alert-vencidas-text').textContent = `Tienes ${vencidas.length} factura(s) vencida(s) (más de 8 días sin pagar)`;
-  } else {
-    alertEl.classList.add('hidden');
+function setDashPeriodo(periodo, btnEl) {
+  DB.dashPeriodo = periodo;
+  if (btnEl) {
+    document.querySelectorAll('[onclick^="setDashPeriodo"]').forEach(b => {
+      b.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200';
+    });
+    btnEl.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold';
   }
-  
-  // Last 5 purchases
+  renderDashboard();
+}
+
+function getDashCompras() {
+  const periodo = DB.dashPeriodo || 'semana';
+  const hoy = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const todayStr = hoy.getFullYear() + '-' + pad(hoy.getMonth()+1) + '-' + pad(hoy.getDate());
+
+  let compras = [...DB.compras];
+
+  if (periodo === 'semana') {
+    // Semana Romatella: martes a domingo (día operativo)
+    const dow = hoy.getDay(); // 0=dom,1=lun,2=mar...
+    const diasDesdeMartes = (dow + 5) % 7; // martes=0, mier=1, ...
+    const martes = new Date(hoy);
+    martes.setDate(hoy.getDate() - diasDesdeMartes);
+    const martesStr = martes.getFullYear() + '-' + pad(martes.getMonth()+1) + '-' + pad(martes.getDate());
+    compras = compras.filter(c => c.fecha >= martesStr && c.fecha <= todayStr);
+    DB.dashDesde = martesStr;
+    DB.dashHasta = todayStr;
+  } else if (periodo === 'mes') {
+    const mesStr = hoy.getFullYear() + '-' + pad(hoy.getMonth()+1);
+    compras = compras.filter(c => c.fecha && c.fecha.startsWith(mesStr));
+    DB.dashDesde = hoy.getFullYear() + '-' + pad(hoy.getMonth()+1) + '-01';
+    DB.dashHasta = todayStr;
+  } else if (periodo === 'custom') {
+    const desde = document.getElementById('dash-desde')?.value;
+    const hasta  = document.getElementById('dash-hasta')?.value;
+    DB.dashDesde = desde || null;
+    DB.dashHasta = hasta || null;
+    if (desde) compras = compras.filter(c => c.fecha >= desde);
+    if (hasta)  compras = compras.filter(c => c.fecha <= hasta);
+  }
+  // 'todo' → sin filtro
+
+  return compras.sort((a, b) => (b.fecha > a.fecha ? 1 : -1));
+}
+
+function renderDashboard() {
+  const compras = getDashCompras();
+  const allCompras = DB.compras;
+
+  // ── Métricas principales ────────────────────────────────
+  const totalCompras = compras.reduce((a, c) => a + (c.total||0), 0);
+  const count        = compras.length;
+  const promedio     = count ? totalCompras / count : 0;
+
+  // CXP siempre sobre el total histórico
+  const cxpTotal = allCompras
+    .filter(c => c.estatus !== 'Pagado')
+    .reduce((a, c) => a + (c.total||0), 0);
+
+  // Vencidas y por vencer (históricas)
+  const vencidasList = allCompras.filter(c => c.estatus !== 'Pagado' && isVencida(c.vencimiento));
+  const porVencerList = allCompras.filter(c => c.estatus !== 'Pagado' && porVencer(c.vencimiento));
+  const vencidasMonto   = vencidasList.reduce((a, c) => a + (c.total||0), 0);
+  const porVencerMonto  = porVencerList.reduce((a, c) => a + (c.total||0), 0);
+
+  // Actualizar KPIs fila 1
+  const set = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+  set('metric-total',       fmt(totalCompras));
+  set('metric-total-sub',   count + ' compra' + (count !== 1 ? 's' : '') + ' en el período');
+  set('metric-cxp',         fmt(cxpTotal));
+  set('metric-promedio',    fmt(promedio));
+  set('metric-compras-sub', count + ' en el período');
+  set('metric-compras',     count);
+
+  // KPIs fila 2
+  set('metric-vencidas',     fmt(vencidasMonto));
+  set('metric-vencidas-sub', vencidasList.length + ' factura' + (vencidasList.length !== 1 ? 's' : ''));
+  set('metric-por-vencer',   fmt(porVencerMonto));
+  set('metric-por-vencer-sub', porVencerList.length + ' factura' + (porVencerList.length !== 1 ? 's' : ''));
+
+  // Food Cost % — si hay ventas en DB
+  const ventasPeriodo = DB.dashVentas || null;
+  const fcEl  = document.getElementById('metric-foodcost');
+  const fcSub = document.getElementById('metric-foodcost-sub');
+  if (fcEl) {
+    if (ventasPeriodo && ventasPeriodo > 0 && totalCompras > 0) {
+      const fc = (totalCompras / ventasPeriodo * 100).toFixed(1);
+      fcEl.textContent = fc + '%';
+      fcEl.className = 'text-2xl font-bold ' + (parseFloat(fc) > 35 ? 'text-red-600' : 'text-green-700');
+      if (fcSub) fcSub.textContent = 'Meta: <35% · ventas ' + fmt(ventasPeriodo);
+      // Alerta si food cost alto
+      const alertFC = document.getElementById('alert-food-cost');
+      const alertFCText = document.getElementById('alert-food-cost-text');
+      if (alertFC && parseFloat(fc) > 35) {
+        alertFC.classList.remove('hidden');
+        if (alertFCText) alertFCText.textContent = 'Food Cost en ' + fc + '% — por encima de la meta del 35%';
+      } else if (alertFC) {
+        alertFC.classList.add('hidden');
+      }
+    } else {
+      fcEl.textContent = '—';
+      fcEl.className = 'text-2xl font-bold text-slate-300';
+      if (fcSub) {
+        fcSub.className = 'text-xs mt-1 text-slate-400';
+        fcSub.innerHTML = 'Meta: &lt;35% · <button onclick="showSec(\'ventas\')" class="text-primary hover:underline">sincronizar ventas</button>';
+      }
+    }
+  }
+
+  // ── Alerta de vencidas ──────────────────────────────────
+  const alertEl = document.getElementById('alert-vencidas');
+  const alertText = document.getElementById('alert-vencidas-text');
+  if (alertEl) {
+    if (vencidasList.length > 0) {
+      alertEl.classList.remove('hidden');
+      if (alertText) alertText.textContent = vencidasList.length + ' factura(s) vencida(s) · ' + fmt(vencidasMonto) + ' por pagar';
+    } else {
+      alertEl.classList.add('hidden');
+    }
+  }
+
+  // ── Top Categorías ──────────────────────────────────────
+  const catMap = {};
+  compras.forEach(c => {
+    const cat = c.categoria || 'Sin categoría';
+    catMap[cat] = (catMap[cat] || 0) + (c.total || 0);
+  });
+  const cats = Object.entries(catMap).sort((a, b) => b[1] - a[1]).slice(0, 6);
+  const maxCat = cats[0]?.[1] || 1;
+  const catContainer = document.getElementById('dash-categorias');
+  if (catContainer) {
+    catContainer.innerHTML = '';
+    if (!cats.length) {
+      catContainer.appendChild(el('p', { cls: 'text-slate-300 text-xs text-center py-4', text: 'Sin datos en el período' }));
+    } else {
+      cats.forEach(([cat, val]) => {
+        const pct = Math.round((val / maxCat) * 100);
+        const pctTotal = totalCompras ? (val / totalCompras * 100).toFixed(0) : 0;
+        const row = el('div', { cls: 'mb-2' }, [
+          el('div', { cls: 'flex justify-between items-center mb-0.5' }, [
+            el('span', { cls: 'text-xs text-slate-700 font-medium', text: cat }),
+            el('div', { cls: 'flex items-center gap-2' }, [
+              el('span', { cls: 'text-xs text-slate-400', text: pctTotal + '%' }),
+              el('span', { cls: 'text-xs font-bold', text: fmt(val) })
+            ])
+          ]),
+          el('div', { cls: 'w-full bg-slate-100 rounded-full h-1.5' }, [
+            el('div', { cls: 'bg-primary-container h-1.5 rounded-full', style: 'width:' + pct + '%' })
+          ])
+        ]);
+        catContainer.appendChild(row);
+      });
+    }
+  }
+
+  // ── Top Proveedores ─────────────────────────────────────
+  const provMap = {};
+  compras.forEach(c => {
+    const pn = c.proveedor || 'Sin proveedor';
+    provMap[pn] = (provMap[pn] || 0) + (c.total || 0);
+  });
+  const provs = Object.entries(provMap).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  const maxProv = provs[0]?.[1] || 1;
+  const provContainer = document.getElementById('dash-proveedores');
+  if (provContainer) {
+    provContainer.innerHTML = '';
+    if (!provs.length) {
+      provContainer.appendChild(el('p', { cls: 'text-slate-300 text-xs text-center py-4', text: 'Sin datos en el período' }));
+    } else {
+      provs.forEach(([pn, val], i) => {
+        const pct = Math.round((val / maxProv) * 100);
+        const row = el('div', { cls: 'mb-2' }, [
+          el('div', { cls: 'flex justify-between items-center mb-0.5' }, [
+            el('div', { cls: 'flex items-center gap-1.5' }, [
+              el('span', { cls: 'text-xs text-slate-400 font-bold w-4', text: '#' + (i+1) }),
+              el('span', { cls: 'text-xs text-slate-700 font-medium truncate max-w-[120px]', text: pn })
+            ]),
+            el('span', { cls: 'text-xs font-bold', text: fmt(val) })
+          ]),
+          el('div', { cls: 'w-full bg-slate-100 rounded-full h-1.5' }, [
+            el('div', { cls: 'bg-primary-container h-1.5 rounded-full', style: 'width:' + pct + '%' })
+          ])
+        ]);
+        provContainer.appendChild(row);
+      });
+    }
+  }
+
+  // ── Tabla de compras del período ─────────────────────────
   const tbody = document.getElementById('dash-compras-list');
-  if (compras.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-300 text-sm">No hay compras registradas aún</td></tr>';
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (!compras.length) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 5; td.className = 'py-8 text-center text-slate-300 text-sm';
+    td.textContent = 'No hay compras en el período seleccionado';
+    tr.appendChild(td); tbody.appendChild(tr);
     return;
   }
-  const last5 = [...compras].reverse().slice(0,5);
-  tbody.innerHTML = last5.map(c => `
-    <tr class="text-sm hover:bg-slate-50/50">
-      <td class="py-3 text-slate-500">${fmtDate(c.fecha)}</td>
-      <td class="py-3 font-medium">${c.proveedor||'—'}</td>
-      <td class="py-3 text-slate-400 hidden md:table-cell">${c.categoria||'—'}</td>
-      <td class="py-3 text-right font-medium">${fmt(c.total)}</td>
-      <td class="py-3 text-right">${estatusBadge(c.estatus)}</td>
-    </tr>`).join('');
+
+  // Mostrar hasta 10 del período, ordenadas por fecha descendente
+  const toShow = compras.slice(0, 10);
+  const badgeMap = { Pagado: 'bg-green-50 text-green-700', Pendiente: 'bg-orange-50 text-orange-700', Parcial: 'bg-blue-50 text-blue-700' };
+
+  toShow.forEach(c => {
+    const badge = el('span', {
+      cls: (badgeMap[c.estatus] || 'bg-slate-100 text-slate-600') + ' text-xs font-semibold px-2 py-1 rounded-full',
+      text: c.estatus || '—'
+    });
+    const tdFecha = el('td', { cls: 'py-3 text-slate-500 text-sm', text: fmtDate(c.fecha) });
+    const tdProv  = el('td', { cls: 'py-3 font-medium text-sm', text: c.proveedor || '—' });
+    const tdCat   = el('td', { cls: 'py-3 text-slate-400 text-sm hidden md:table-cell', text: c.categoria || '—' });
+    const tdTotal = el('td', { cls: 'py-3 text-right font-medium text-sm', text: fmt(c.total) });
+    const tdStat  = el('td', { cls: 'py-3 text-right' }, badge);
+    const tr = el('tr', { cls: 'hover:bg-slate-50/50' }, [tdFecha, tdProv, tdCat, tdTotal, tdStat]);
+    tbody.appendChild(tr);
+  });
+
+  if (compras.length > 10) {
+    const tr = document.createElement('tr');
+    const td = document.createElement('td');
+    td.colSpan = 5; td.className = 'py-3 text-center text-xs text-slate-400';
+    td.innerHTML = '+ ' + (compras.length - 10) + ' compras más · <button onclick="showSec(\'historial\')" class="text-primary hover:underline font-semibold">ver historial completo</button>';
+    tr.appendChild(td); tbody.appendChild(tr);
+  }
 }
 function estatusBadge(e) {
   const map = { Pagado:'bg-green-50 text-green-700', Pendiente:'bg-orange-50 text-orange-700', Parcial:'bg-blue-50 text-blue-700' };
@@ -1668,27 +1950,68 @@ function addItem(nombre, unidad, precio) {
   const uid = Date.now() + Math.random();
   const div = document.createElement('div');
   div.className = 'relative';
-  div.innerHTML = `
-    <div class="grid grid-cols-12 gap-2 items-center">
-      <div class="col-span-5 relative">
-        <input class="w-full px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none" placeholder="Buscar producto..." 
-          oninput="buscarProducto(this)" 
-          onfocus="buscarProducto(this)"
-          onblur="setTimeout(()=>cerrarSugerencias(this),200)"
-          value="${nombre||''}"/>
-        <div class="sugerencias hidden absolute z-10 left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-slate-100 max-h-48 overflow-y-auto"></div>
-      </div>
-      <select class="col-span-2 px-2 py-2 bg-surface-container-low rounded-xl text-sm outline-none">
-        <option ${unidad==='kg'?'selected':''}>kg</option>
-        <option ${unidad==='pza'?'selected':''}>pza</option>
-        <option ${unidad==='lt'?'selected':''}>lt</option>
-        <option ${unidad==='caja'?'selected':''}>caja</option>
-        <option ${unidad==='bot'?'selected':''}>bot</option>
-      </select>
-      <input type="number" min="0" class="col-span-2 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none" placeholder="0" oninput="calcTotal()" value=""/>
-      <input type="number" min="0" class="col-span-2 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none" placeholder="$0" oninput="calcTotal()" value="${precio||''}"/>
-      <button type="button" onclick="this.closest('.relative').remove();calcTotal()" class="col-span-1 text-slate-300 hover:text-error flex justify-center"><span class="ms">delete</span></button>
-    </div>`;
+
+  const grid = document.createElement('div');
+  grid.className = 'grid grid-cols-12 gap-2 items-center';
+
+  // Columna búsqueda de producto
+  const colProd = document.createElement('div');
+  colProd.className = 'col-span-5 relative';
+
+  const inputProd = document.createElement('input');
+  inputProd.className = 'w-full px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none';
+  inputProd.placeholder = 'Buscar producto...';
+  inputProd.value = nombre || '';
+  inputProd.addEventListener('input', () => buscarProducto(inputProd));
+  inputProd.addEventListener('focus', () => buscarProducto(inputProd));
+  inputProd.addEventListener('blur', () => setTimeout(() => cerrarSugerencias(inputProd), 200));
+
+  const sug = document.createElement('div');
+  sug.className = 'sugerencias hidden absolute z-10 left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-slate-100 max-h-48 overflow-y-auto';
+
+  colProd.appendChild(inputProd);
+  colProd.appendChild(sug);
+
+  // Select unidad
+  const sel = document.createElement('select');
+  sel.className = 'col-span-2 px-2 py-2 bg-surface-container-low rounded-xl text-sm outline-none';
+  ['kg', 'pza', 'lt', 'caja', 'bot'].forEach(u => {
+    const opt = document.createElement('option');
+    opt.value = u; opt.textContent = u;
+    if (u === (unidad || 'pza')) opt.selected = true;
+    sel.appendChild(opt);
+  });
+
+  // Input cantidad
+  const inputCant = document.createElement('input');
+  inputCant.type = 'number'; inputCant.min = '0';
+  inputCant.className = 'col-span-2 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none';
+  inputCant.placeholder = '0';
+  inputCant.addEventListener('input', calcTotal);
+
+  // Input precio
+  const inputPrecio = document.createElement('input');
+  inputPrecio.type = 'number'; inputPrecio.min = '0';
+  inputPrecio.className = 'col-span-2 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none';
+  inputPrecio.placeholder = '$0';
+  inputPrecio.value = precio || '';
+  inputPrecio.addEventListener('input', calcTotal);
+
+  // Boton eliminar
+  const delBtn = document.createElement('button');
+  delBtn.type = 'button';
+  delBtn.className = 'col-span-1 text-slate-300 hover:text-error flex justify-center';
+  const delIcon = document.createElement('span');
+  delIcon.className = 'ms'; delIcon.textContent = 'delete';
+  delBtn.appendChild(delIcon);
+  delBtn.addEventListener('click', () => { div.remove(); calcTotal(); });
+
+  grid.appendChild(colProd);
+  grid.appendChild(sel);
+  grid.appendChild(inputCant);
+  grid.appendChild(inputPrecio);
+  grid.appendChild(delBtn);
+  div.appendChild(grid);
   document.getElementById('items-container').appendChild(div);
   if (precio) calcTotal();
 }
@@ -1696,16 +2019,33 @@ function addItem(nombre, unidad, precio) {
 function buscarProducto(input) {
   const val = input.value.toLowerCase().trim();
   const sug = input.nextElementSibling;
+  if (!sug) return;
   if (!val) { sug.classList.add('hidden'); return; }
-  const matches = DB.productos.filter(p => p.nombre.toLowerCase().includes(val)).slice(0,8);
+  const matches = DB.productos.filter(p => p.nombre.toLowerCase().includes(val)).slice(0, 8);
   if (!matches.length) { sug.classList.add('hidden'); return; }
-  sug.innerHTML = matches.map(p => `
-    <div class="px-3 py-2.5 hover:bg-surface-container-low cursor-pointer text-sm border-b border-slate-50 last:border-0" 
-      onmousedown="selProducto(this,'${p.nombre}','${p.unidad}',${p.precio})">
-      <span class="font-medium">${p.nombre}</span>
-      <span class="text-xs text-slate-400 ml-2">${p.categoria}</span>
-      <span class="float-right text-xs text-primary font-semibold">${fmt(p.precio)}/${p.unidad}</span>
-    </div>`).join('');
+
+  sug.innerHTML = '';
+  matches.forEach(p => {
+    const item = document.createElement('div');
+    item.className = 'px-3 py-2.5 hover:bg-surface-container-low cursor-pointer text-sm border-b border-slate-50 last:border-0';
+
+    const nameSpan = document.createElement('span');
+    nameSpan.className = 'font-medium'; nameSpan.textContent = p.nombre;
+
+    const catSpan = document.createElement('span');
+    catSpan.className = 'text-xs text-slate-400 ml-2'; catSpan.textContent = p.categoria;
+
+    const precSpan = document.createElement('span');
+    precSpan.className = 'float-right text-xs text-primary font-semibold';
+    precSpan.textContent = fmt(p.precio) + '/' + p.unidad;
+
+    item.appendChild(nameSpan);
+    item.appendChild(catSpan);
+    item.appendChild(precSpan);
+
+    item.addEventListener('mousedown', () => selProducto(item, p.nombre, p.unidad, p.precio));
+    sug.appendChild(item);
+  });
   sug.classList.remove('hidden');
 }
 
@@ -2063,7 +2403,12 @@ function mobileNav(section) {
 function poblarProveedoresDatalist() {
   const dl = document.getElementById('proveedores-list');
   if (!dl) return;
-  dl.innerHTML = DB.proveedores.map(p => `<option value="${p.nombre}">`).join('');
+  dl.innerHTML = '';
+  DB.proveedores.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.nombre;
+    dl.appendChild(opt);
+  });
 }
 
 // ============================================================
@@ -2104,6 +2449,9 @@ async function renderVentas() {
     const totalVentas = receipts.reduce((a, r) => a + (r.total_money || 0), 0);
     const ticketProm = receipts.length ? totalVentas / receipts.length : 0;
 
+    // Guardar para el dashboard
+    DB.dashVentas = totalVentas;
+
     document.getElementById('v-total').textContent = fmt(totalVentas);
     document.getElementById('v-tickets').textContent = receipts.length;
     document.getElementById('v-promedio').textContent = fmt(ticketProm);
@@ -2115,6 +2463,11 @@ async function renderVentas() {
     fcEl.textContent = totalVentas > 0 ? foodCost + '%' : '—';
     const fc = parseFloat(foodCost);
     fcEl.className = 'text-2xl font-bold ' + (fc < 30 ? 'text-green-700' : fc < 35 ? 'text-orange-600' : 'text-red-600');
+
+    // Actualizar food cost en el dashboard también
+    const metricVentas = document.getElementById('metric-ventas');
+    if (metricVentas) metricVentas.textContent = fmt(totalVentas);
+    renderDashboard(); // Refrescar dashboard con ventas actualizadas
 
     // Formas de pago - usar nombre del receipt o mapear por ID
     const pagoMap = {};
@@ -2464,6 +2817,8 @@ function verCorte(shiftData) {
 DB.cxpFiltro  = 'semana';
 DB.cxpEstado  = 'pendientes';
 DB.cxpCuenta  = 'todos';
+DB.dashPeriodo = 'semana';
+DB.dashVentas  = null;
 
 function getCxPSemanaRango() {
   // Semana operativa: martes → domingo
@@ -2597,85 +2952,96 @@ function renderCuentasNuevo() {
   });
 
   const acordeon = document.getElementById('cxp-acordeon');
+  if (!acordeon) return;
+  acordeon.innerHTML = '';
+
   if (!provs.length) {
-    acordeon.innerHTML = '<div class="text-center py-12 text-slate-300"><p class="text-sm">Sin compras en este período</p></div>';
+    const empty = el('div', { cls: 'text-center py-12 text-slate-300' }, el('p', { cls: 'text-sm', text: 'Sin compras en este período' }));
+    acordeon.appendChild(empty);
     return;
   }
 
-  acordeon.innerHTML = provs.map(([nombre, data]) => {
+  provs.forEach(([nombre, data]) => {
     const bnm = esBanamex(nombre);
-    const initials = nombre.substring(0,3);
-    const avatarStyle = bnm
-      ? 'background:#E6F1FB;color:#0C447C'
-      : 'background:#EEEDFE;color:#3C3489';
-    const cuentaBadge = bnm
-      ? '<span style="background:#E6F1FB;color:#185FA5;font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px">Banamex</span>'
-      : '<span style="background:#EEEDFE;color:#534AB7;font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px">Mercado Pago</span>';
+    const initials = nombre.substring(0, 3);
+    const avatarStyle = bnm ? 'background:#E6F1FB;color:#0C447C' : 'background:#EEEDFE;color:#3C3489';
+
+    const cuentaBadge = el('span', {
+      style: bnm
+        ? 'background:#E6F1FB;color:#185FA5;font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px'
+        : 'background:#EEEDFE;color:#534AB7;font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px',
+      text: bnm ? 'Banamex' : 'Mercado Pago'
+    });
 
     const nFacturas = data.facturas.length;
     const proxVence = data.facturas
       .filter(f => f.vencimiento && f.estatus !== 'Pagado')
-      .sort((a,b) => new Date(a.vencimiento)-new Date(b.vencimiento))[0]?.vencimiento;
-    const subLabel = nFacturas + ' factura' + (nFacturas>1?'s':'') +
-      (proxVence ? ' · vence ' + new Date(proxVence).toLocaleDateString('es-MX',{day:'2-digit',month:'short'}) : '');
+      .sort((a, b) => new Date(a.vencimiento) - new Date(b.vencimiento))[0]?.vencimiento;
+    const subLabel = nFacturas + ' factura' + (nFacturas > 1 ? 's' : '') +
+      (proxVence ? ' · vence ' + new Date(proxVence).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : '');
 
     const totalColor = data.esVencida ? 'color:#A32D2D' : 'color:var(--color-text-primary)';
-    const cardBorder = data.esVencida ? 'border-color:#F7C1C1' : '';
+    const cardBorderStyle = data.esVencida ? 'border-color:#F7C1C1' : '';
 
-    // Facturas detail rows
-    const facturasHTML = data.facturas
-      .sort((a,b) => new Date(b.fecha)-new Date(a.fecha))
-      .map(c => {
-        const isPend = c.estatus !== 'Pagado';
-        const estBadge = isPend
-          ? '<span style="background:#FAEEDA;color:#854F0B;font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px">Pendiente</span>'
-          : '<span style="background:#EAF3DE;color:#3B6D11;font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px">Pagado</span>';
-        const fechaFmt = new Date(c.fecha).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'});
-        const productosResumen = c.items?.length
-          ? c.items.slice(0,3).map(i=>i.nombre).join(', ') + (c.items.length>3?' +' + (c.items.length-3) + ' más':'')
-          : 'Sin detalle';
-        const vencLabel = c.vencimiento
-          ? ' · Vence ' + new Date(c.vencimiento).toLocaleDateString('es-MX',{day:'2-digit',month:'short'})
-          : '';
-        const payBtns = isPend
-          ? '<button type="button" onclick="event.stopPropagation();openPayModal(\'' + c.id + '\')" style="font-size:11px;font-weight:600;color:#185FA5;background:#E6F1FB;border:none;padding:3px 10px;border-radius:8px;cursor:pointer">Pagar</button>'
-          : '';
-        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px 10px 58px;border-bottom:0.5px solid var(--color-border-tertiary)" class="hover:bg-slate-50/50">' +
-          '<div style="flex:1;min-width:0">' +
-          '<p style="font-size:12px;color:var(--color-text-secondary)">' + fechaFmt + vencLabel + '</p>' +
-          '<p style="font-size:11px;color:var(--color-text-tertiary);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px">' + productosResumen + '</p>' +
-          '</div>' +
-          '<div style="display:flex;align-items:center;gap:8px;margin-left:12px">' +
-          '<p style="font-size:13px;font-weight:500;white-space:nowrap">' + fmt(c.total) + '</p>' +
-          estBadge + payBtns +
-          '</div></div>';
-      }).join('');
+    const facturasId = 'facturas-' + nombre.replace(/\s+/g, '_');
+    const chevId = 'chev-' + facturasId;
 
-    const cardId = 'card-' + nombre.replace(/\s+/g,'_');
-    const facturasId = 'facturas-' + nombre.replace(/\s+/g,'_');
+    const avatar = el('div', { style: 'width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;' + avatarStyle, text: initials });
+    const provNombre = el('p', { style: 'font-size:13px;font-weight:500;color:var(--color-text-primary)', text: nombre });
+    const provSub = el('p', { style: 'font-size:11px;color:var(--color-text-tertiary)', text: subLabel });
+    const leftSide = el('div', { style: 'display:flex;align-items:center;gap:10px' }, [avatar, el('div', {}, [provNombre, provSub])]);
 
-    return '<div class="bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm" style="' + cardBorder + '" id="' + cardId + '">' +
-      '<div class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50/30" onclick="toggleAcordeon(\'' + facturasId + '\')">' +
-        '<div style="display:flex;align-items:center;gap:10px">' +
-          '<div style="width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;' + avatarStyle + '">' + initials + '</div>' +
-          '<div>' +
-            '<p style="font-size:13px;font-weight:500;color:var(--color-text-primary)">' + nombre + '</p>' +
-            '<p style="font-size:11px;color:var(--color-text-tertiary)">' + subLabel + '</p>' +
-          '</div>' +
-        '</div>' +
-        '<div style="display:flex;align-items:center;gap:10px">' +
-          '<div style="text-align:right">' +
-            '<p style="font-size:15px;font-weight:500;' + totalColor + '">' + fmt(data.total) + '</p>' +
-            cuentaBadge +
-          '</div>' +
-          '<span style="font-size:12px;color:var(--color-text-tertiary)" id="chev-' + facturasId + '">&#9660;</span>' +
-        '</div>' +
-      '</div>' +
-      '<div id="' + facturasId + '" style="border-top:0.5px solid var(--color-border-tertiary)">' +
-        facturasHTML +
-      '</div>' +
-    '</div>';
-  }).join('');
+    const totalText = el('p', { style: 'font-size:15px;font-weight:500;' + totalColor, text: fmt(data.total) });
+    const chevron = el('span', { style: 'font-size:12px;color:var(--color-text-tertiary)', text: '▼', id: chevId });
+    const rightSide = el('div', { style: 'display:flex;align-items:center;gap:10px' }, [el('div', { style: 'text-align:right' }, [totalText, cuentaBadge]), chevron]);
+
+    const header = el('div', { style: 'display:flex;align-items:center;justify-content:space-between;padding:16px;cursor:pointer;', cls: 'hover:bg-slate-50/30' }, [leftSide, rightSide]);
+    header.addEventListener('click', () => toggleAcordeon(facturasId));
+
+    const facturasDiv = el('div', { id: facturasId, style: 'border-top:0.5px solid var(--color-border-tertiary)' });
+    data.facturas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).forEach(c => {
+      const isPend = c.estatus !== 'Pagado';
+      const fechaFmt = new Date(c.fecha).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
+      const vencLabel = c.vencimiento ? ' · Vence ' + new Date(c.vencimiento).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : '';
+      const productosResumen = c.items?.length
+        ? c.items.slice(0, 3).map(i => i.nombre).join(', ') + (c.items.length > 3 ? ' +' + (c.items.length - 3) + ' más' : '')
+        : 'Sin detalle';
+
+      const estBadge = el('span', {
+        style: isPend
+          ? 'background:#FAEEDA;color:#854F0B;font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px'
+          : 'background:#EAF3DE;color:#3B6D11;font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px',
+        text: isPend ? 'Pendiente' : 'Pagado'
+      });
+
+      const fechaEl = el('p', { style: 'font-size:12px;color:var(--color-text-secondary)', text: fechaFmt + vencLabel });
+      const prodEl = el('p', { style: 'font-size:11px;color:var(--color-text-tertiary);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px', text: productosResumen });
+      const leftInfo = el('div', { style: 'flex:1;min-width:0' }, [fechaEl, prodEl]);
+
+      const totalFact = el('p', { style: 'font-size:13px;font-weight:500;white-space:nowrap', text: fmt(c.total) });
+      const rightGroup = el('div', { style: 'display:flex;align-items:center;gap:8px;margin-left:12px' }, [totalFact, estBadge]);
+
+      if (isPend) {
+        const payBtn = el('button', {
+          style: 'font-size:11px;font-weight:600;color:#185FA5;background:#E6F1FB;border:none;padding:3px 10px;border-radius:8px;cursor:pointer',
+          type: 'button', text: 'Pagar'
+        });
+        payBtn.addEventListener('click', e => { e.stopPropagation(); openPayModal(c.id); });
+        rightGroup.appendChild(payBtn);
+      }
+
+      const factRow = el('div', {
+        style: 'display:flex;align-items:center;justify-content:space-between;padding:10px 16px 10px 58px;border-bottom:0.5px solid var(--color-border-tertiary)',
+        cls: 'hover:bg-slate-50/50'
+      }, [leftInfo, rightGroup]);
+      facturasDiv.appendChild(factRow);
+    });
+
+    const card = el('div', { cls: 'bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm', style: cardBorderStyle });
+    card.appendChild(header);
+    card.appendChild(facturasDiv);
+    acordeon.appendChild(card);
+  });
 }
 
 function toggleAcordeon(id) {
@@ -3095,6 +3461,886 @@ function filterProdProv(btn) {
       : 'prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200';
   });
   renderProductos();
+}
+
+// ============================================================
+// CXP — VISTA Y FILTROS
+// ============================================================
+function setCxPVista(vista, btn) {
+  DB.cxpVista = vista;
+  // Actualizar botones
+  ['detalle','proveedor'].forEach(v => {
+    const b = document.getElementById('cxp-vista-' + v);
+    if (!b) return;
+    if (v === vista) {
+      b.className = 'px-3 py-1 rounded-lg bg-white text-slate-900 text-xs font-semibold shadow-sm';
+    } else {
+      b.className = 'px-3 py-1 rounded-lg text-slate-500 text-xs font-semibold';
+    }
+  });
+  // Si vista detalle, usar renderCuentasNuevo (acordeón por proveedor)
+  // Si vista proveedor, igual — ambas muestran el acordeón
+  renderCuentasNuevo();
+}
+
+function filterCxP(filtro, btn) {
+  // Mapear a los estados de DB
+  if (filtro === 'todas')     { DB.cxpEstado = 'todas'; }
+  else if (filtro === 'pendientes') { DB.cxpEstado = 'pendientes'; }
+  else if (filtro === 'vencidas')   { DB.cxpEstado = 'pendientes'; DB.cxpFiltroVencidas = true; }
+  else if (filtro === 'pagadas')    { DB.cxpEstado = 'pagadas'; }
+
+  // Actualizar botones
+  if (btn) {
+    document.querySelectorAll('[onclick^="filterCxP"]').forEach(b => {
+      b.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 font-medium text-xs hover:bg-slate-200';
+    });
+    btn.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white font-medium text-xs';
+  }
+  renderCuentasNuevo();
+}
+
+function exportarCSV() {
+  exportarCompras();
+}
+
+// ============================================================
+// PIN DE EMPLEADOS
+// ============================================================
+(function() {
+  const PIN_CORRECTO = '1234';
+  let pinActual = '';
+
+  window.pinKey = function(n) {
+    if (pinActual.length >= 4) return;
+    pinActual += String(n);
+    for (let i = 1; i <= 4; i++) {
+      const dot = document.getElementById('pd' + i);
+      if (dot) dot.className = 'w-4 h-4 rounded-full ' + (i <= pinActual.length ? 'bg-primary-container' : 'bg-slate-200');
+    }
+  };
+
+  window.pinDel = function() {
+    pinActual = pinActual.slice(0, -1);
+    for (let i = 1; i <= 4; i++) {
+      const dot = document.getElementById('pd' + i);
+      if (dot) dot.className = 'w-4 h-4 rounded-full ' + (i <= pinActual.length ? 'bg-primary-container' : 'bg-slate-200');
+    }
+  };
+
+  window.pinConfirm = function() {
+    if (pinActual === PIN_CORRECTO) {
+      pinActual = '';
+      for (let i = 1; i <= 4; i++) {
+        const dot = document.getElementById('pd' + i);
+        if (dot) dot.className = 'w-4 h-4 rounded-full bg-slate-200';
+      }
+      showEmp('form');
+    } else {
+      pinActual = '';
+      for (let i = 1; i <= 4; i++) {
+        const dot = document.getElementById('pd' + i);
+        if (dot) dot.className = 'w-4 h-4 rounded-full bg-red-300';
+      }
+      setTimeout(() => {
+        for (let i = 1; i <= 4; i++) {
+          const dot = document.getElementById('pd' + i);
+          if (dot) dot.className = 'w-4 h-4 rounded-full bg-slate-200';
+        }
+      }, 800);
+    }
+  };
+})();
+
+// ============================================================
+// FORMULARIO DE REQUISICIÓN
+// ============================================================
+(function() {
+  let areaSeleccionada = '';
+  let prioridadSeleccionada = 'Normal';
+
+  window.selArea = function(btn, area) {
+    areaSeleccionada = area;
+    document.querySelectorAll('.area-btn').forEach(b => {
+      b.className = 'area-btn py-4 rounded-2xl bg-white border border-slate-200 text-sm font-medium text-slate-700 hover:border-primary/40 hover:bg-blue-50 transition-all';
+    });
+    btn.className = 'area-btn py-4 rounded-2xl border-2 border-primary-container bg-blue-50 text-primary text-sm font-semibold transition-all';
+  };
+
+  window.selPrioridad = function(btn, pri) {
+    prioridadSeleccionada = pri;
+    ['Normal','Urgente'].forEach(p => {
+      const b = document.getElementById('pri-' + p.toLowerCase());
+      if (!b) return;
+      if (p === pri) {
+        b.className = 'py-3.5 rounded-2xl border ' + (p === 'Urgente' ? 'border-red-400 bg-red-50 text-red-700' : 'border-primary-container bg-blue-50 text-primary') + ' text-sm font-semibold';
+      } else {
+        b.className = 'py-3.5 rounded-2xl border border-slate-200 text-slate-600 text-sm font-semibold';
+      }
+    });
+  };
+
+  window.enviarReq = function() {
+    const nombre   = document.getElementById('req-nombre')?.value.trim();
+    const producto = document.getElementById('req-producto')?.value.trim();
+    const cantidad = parseFloat(document.getElementById('req-cantidad')?.value) || 1;
+    const unidad   = document.getElementById('req-unidad')?.value || 'pza';
+    const notas    = document.getElementById('req-notas')?.value.trim() || '';
+
+    if (!nombre)   { alert('Escribe tu nombre'); return; }
+    if (!areaSeleccionada) { alert('Selecciona el área'); return; }
+    if (!producto) { alert('Escribe el producto que necesitas'); return; }
+
+    const req = {
+      id: Date.now(),
+      nombre, area: areaSeleccionada,
+      producto, cantidad, unidad,
+      urgencia: prioridadSeleccionada,
+      notas,
+      estatus: 'Pendiente',
+      fecha: new Date().toISOString()
+    };
+
+    if (!DB.requisiciones) DB.requisiciones = [];
+    DB.requisiciones.unshift(req);
+
+    // Actualizar badge
+    const pendCount = DB.requisiciones.filter(r => r.estatus === 'Pendiente').length;
+    ['req-badge','mob-req-badge'].forEach(id => {
+      const b = document.getElementById(id);
+      if (b) b.textContent = pendCount;
+    });
+
+    // Mostrar pantalla de confirmación
+    const detail = document.getElementById('req-confirm-detail');
+    if (detail) {
+      detail.innerHTML = '';
+      const rows = [
+        ['Solicitante', nombre],
+        ['Área', areaSeleccionada],
+        ['Producto', producto],
+        ['Cantidad', cantidad + ' ' + unidad],
+        ['Prioridad', prioridadSeleccionada],
+      ];
+      if (notas) rows.push(['Notas', notas]);
+      rows.forEach(([label, val]) => {
+        const row = el('div', { cls: 'flex justify-between py-1.5 border-b border-slate-50' }, [
+          el('span', { cls: 'text-xs text-slate-400', text: label }),
+          el('span', { cls: 'text-sm font-medium', text: val })
+        ]);
+        detail.appendChild(row);
+      });
+    }
+
+    // Limpiar formulario
+    if (document.getElementById('req-nombre')) document.getElementById('req-nombre').value = '';
+    if (document.getElementById('req-producto')) document.getElementById('req-producto').value = '';
+    if (document.getElementById('req-notas')) document.getElementById('req-notas').value = '';
+    if (document.getElementById('req-cantidad')) document.getElementById('req-cantidad').value = '1';
+    areaSeleccionada = '';
+    prioridadSeleccionada = 'Normal';
+    document.querySelectorAll('.area-btn').forEach(b => {
+      b.className = 'area-btn py-4 rounded-2xl bg-white border border-slate-200 text-sm font-medium text-slate-700 hover:border-primary/40 hover:bg-blue-50 transition-all';
+    });
+
+    showEmp('confirm');
+  };
+})();
+
+// ============================================================
+// HELPERS createElement
+// ============================================================
+function el(tag, props, children) {
+  const e = document.createElement(tag);
+  if (props) Object.entries(props).forEach(([k, v]) => {
+    if (k === 'cls') { e.className = v; }
+    else if (k === 'style') { e.style.cssText = v; }
+    else if (k === 'html') { e.innerHTML = v; }
+    else if (k === 'text') { e.textContent = v; }
+    else if (k === 'click') { e.addEventListener('click', v); }
+    else { e.setAttribute(k, v); }
+  });
+  if (children) [].concat(children).forEach(c => c && e.appendChild(c));
+  return e;
+}
+function clearEl(id) {
+  const e = document.getElementById(id);
+  if (e) e.innerHTML = '';
+  return e;
+}
+
+// ============================================================
+// HISTORIAL DE COMPRAS
+// ============================================================
+function renderHistorial(filtro) {
+  if (filtro !== undefined) DB.histFiltro = filtro;
+  filtrarHistorial(DB.histFiltro || 'todo');
+}
+
+function filtrarHistorial(filtro, btnEl) {
+  DB.histFiltro = filtro;
+
+  // Actualizar botones de filtro rápido
+  if (btnEl) {
+    document.querySelectorAll('[onclick^="filtrarHistorial"]').forEach(b => {
+      b.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200';
+    });
+    btnEl.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-medium';
+  }
+
+  const hoy = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const todayStr = hoy.getFullYear() + '-' + pad(hoy.getMonth() + 1) + '-' + pad(hoy.getDate());
+
+  let compras = [...DB.compras].sort((a, b) => b.fecha > a.fecha ? 1 : -1);
+
+  if (filtro === 'hoy') {
+    compras = compras.filter(c => c.fecha === todayStr);
+  } else if (filtro === 'semana') {
+    const lunes = new Date(hoy);
+    lunes.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7));
+    const lunesStr = lunes.getFullYear() + '-' + pad(lunes.getMonth() + 1) + '-' + pad(lunes.getDate());
+    compras = compras.filter(c => c.fecha >= lunesStr && c.fecha <= todayStr);
+  } else if (filtro === 'mes') {
+    const mesStr = hoy.getFullYear() + '-' + pad(hoy.getMonth() + 1);
+    compras = compras.filter(c => c.fecha && c.fecha.startsWith(mesStr));
+  } else if (filtro === 'custom') {
+    const desde = document.getElementById('hist-desde')?.value;
+    const hasta = document.getElementById('hist-hasta')?.value;
+    if (desde) compras = compras.filter(c => c.fecha >= desde);
+    if (hasta) compras = compras.filter(c => c.fecha <= hasta);
+  } else if (typeof filtro === 'string' && filtro !== 'todo') {
+    // filtro por categoria pasado desde el select
+    if (filtro) compras = compras.filter(c => c.categoria === filtro);
+  }
+
+  // Leer categoria del select si no viene como parametro especifico
+  const catSel = document.querySelector('#sec-historial select');
+  if (catSel && catSel.value && filtro !== catSel.value) {
+    compras = compras.filter(c => c.categoria === catSel.value);
+  }
+
+  // Actualizar metricas
+  const total = compras.reduce((a, c) => a + (c.total || 0), 0);
+  const count = compras.length;
+  const prom = count ? total / count : 0;
+  const tEl = document.getElementById('hist-total-filtrado');
+  const cEl = document.getElementById('hist-count-filtrado');
+  const pEl = document.getElementById('hist-promedio-filtrado');
+  if (tEl) tEl.textContent = fmt(total);
+  if (cEl) cEl.textContent = count;
+  if (pEl) pEl.textContent = fmt(prom);
+
+  // Renderizar tabla
+  const tbody = document.getElementById('hist-list');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (!compras.length) {
+    const tr = el('tr', {}, el('td', { cls: 'py-8 text-center text-slate-300 text-sm', colspan: '8', text: 'No hay compras en este período' }));
+    tbody.appendChild(tr);
+    return;
+  }
+
+  compras.forEach(c => {
+    const badgeMap = { Pagado: 'bg-green-50 text-green-700', Pendiente: 'bg-orange-50 text-orange-700', Parcial: 'bg-blue-50 text-blue-700' };
+    const badgeCls = badgeMap[c.estatus] || 'bg-slate-100 text-slate-600';
+
+    const badge = el('span', { cls: badgeCls + ' text-xs font-semibold px-2 py-1 rounded-full', text: c.estatus || '—' });
+
+    const btnVer = el('button', { cls: 'text-xs text-primary-container font-semibold hover:underline mr-2', type: 'button', text: 'Ver' });
+    btnVer.addEventListener('click', () => verDetalle(c.id));
+
+    const btnEdit = el('button', { cls: 'text-xs text-slate-400 hover:text-slate-700 font-semibold mr-2', type: 'button', text: 'Editar' });
+    btnEdit.addEventListener('click', () => abrirEditar(c.id));
+
+    const btnDel = el('button', { cls: 'text-xs text-red-400 hover:text-red-600 font-semibold', type: 'button', text: '✕' });
+    btnDel.addEventListener('click', () => borrarCompra(c.id));
+
+    const tdAcciones = el('td', { cls: 'py-3 text-right whitespace-nowrap' }, [btnVer, btnEdit, btnDel]);
+    const tdBadge   = el('td', { cls: 'py-3 text-center' }, badge);
+    const tdTotal   = el('td', { cls: 'py-3 text-right font-medium', text: fmt(c.total) });
+    const tdPago    = el('td', { cls: 'py-3 text-slate-400 hidden lg:table-cell', text: c.forma_pago || '—' });
+    const tdFolio   = el('td', { cls: 'py-3 text-slate-400 hidden md:table-cell', text: c.folio || 'S/F' });
+    const tdCat     = el('td', { cls: 'py-3 text-slate-400 hidden md:table-cell', text: c.categoria || '—' });
+    const tdProv    = el('td', { cls: 'py-3 font-medium', text: c.proveedor || '—' });
+    const tdFecha   = el('td', { cls: 'py-3 text-slate-500', text: fmtDate(c.fecha) });
+
+    const tr = el('tr', { cls: 'text-sm hover:bg-slate-50/50' }, [tdFecha, tdProv, tdCat, tdFolio, tdPago, tdTotal, tdBadge, tdAcciones]);
+    tbody.appendChild(tr);
+  });
+}
+
+// ============================================================
+// DETALLE Y EDICION DE COMPRA
+// ============================================================
+function verDetalle(id) {
+  const c = DB.compras.find(x => String(x.id) === String(id));
+  if (!c) return;
+
+  const container = document.getElementById('detalle-content');
+  if (!container) return;
+  container.innerHTML = '';
+
+  const addRow = (label, value) => {
+    const row = el('div', { cls: 'flex justify-between py-2 border-b border-slate-50' }, [
+      el('span', { cls: 'text-xs text-slate-400 uppercase tracking-wider font-semibold', text: label }),
+      el('span', { cls: 'text-sm font-medium text-right', text: value })
+    ]);
+    container.appendChild(row);
+  };
+
+  addRow('Proveedor', c.proveedor || '—');
+  addRow('Fecha', fmtDate(c.fecha));
+  addRow('Categoría', c.categoria || '—');
+  addRow('Forma de pago', c.forma_pago || '—');
+  addRow('Estatus', c.estatus || '—');
+  if (c.vencimiento) addRow('Vencimiento', fmtDate(c.vencimiento));
+  addRow('Total', fmt(c.total));
+
+  if (c.items && c.items.length) {
+    const titulo = el('p', { cls: 'text-xs text-slate-400 uppercase tracking-wider font-semibold mt-4 mb-2', text: 'Productos' });
+    container.appendChild(titulo);
+    c.items.forEach(item => {
+      const subtotal = (item.cantidad || 0) * (item.costo_unitario || 0);
+      const row = el('div', { cls: 'flex justify-between items-center py-1.5 border-b border-slate-50' }, [
+        el('div', {}, [
+          el('p', { cls: 'text-sm font-medium', text: item.nombre || '—' }),
+          el('p', { cls: 'text-xs text-slate-400', text: (item.cantidad || 0) + ' ' + (item.unidad || '') + ' × ' + fmt(item.costo_unitario || 0) })
+        ]),
+        el('span', { cls: 'text-sm font-semibold', text: fmt(subtotal) })
+      ]);
+      container.appendChild(row);
+    });
+  }
+
+  const payBtn = el('button', { cls: 'mt-5 w-full bg-primary-container text-white py-3 rounded-2xl font-semibold text-sm', type: 'button', text: 'Registrar Pago' });
+  payBtn.addEventListener('click', () => { closeModal('modal-detalle'); openPayModal(id); });
+  if (c.estatus !== 'Pagado') container.appendChild(payBtn);
+
+  document.getElementById('modal-detalle').classList.remove('hidden');
+}
+
+function abrirEditar(id) {
+  const c = DB.compras.find(x => String(x.id) === String(id));
+  if (!c) return;
+
+  document.getElementById('edit-id').value = c.id;
+  document.getElementById('edit-proveedor').value = c.proveedor || '';
+  document.getElementById('edit-fecha').value = c.fecha || '';
+  document.getElementById('edit-total').value = c.total || 0;
+  document.getElementById('edit-vencimiento').value = c.vencimiento || '';
+
+  const catSel = document.getElementById('edit-categoria');
+  if (catSel) Array.from(catSel.options).forEach(o => { o.selected = o.value === c.categoria; });
+
+  const pagoSel = document.getElementById('edit-pago');
+  if (pagoSel) Array.from(pagoSel.options).forEach(o => { o.selected = o.value === c.forma_pago; });
+
+  const estatusSel = document.getElementById('edit-estatus');
+  if (estatusSel) Array.from(estatusSel.options).forEach(o => { o.selected = o.value === c.estatus; });
+
+  // Renderizar items en el modal de edicion
+  const editItems = document.getElementById('edit-items');
+  if (editItems) {
+    editItems.innerHTML = '';
+    (c.items || []).forEach(item => {
+      const row = el('div', { cls: 'grid grid-cols-4 gap-2 items-center' }, [
+        el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', value: item.nombre || '', placeholder: 'Producto' }),
+        el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', value: item.unidad || 'pza', placeholder: 'Unidad' }),
+        el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', type: 'number', value: item.cantidad || 0, placeholder: '0' }),
+        el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', type: 'number', value: item.costo_unitario || 0, placeholder: '$0' })
+      ]);
+      editItems.appendChild(row);
+    });
+  }
+
+  document.getElementById('modal-editar').classList.remove('hidden');
+}
+
+function addEditItem() {
+  const editItems = document.getElementById('edit-items');
+  if (!editItems) return;
+  const row = el('div', { cls: 'grid grid-cols-4 gap-2 items-center' }, [
+    el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', placeholder: 'Producto' }),
+    el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', value: 'pza', placeholder: 'Unidad' }),
+    el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', type: 'number', value: '1', placeholder: '0' }),
+    el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', type: 'number', value: '0', placeholder: '$0' })
+  ]);
+  editItems.appendChild(row);
+}
+
+// ============================================================
+// MODAL DE PAGO
+// ============================================================
+function openPayModal(id) {
+  const c = DB.compras.find(x => String(x.id) === String(id));
+  if (!c) return;
+  DB.payTargetId = id;
+  const provEl = document.getElementById('pay-prov');
+  if (provEl) provEl.textContent = c.proveedor + ' — ' + fmt(c.total);
+  const montoEl = document.getElementById('pay-monto');
+  if (montoEl) montoEl.value = c.total;
+  document.getElementById('modal-pay').classList.remove('hidden');
+}
+
+async function confirmarPago() {
+  const id = DB.payTargetId;
+  const c = DB.compras.find(x => String(x.id) === String(id));
+  if (!c) return;
+
+  const monto = parseFloat(document.getElementById('pay-monto').value) || 0;
+  const fecha = document.getElementById('pay-fecha').value;
+  const forma = document.getElementById('pay-forma').value;
+
+  c.estatus = monto >= c.total ? 'Pagado' : 'Parcial';
+  c.total_pagado = (c.total_pagado || 0) + monto;
+
+  try {
+    await fetch('/api/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        table: 'pagos', action: 'insert',
+        data: { compra_id: id, monto, fecha, forma_pago: forma }
+      })
+    });
+    await fetch('/api/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        table: 'compras', action: 'update', id,
+        data: { estatus_pago: c.estatus }
+      })
+    });
+  } catch (e) { /* guarda local */ }
+
+  closeModal('modal-pay');
+  renderDashboard();
+  renderCuentasNuevo();
+  renderHistorial();
+  toast('✓ Pago registrado: ' + fmt(monto));
+}
+
+// ============================================================
+// PROVEEDORES
+// ============================================================
+function renderProveedores() {
+  const grid = document.getElementById('proveedores-grid');
+  if (!grid) return;
+
+  const totalCXP = DB.proveedores.reduce((a, p) => a + (p.saldo || 0), 0);
+  const vencido = DB.compras
+    .filter(c => c.estatus !== 'Pagado' && isVencida(c.vencimiento))
+    .reduce((a, c) => a + c.total, 0);
+
+  const tEl = document.getElementById('prov-total');
+  const cEl = document.getElementById('prov-total-cxp');
+  const vEl = document.getElementById('prov-vencidos');
+  if (tEl) tEl.textContent = DB.proveedores.length;
+  if (cEl) cEl.textContent = fmt(totalCXP);
+  if (vEl) vEl.textContent = fmt(vencido);
+
+  // Guardar el botón "Agregar" que ya existe
+  const addCard = grid.querySelector('[onclick="showAddProveedor()"]');
+
+  grid.innerHTML = '';
+
+  // Re-agregar boton de agregar
+  const newAddCard = el('div', {
+    cls: 'bg-surface-container-low rounded-2xl p-5 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center cursor-pointer hover:border-primary/40 transition-colors',
+    click: () => showAddProveedor()
+  }, [
+    el('span', { cls: 'ms text-3xl text-slate-300 mb-2', text: 'add' }),
+    el('p', { cls: 'font-semibold text-slate-400', text: 'Agregar Proveedor' })
+  ]);
+  grid.appendChild(newAddCard);
+
+  DB.proveedores.forEach(p => {
+    const saldo = p.saldo || 0;
+    const haySaldo = saldo > 0;
+    const inicial = (p.nombre || '?').substring(0, 2).toUpperCase();
+
+    const avatar = el('div', {
+      cls: 'w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-sm flex-shrink-0',
+      style: haySaldo ? 'background:#FEF3C7;color:#92400E' : 'background:#DCFCE7;color:#166534',
+      text: inicial
+    });
+
+    const saldoBadge = el('span', {
+      cls: haySaldo ? 'text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-50 text-orange-700' : 'text-xs font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-700',
+      text: haySaldo ? fmt(saldo) + ' pendiente' : 'Al corriente'
+    });
+
+    const comprasLabel = el('p', { cls: 'text-xs text-slate-400 mt-1', text: (p.compras || 0) + ' compras · ' + (p.condicion || 'Contado') });
+    const nombre = el('p', { cls: 'font-semibold text-slate-900 text-sm', text: p.nombre || '—' });
+
+    const info = el('div', { cls: 'flex-1 min-w-0' }, [nombre, saldoBadge, comprasLabel]);
+
+    const payBtn = el('button', {
+      cls: 'text-xs font-semibold text-primary-container border border-primary-container/30 px-3 py-1.5 rounded-xl hover:bg-blue-50 transition-colors',
+      type: 'button',
+      text: 'Pagar'
+    });
+    payBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      // Abrir modal de pago con la primera compra pendiente de este proveedor
+      const pendiente = DB.compras.find(c => c.proveedor === p.nombre && c.estatus !== 'Pagado');
+      if (pendiente) openPayModal(pendiente.id);
+      else toast('No hay facturas pendientes de ' + p.nombre);
+    });
+
+    const card = el('div', { cls: 'bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center gap-3 cursor-pointer hover:shadow-md transition-shadow' }, [avatar, info, haySaldo ? payBtn : null]);
+    grid.appendChild(card);
+  });
+}
+
+function showAddProveedor() {
+  document.getElementById('modal-proveedor').classList.remove('hidden');
+}
+
+function guardarProveedor() {
+  const nombre = document.getElementById('np-nombre').value.trim().toUpperCase();
+  const tel = document.getElementById('np-tel').value.trim();
+  const condicion = document.getElementById('np-condicion').value;
+
+  if (!nombre) { toast('Escribe el nombre del proveedor'); return; }
+
+  const exists = DB.proveedores.find(p => p.nombre === nombre);
+  if (exists) { toast('Este proveedor ya existe'); return; }
+
+  DB.proveedores.push({ id: Date.now(), nombre, tel, condicion, saldo: 0, compras: 0 });
+
+  document.getElementById('np-nombre').value = '';
+  document.getElementById('np-tel').value = '';
+  closeModal('modal-proveedor');
+  renderProveedores();
+  poblarProveedoresDatalist();
+  toast('✓ Proveedor agregado: ' + nombre);
+}
+
+// ============================================================
+// PRODUCTOS (historial de precios)
+// ============================================================
+function renderProductos(searchVal) {
+  const search = searchVal !== undefined ? searchVal : (document.getElementById('prod-search')?.value || '');
+  const catFiltro = DB.prodFiltroCategoria || '';
+  const provFiltro = DB.prodFiltroProveedor || '';
+
+  // Construir mapa de productos desde compras + historialPrecios
+  const prodMap = {};
+
+  DB.compras.forEach(c => {
+    (c.items || []).forEach(item => {
+      if (!item.nombre) return;
+      const key = item.nombre.toUpperCase().trim();
+      if (!prodMap[key]) {
+        prodMap[key] = { nombre: item.nombre, categoria: c.categoria || '', proveedor: c.proveedor, precios: [], lastFecha: c.fecha };
+      }
+      if (item.costo_unitario > 0) {
+        prodMap[key].precios.push({ precio: item.costo_unitario, fecha: c.fecha, proveedor: c.proveedor, unidad: item.unidad });
+      }
+      if (c.fecha > (prodMap[key].lastFecha || '')) {
+        prodMap[key].lastFecha = c.fecha;
+        prodMap[key].proveedor = c.proveedor;
+        if (c.categoria) prodMap[key].categoria = c.categoria;
+      }
+    });
+  });
+
+  (DB.historialPrecios || []).forEach(h => {
+    const key = (h.producto_nombre || '').toUpperCase().trim();
+    if (!key) return;
+    if (!prodMap[key]) {
+      prodMap[key] = { nombre: h.producto_nombre, categoria: '', proveedor: h.proveedor_nombre, precios: [], lastFecha: h.fecha };
+    }
+    if (!prodMap[key].precios.find(p => p.fecha === h.fecha && p.proveedor === h.proveedor_nombre)) {
+      prodMap[key].precios.push({ precio: h.costo_unitario, fecha: h.fecha, proveedor: h.proveedor_nombre, unidad: h.unidad });
+    }
+  });
+
+  let prods = Object.values(prodMap);
+
+  // Filtros
+  if (search) {
+    const s = search.toLowerCase();
+    prods = prods.filter(p => p.nombre.toLowerCase().includes(s) || (p.proveedor || '').toLowerCase().includes(s) || (p.categoria || '').toLowerCase().includes(s));
+  }
+  if (catFiltro) prods = prods.filter(p => p.categoria === catFiltro);
+  if (provFiltro) prods = prods.filter(p => p.proveedor === provFiltro);
+
+  prods.sort((a, b) => a.nombre.localeCompare(b.nombre));
+
+  // Renderizar filtros de proveedor
+  const provGrid = document.getElementById('prod-prov-grid');
+  if (provGrid) {
+    provGrid.innerHTML = '';
+    const allProvBtn = el('button', {
+      cls: 'prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold ' + (!provFiltro ? 'bg-primary-container text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'),
+      type: 'button'
+    }, el('span', { text: 'Todos' }));
+    allProvBtn.dataset.prov = '';
+    allProvBtn.addEventListener('click', () => filterProdProv(allProvBtn));
+    provGrid.appendChild(allProvBtn);
+
+    const provs = [...new Set(DB.proveedores.map(p => p.nombre))].sort();
+    provs.forEach(pn => {
+      const btn = el('button', {
+        cls: 'prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold ' + (provFiltro === pn ? 'bg-primary-container text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'),
+        type: 'button'
+      }, el('span', { text: pn }));
+      btn.dataset.prov = pn;
+      btn.addEventListener('click', () => filterProdProv(btn));
+      provGrid.appendChild(btn);
+    });
+  }
+
+  const grid = document.getElementById('prod-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  if (!prods.length) {
+    grid.appendChild(el('div', { cls: 'col-span-full text-center py-12 text-slate-300 text-sm', text: 'Sin productos que coincidan con la búsqueda' }));
+    return;
+  }
+
+  prods.forEach(p => {
+    const precios = p.precios.sort((a, b) => b.fecha > a.fecha ? 1 : -1);
+    const ultimo = precios[0]?.precio || 0;
+    const anterior = precios[1]?.precio;
+    const cambio = anterior ? ((ultimo - anterior) / anterior * 100) : null;
+    const unidad = precios[0]?.unidad || '';
+
+    const inicial = p.nombre.substring(0, 2).toUpperCase();
+    const avatar = el('div', {
+      cls: 'w-10 h-10 rounded-xl flex items-center justify-center text-xs font-bold flex-shrink-0',
+      style: 'background:#EFF6FF;color:#1E40AF',
+      text: inicial
+    });
+
+    const cambioEl = cambio !== null
+      ? el('span', {
+          cls: 'text-xs ml-1 ' + (cambio > 0 ? 'text-red-500' : 'text-green-600'),
+          text: (cambio > 0 ? '▲ +' : '▼ ') + Math.abs(cambio).toFixed(1) + '%'
+        })
+      : null;
+
+    const precioRow = el('div', { cls: 'flex items-baseline gap-1' }, [
+      el('span', { cls: 'font-bold text-slate-900', text: fmt(ultimo) }),
+      unidad ? el('span', { cls: 'text-xs text-slate-400', text: '/' + unidad }) : null,
+      cambioEl
+    ]);
+
+    const card = el('div', {
+      cls: 'bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex items-center gap-3 cursor-pointer hover:shadow-md transition-shadow'
+    }, [
+      avatar,
+      el('div', { cls: 'flex-1 min-w-0' }, [
+        el('p', { cls: 'font-semibold text-slate-900 text-sm truncate', text: p.nombre }),
+        el('p', { cls: 'text-xs text-slate-400', text: (p.categoria || '—') + ' · ' + (p.proveedor || '—') }),
+        precioRow
+      ]),
+      el('button', {
+        cls: 'text-xs text-primary-container font-semibold border border-primary-container/30 px-3 py-1.5 rounded-xl hover:bg-blue-50 flex-shrink-0',
+        type: 'button',
+        text: 'Historial'
+      })
+    ]);
+
+    card.querySelector('button').addEventListener('click', e => {
+      e.stopPropagation();
+      verHistorialPrecio(p.nombre);
+    });
+    card.addEventListener('click', () => verProductoDetalle(p.nombre));
+    grid.appendChild(card);
+  });
+}
+
+// ============================================================
+// REQUISICIONES
+// ============================================================
+function renderRequisiciones(filtro) {
+  if (filtro !== undefined) DB.reqFiltro = filtro;
+  filterReq(DB.reqFiltro || 'pendientes');
+}
+
+function filterReq(filtro, btnEl) {
+  DB.reqFiltro = filtro;
+
+  if (btnEl) {
+    document.querySelectorAll('[id^="req-btn"]').forEach(b => {
+      b.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200';
+    });
+    btnEl.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-medium';
+  }
+
+  const reqs = (DB.requisiciones || []).filter(r => {
+    if (filtro === 'pendientes') return r.estatus === 'Pendiente';
+    if (filtro === 'aprobadas')  return r.estatus === 'Aprobada';
+    if (filtro === 'rechazadas') return r.estatus === 'Rechazada';
+    return true;
+  });
+
+  const subtitle = document.getElementById('req-subtitle');
+  if (subtitle) subtitle.textContent = reqs.length + ' requisicion' + (reqs.length !== 1 ? 'es' : '') + ' ' + filtro;
+
+  const grid = document.getElementById('req-grid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  if (!reqs.length) {
+    grid.appendChild(el('div', { cls: 'col-span-full text-center py-12 text-slate-300', text: 'Sin requisiciones ' + filtro }));
+    return;
+  }
+
+  reqs.forEach(r => {
+    const urgBadge = r.urgencia === 'Urgente'
+      ? el('span', { cls: 'text-xs font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-600', text: '! Urgente' })
+      : el('span', { cls: 'text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500', text: 'Normal' });
+
+    const aprobarBtn = el('button', { cls: 'flex-1 py-2 rounded-xl bg-green-50 text-green-700 text-xs font-semibold border border-green-200 hover:bg-green-100', type: 'button', text: 'Aprobar' });
+    aprobarBtn.addEventListener('click', () => {
+      r.estatus = 'Aprobada';
+      renderRequisiciones();
+      toast('✓ Requisición aprobada');
+    });
+
+    const rechazarBtn = el('button', { cls: 'flex-1 py-2 rounded-xl bg-red-50 text-red-600 text-xs font-semibold border border-red-200 hover:bg-red-100', type: 'button', text: 'Rechazar' });
+    rechazarBtn.addEventListener('click', () => {
+      r.estatus = 'Rechazada';
+      renderRequisiciones();
+      toast('Requisición rechazada');
+    });
+
+    const card = el('div', { cls: 'bg-white rounded-2xl p-4 shadow-sm border border-slate-100' }, [
+      el('div', { cls: 'flex items-start justify-between mb-3' }, [
+        el('div', {}, [
+          el('p', { cls: 'font-semibold text-slate-900 text-sm', text: r.producto || '—' }),
+          el('p', { cls: 'text-xs text-slate-400 mt-0.5', text: (r.cantidad || 0) + ' ' + (r.unidad || '') + ' · ' + (r.area || '—') })
+        ]),
+        urgBadge
+      ]),
+      el('p', { cls: 'text-xs text-slate-500 mb-1', text: 'Solicitó: ' + (r.nombre || '—') }),
+      r.notas ? el('p', { cls: 'text-xs text-slate-400 italic mb-3', text: r.notas }) : null,
+      filtro === 'pendientes' ? el('div', { cls: 'flex gap-2 mt-3' }, [aprobarBtn, rechazarBtn]) : null
+    ]);
+
+    grid.appendChild(card);
+  });
+}
+
+// ============================================================
+// REPORTES
+// ============================================================
+function renderReportes(periodo) {
+  if (periodo !== undefined) DB.repPeriodo = periodo;
+  const p = DB.repPeriodo || 'semana';
+
+  const hoy = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const todayStr = hoy.getFullYear() + '-' + pad(hoy.getMonth() + 1) + '-' + pad(hoy.getDate());
+
+  let compras = [...DB.compras];
+
+  if (p === 'semana') {
+    const lunes = new Date(hoy);
+    lunes.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7));
+    const lunesStr = lunes.getFullYear() + '-' + pad(lunes.getMonth() + 1) + '-' + pad(lunes.getDate());
+    compras = compras.filter(c => c.fecha >= lunesStr && c.fecha <= todayStr);
+  } else if (p === 'mes') {
+    const mesStr = hoy.getFullYear() + '-' + pad(hoy.getMonth() + 1);
+    compras = compras.filter(c => c.fecha && c.fecha.startsWith(mesStr));
+  } else if (p === 'año') {
+    const yearStr = String(hoy.getFullYear());
+    compras = compras.filter(c => c.fecha && c.fecha.startsWith(yearStr));
+  }
+
+  const total = compras.reduce((a, c) => a + (c.total || 0), 0);
+  const count = compras.length;
+  const prom = count ? total / count : 0;
+
+  const tEl = document.getElementById('rep-total');
+  const pEl = document.getElementById('rep-promedio');
+  const oEl = document.getElementById('rep-ordenes');
+  if (tEl) tEl.textContent = fmt(total);
+  if (pEl) pEl.textContent = fmt(prom);
+  if (oEl) oEl.textContent = count;
+
+  // Gasto por categoría
+  const catMap = {};
+  compras.forEach(c => {
+    const cat = c.categoria || 'Sin categoría';
+    catMap[cat] = (catMap[cat] || 0) + (c.total || 0);
+  });
+  const cats = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
+  const maxCat = cats[0]?.[1] || 1;
+
+  const catContainer = document.getElementById('rep-categorias');
+  if (catContainer) {
+    catContainer.innerHTML = '';
+    if (!cats.length) {
+      catContainer.appendChild(el('p', { cls: 'text-slate-300 text-sm text-center py-4', text: 'Sin datos en este período' }));
+    } else {
+      cats.forEach(([cat, val]) => {
+        const pct = Math.round((val / maxCat) * 100);
+        const row = el('div', { cls: 'mb-3' }, [
+          el('div', { cls: 'flex justify-between items-center mb-1' }, [
+            el('span', { cls: 'text-xs font-semibold text-slate-700', text: cat }),
+            el('span', { cls: 'text-xs font-bold', text: fmt(val) })
+          ]),
+          el('div', { cls: 'w-full bg-slate-100 rounded-full h-2' }, [
+            el('div', { cls: 'bg-primary-container h-2 rounded-full transition-all', style: 'width:' + pct + '%' })
+          ])
+        ]);
+        catContainer.appendChild(row);
+      });
+    }
+  }
+
+  // Ranking de proveedores
+  const provMap = {};
+  compras.forEach(c => {
+    const pn = c.proveedor || 'Sin proveedor';
+    provMap[pn] = (provMap[pn] || 0) + (c.total || 0);
+  });
+  const provs = Object.entries(provMap).sort((a, b) => b[1] - a[1]).slice(0, 10);
+  const maxProv = provs[0]?.[1] || 1;
+
+  const provContainer = document.getElementById('rep-proveedores');
+  if (provContainer) {
+    provContainer.innerHTML = '';
+    if (!provs.length) {
+      provContainer.appendChild(el('p', { cls: 'text-slate-300 text-sm text-center py-4', text: 'Sin datos en este período' }));
+    } else {
+      provs.forEach(([pn, val], i) => {
+        const pct = Math.round((val / maxProv) * 100);
+        const row = el('div', { cls: 'mb-3' }, [
+          el('div', { cls: 'flex justify-between items-center mb-1' }, [
+            el('div', { cls: 'flex items-center gap-2' }, [
+              el('span', { cls: 'text-xs text-slate-400 font-bold w-5', text: '#' + (i + 1) }),
+              el('span', { cls: 'text-xs font-semibold text-slate-700 truncate', text: pn })
+            ]),
+            el('span', { cls: 'text-xs font-bold flex-shrink-0', text: fmt(val) })
+          ]),
+          el('div', { cls: 'w-full bg-slate-100 rounded-full h-2' }, [
+            el('div', { cls: 'bg-primary-container h-2 rounded-full transition-all', style: 'width:' + pct + '%' })
+          ])
+        ]);
+        provContainer.appendChild(row);
+      });
+    }
+  }
+}
+
+function setPeriodo(periodo, btnEl) {
+  DB.repPeriodo = periodo;
+  if (btnEl) {
+    document.querySelectorAll('[onclick^="setPeriodo"]').forEach(b => {
+      b.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200';
+    });
+    btnEl.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-medium';
+  }
+  renderReportes(periodo);
 }
 
 // ============================================================
