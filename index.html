@@ -1629,7 +1629,7 @@ function showSec(name) {
   if (name === 'ventas') renderVentas();
   if (name === 'compras') poblarProveedoresDatalist();
   if (name === 'historial') renderHistorial('todo');
-  if (name === 'cuentas') renderCuentas();
+  if (name === 'cuentas') renderCuentasNuevo();
   if (name === 'proveedores') renderProveedores();
   if (name === 'reportes') renderReportes();
   if (name === 'requisiciones') renderRequisiciones('pendientes');
@@ -3251,11 +3251,9 @@ function setCxPFiltro(filtro, btn) {
       : 'px-3 py-1 rounded-lg text-slate-500 text-xs font-semibold';
   });
   const rangoDiv = document.getElementById('cxp-rango-fechas');
-  if (filtro === 'rango') {
-    rangoDiv.classList.remove('hidden');
-    return; // wait for user to pick dates
-  } else {
-    rangoDiv.classList.add('hidden');
+  if (rangoDiv) {
+    if (filtro === 'rango') { rangoDiv.classList.remove('hidden'); return; }
+    else rangoDiv.classList.add('hidden');
   }
   renderCuentasNuevo();
 }
@@ -3278,11 +3276,12 @@ function setCxPCuenta(cuenta, btn) {
     banamex: 'px-3 py-1.5 rounded-xl text-xs font-semibold',
     mp:      'px-3 py-1.5 rounded-xl text-xs font-semibold'
   };
-  document.getElementById('cxp-c-todos').className   = cuenta === 'todos'   ? styles.todos : 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 text-xs font-semibold';
-  document.getElementById('cxp-c-banamex').className = 'px-3 py-1.5 rounded-xl text-xs font-semibold';
-  document.getElementById('cxp-c-mp').className      = 'px-3 py-1.5 rounded-xl text-xs font-semibold';
-  document.getElementById('cxp-c-banamex').style = cuenta === 'banamex' ? 'background:#0C447C;color:#E6F1FB' : 'background:#E6F1FB;color:#185FA5';
-  document.getElementById('cxp-c-mp').style      = cuenta === 'mp'      ? 'background:#3C3489;color:#EEEDFE' : 'background:#EEEDFE;color:#534AB7';
+  const _ct = document.getElementById('cxp-c-todos');
+  const _cb = document.getElementById('cxp-c-banamex');
+  const _cm = document.getElementById('cxp-c-mp');
+  if (_ct) _ct.className = cuenta === 'todos' ? styles.todos : 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 text-xs font-semibold';
+  if (_cb) { _cb.className = 'px-3 py-1.5 rounded-xl text-xs font-semibold'; _cb.style = cuenta === 'banamex' ? 'background:#0C447C;color:#E6F1FB' : 'background:#E6F1FB;color:#185FA5'; }
+  if (_cm) { _cm.className = 'px-3 py-1.5 rounded-xl text-xs font-semibold'; _cm.style = cuenta === 'mp' ? 'background:#3C3489;color:#EEEDFE' : 'background:#EEEDFE;color:#534AB7'; }
   renderCuentasNuevo();
 }
 
@@ -3291,174 +3290,98 @@ function esBanamex(proveedor) {
 }
 
 function renderCuentasNuevo() {
-  const hoy = new Date();
-  hoy.setHours(23,59,59,999);
+  const pendAll   = DB.compras.filter(c => c.estatus !== 'Pagado');
+  const totalPend = pendAll.reduce((a,c) => a + c.total, 0);
+  const vencido   = pendAll.filter(c => c.vencimiento && new Date(c.vencimiento) < new Date()).reduce((a,c) => a + c.total, 0);
+  const porVencer = pendAll.filter(c => {
+    if (!c.vencimiento) return false;
+    const v = new Date(c.vencimiento); const h = new Date();
+    return v >= h && (v - h) <= 3 * 86400000;
+  }).reduce((a,c) => a + c.total, 0);
 
-  // Determine date range — always compare as YYYY-MM-DD strings to avoid timezone bugs
-  let desdeStr = null, hastaStr = null;
-  const pad = n => String(n).padStart(2,'0');
-  const toStr = d => d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+  const elTotal     = document.getElementById('cxp-total');
+  const elVencido   = document.getElementById('cxp-vencido');
+  const elPorVencer = document.getElementById('cxp-por-vencer');
+  if (elTotal)     elTotal.textContent     = fmt(totalPend);
+  if (elVencido)   elVencido.textContent   = fmt(vencido);
+  if (elPorVencer) elPorVencer.textContent = fmt(porVencer);
 
-  if (DB.cxpFiltro === 'semana') {
-    const r = getCxPSemanaRango();
-    desdeStr = r.desdeStr; hastaStr = r.hastaStr;
-  } else if (DB.cxpFiltro === 'mes') {
-    const h2 = new Date(); 
-    desdeStr = h2.getFullYear() + '-' + pad(h2.getMonth()+1) + '-01';
-    const lastDay = new Date(h2.getFullYear(), h2.getMonth()+1, 0);
-    hastaStr = toStr(lastDay);
-  } else if (DB.cxpFiltro === 'rango') {
-    desdeStr = document.getElementById('cxp-desde').value || null;
-    hastaStr = document.getElementById('cxp-hasta').value || null;
-  }
-  // 'todo' → desdeStr/hastaStr remain null → no date filter
-
-  // Filter compras using string comparison (YYYY-MM-DD sorts lexicographically)
   let compras = [...DB.compras];
-  if (desdeStr || hastaStr) {
-    compras = compras.filter(c => {
-      const f = c.fecha; // already YYYY-MM-DD string from Supabase
-      if (desdeStr && f < desdeStr) return false;
-      if (hastaStr && f > hastaStr) return false;
-      return true;
-    });
-  }
   if (DB.cxpEstado === 'pendientes') compras = compras.filter(c => c.estatus !== 'Pagado');
-  if (DB.cxpEstado === 'pagadas')    compras = compras.filter(c => c.estatus === 'Pagado');
-  if (DB.cxpCuenta === 'banamex')    compras = compras.filter(c => esBanamex(c.proveedor));
-  if (DB.cxpCuenta === 'mp')         compras = compras.filter(c => !esBanamex(c.proveedor));
+  else if (DB.cxpEstado === 'vencidas') compras = compras.filter(c => c.vencimiento && new Date(c.vencimiento) < new Date() && c.estatus !== 'Pagado');
+  else if (DB.cxpEstado === 'pagadas')  compras = compras.filter(c => c.estatus === 'Pagado');
 
-  // Metrics (always on pendientes regardless of estado filter)
-  const pendAll = DB.compras.filter(c => c.estatus !== 'Pagado');
-  const totalPend = pendAll.reduce((a,c) => a+c.total, 0);
-  const vencido   = pendAll.filter(c => c.vencimiento && new Date(c.vencimiento) < new Date()).reduce((a,c) => a+c.total, 0);
-  const banamexPend = pendAll.filter(c => esBanamex(c.proveedor)).reduce((a,c) => a+c.total, 0);
-  const mpPend      = pendAll.filter(c => !esBanamex(c.proveedor)).reduce((a,c) => a+c.total, 0);
-
-  // Métricas CXP — usar IDs del HTML real
-  const elCxpTotal    = document.getElementById('cxp-total');
-  const elCxpVencido  = document.getElementById('cxp-vencido');
-  const elCxpPorVencer = document.getElementById('cxp-por-vencer');
-  if (elCxpTotal)    elCxpTotal.textContent    = fmt(totalPend);
-  if (elCxpVencido)  elCxpVencido.textContent  = fmt(vencido);
-  if (elCxpPorVencer) {
-    const porVencer = pendAll.filter(c => {
-      if (!c.vencimiento || c.estatus === 'Pagado') return false;
-      const v = new Date(c.vencimiento); const hoy = new Date();
-      return v >= hoy && (v - hoy) <= 3 * 86400000;
-    }).reduce((a,c) => a+c.total, 0);
-    elCxpPorVencer.textContent = fmt(porVencer);
-  }
-
-  // Group by proveedor
-  const provMap = {};
-  compras.forEach(c => {
-    if (!provMap[c.proveedor]) provMap[c.proveedor] = { facturas: [], total: 0, esVencida: false };
-    provMap[c.proveedor].facturas.push(c);
-    provMap[c.proveedor].total += c.total;
-    if (c.vencimiento && new Date(c.vencimiento) < new Date() && c.estatus !== 'Pagado')
-      provMap[c.proveedor].esVencida = true;
+  compras.sort((a,b) => {
+    const aV = a.vencimiento && new Date(a.vencimiento) < new Date() && a.estatus !== 'Pagado';
+    const bV = b.vencimiento && new Date(b.vencimiento) < new Date() && b.estatus !== 'Pagado';
+    if (aV && !bV) return -1; if (!aV && bV) return 1;
+    return new Date(b.fecha) - new Date(a.fecha);
   });
 
-  // Sort: vencidas primero, luego por total desc
-  const provs = Object.entries(provMap).sort((a,b) => {
-    if (a[1].esVencida && !b[1].esVencida) return -1;
-    if (!a[1].esVencida && b[1].esVencida) return 1;
-    return b[1].total - a[1].total;
-  });
+  const tbody = document.getElementById('cxp-list');
+  if (!tbody) return;
+  tbody.innerHTML = '';
 
-  const acordeon = document.getElementById('cxp-acordeon');
-  if (!acordeon) return;
-  acordeon.innerHTML = '';
-
-  if (!provs.length) {
-    const empty = el('div', { cls: 'text-center py-12 text-slate-300' }, el('p', { cls: 'text-sm', text: 'Sin compras en este período' }));
-    acordeon.appendChild(empty);
+  if (!compras.length) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = '<td colspan="6" class="py-8 text-center text-slate-300 text-sm">No hay facturas en este filtro</td>';
+    tbody.appendChild(tr);
     return;
   }
 
-  provs.forEach(([nombre, data]) => {
-    const bnm = esBanamex(nombre);
-    const initials = nombre.substring(0, 3);
-    const avatarStyle = bnm ? 'background:#E6F1FB;color:#0C447C' : 'background:#EEEDFE;color:#3C3489';
+  compras.forEach(function(c) {
+    const bnm    = esBanamex(c.proveedor);
+    const isPend = c.estatus !== 'Pagado';
+    const isVenc = isPend && c.vencimiento && new Date(c.vencimiento) < new Date();
+    const fechaFmt = c.fecha ? new Date(c.fecha + 'T12:00:00').toLocaleDateString('es-MX', {day:'2-digit', month:'short', year:'numeric'}) : '—';
+    const vencFmt  = c.vencimiento ? new Date(c.vencimiento + 'T12:00:00').toLocaleDateString('es-MX', {day:'2-digit', month:'short'}) : '—';
 
-    const cuentaBadge = el('span', {
-      style: bnm
-        ? 'background:#E6F1FB;color:#185FA5;font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px'
-        : 'background:#EEEDFE;color:#534AB7;font-size:10px;font-weight:600;padding:2px 8px;border-radius:99px',
-      text: bnm ? 'Banamex' : 'Mercado Pago'
-    });
+    const tr = document.createElement('tr');
+    if (isVenc) tr.style.background = '#FEF2F2';
 
-    const nFacturas = data.facturas.length;
-    const proxVence = data.facturas
-      .filter(f => f.vencimiento && f.estatus !== 'Pagado')
-      .sort((a, b) => new Date(a.vencimiento) - new Date(b.vencimiento))[0]?.vencimiento;
-    const subLabel = nFacturas + ' factura' + (nFacturas > 1 ? 's' : '') +
-      (proxVence ? ' · vence ' + new Date(proxVence).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : '');
+    // Proveedor
+    const td1 = document.createElement('td'); td1.className = 'p-4';
+    const p1 = document.createElement('p'); p1.className = 'text-sm font-medium text-slate-800'; p1.textContent = c.proveedor;
+    const badge = document.createElement('span');
+    badge.className = 'text-xs px-2 py-0.5 rounded-full font-medium';
+    badge.style.cssText = bnm ? 'background:#E6F1FB;color:#185FA5' : 'background:#EEEDFE;color:#534AB7';
+    badge.textContent = bnm ? 'Banamex' : 'Mercado Pago';
+    td1.appendChild(p1); td1.appendChild(badge);
 
-    const totalColor = data.esVencida ? 'color:#A32D2D' : 'color:var(--color-text-primary)';
-    const cardBorderStyle = data.esVencida ? 'border-color:#F7C1C1' : '';
+    // Fecha
+    const td2 = document.createElement('td'); td2.className = 'p-4 hidden md:table-cell text-sm text-slate-600'; td2.textContent = fechaFmt;
 
-    const facturasId = 'facturas-' + nombre.replace(/\s+/g, '_');
-    const chevId = 'chev-' + facturasId;
+    // Vencimiento
+    const td3 = document.createElement('td'); td3.className = 'p-4 hidden md:table-cell text-sm' + (isVenc ? ' text-red-600 font-medium' : ' text-slate-600'); td3.textContent = vencFmt;
 
-    const avatar = el('div', { style: 'width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0;' + avatarStyle, text: initials });
-    const provNombre = el('p', { style: 'font-size:13px;font-weight:500;color:var(--color-text-primary)', text: nombre });
-    const provSub = el('p', { style: 'font-size:11px;color:var(--color-text-tertiary)', text: subLabel });
-    const leftSide = el('div', { style: 'display:flex;align-items:center;gap:10px' }, [avatar, el('div', {}, [provNombre, provSub])]);
+    // Total
+    const td4 = document.createElement('td'); td4.className = 'p-4 text-right text-sm font-semibold' + (isVenc ? ' text-red-700' : ' text-slate-800'); td4.textContent = fmt(c.total);
 
-    const totalText = el('p', { style: 'font-size:15px;font-weight:500;' + totalColor, text: fmt(data.total) });
-    const chevron = el('span', { style: 'font-size:12px;color:var(--color-text-tertiary)', text: '▼', id: chevId });
-    const rightSide = el('div', { style: 'display:flex;align-items:center;gap:10px' }, [el('div', { style: 'text-align:right' }, [totalText, cuentaBadge]), chevron]);
+    // Estado
+    const td5 = document.createElement('td'); td5.className = 'p-4 text-center';
+    const estado = document.createElement('span');
+    if (c.estatus === 'Pagado') { estado.className = 'px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700 font-medium'; estado.textContent = 'Pagado'; }
+    else if (isVenc)            { estado.className = 'px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700 font-medium'; estado.textContent = 'Vencida'; }
+    else                        { estado.className = 'px-2 py-0.5 rounded-full text-xs bg-orange-100 text-orange-700 font-medium'; estado.textContent = 'Pendiente'; }
+    td5.appendChild(estado);
 
-    const header = el('div', { style: 'display:flex;align-items:center;justify-content:space-between;padding:16px;cursor:pointer;', cls: 'hover:bg-slate-50/30' }, [leftSide, rightSide]);
-    header.addEventListener('click', () => toggleAcordeon(facturasId));
+    // Acción
+    const td6 = document.createElement('td'); td6.className = 'p-4';
+    if (isPend) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'text-xs font-semibold text-primary hover:underline';
+      btn.textContent = 'Pagar';
+      btn.addEventListener('click', function() { openPayModal(c.id); });
+      td6.appendChild(btn);
+    }
 
-    const facturasDiv = el('div', { id: facturasId, style: 'border-top:0.5px solid var(--color-border-tertiary)' });
-    data.facturas.sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).forEach(c => {
-      const isPend = c.estatus !== 'Pagado';
-      const fechaFmt = new Date(c.fecha).toLocaleDateString('es-MX', { day: '2-digit', month: 'short', year: 'numeric' });
-      const vencLabel = c.vencimiento ? ' · Vence ' + new Date(c.vencimiento).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : '';
-      const productosResumen = c.items?.length
-        ? c.items.slice(0, 3).map(i => i.nombre).join(', ') + (c.items.length > 3 ? ' +' + (c.items.length - 3) + ' más' : '')
-        : 'Sin detalle';
-
-      const estBadge = el('span', {
-        style: isPend
-          ? 'background:#FAEEDA;color:#854F0B;font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px'
-          : 'background:#EAF3DE;color:#3B6D11;font-size:10px;font-weight:600;padding:2px 7px;border-radius:99px',
-        text: isPend ? 'Pendiente' : 'Pagado'
-      });
-
-      const fechaEl = el('p', { style: 'font-size:12px;color:var(--color-text-secondary)', text: fechaFmt + vencLabel });
-      const prodEl = el('p', { style: 'font-size:11px;color:var(--color-text-tertiary);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px', text: productosResumen });
-      const leftInfo = el('div', { style: 'flex:1;min-width:0' }, [fechaEl, prodEl]);
-
-      const totalFact = el('p', { style: 'font-size:13px;font-weight:500;white-space:nowrap', text: fmt(c.total) });
-      const rightGroup = el('div', { style: 'display:flex;align-items:center;gap:8px;margin-left:12px' }, [totalFact, estBadge]);
-
-      if (isPend) {
-        const payBtn = el('button', {
-          style: 'font-size:11px;font-weight:600;color:#185FA5;background:#E6F1FB;border:none;padding:3px 10px;border-radius:8px;cursor:pointer',
-          type: 'button', text: 'Pagar'
-        });
-        payBtn.addEventListener('click', e => { e.stopPropagation(); openPayModal(c.id); });
-        rightGroup.appendChild(payBtn);
-      }
-
-      const factRow = el('div', {
-        style: 'display:flex;align-items:center;justify-content:space-between;padding:10px 16px 10px 58px;border-bottom:0.5px solid var(--color-border-tertiary)',
-        cls: 'hover:bg-slate-50/50'
-      }, [leftInfo, rightGroup]);
-      facturasDiv.appendChild(factRow);
-    });
-
-    const card = el('div', { cls: 'bg-white rounded-2xl border border-slate-100 overflow-hidden shadow-sm', style: cardBorderStyle });
-    card.appendChild(header);
-    card.appendChild(facturasDiv);
-    acordeon.appendChild(card);
+    tr.appendChild(td1); tr.appendChild(td2); tr.appendChild(td3);
+    tr.appendChild(td4); tr.appendChild(td5); tr.appendChild(td6);
+    tbody.appendChild(tr);
   });
 }
+
 
 function toggleAcordeon(id) {
   const el = document.getElementById(id);
