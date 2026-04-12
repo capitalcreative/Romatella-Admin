@@ -3335,10 +3335,20 @@ function renderCuentasNuevo() {
   const banamexPend = pendAll.filter(c => esBanamex(c.proveedor)).reduce((a,c) => a+c.total, 0);
   const mpPend      = pendAll.filter(c => !esBanamex(c.proveedor)).reduce((a,c) => a+c.total, 0);
 
-  document.getElementById('cxp-m-total').textContent   = fmt(totalPend);
-  document.getElementById('cxp-m-vencido').textContent = fmt(vencido);
-  document.getElementById('cxp-m-banamex').textContent = fmt(banamexPend);
-  document.getElementById('cxp-m-mp').textContent      = fmt(mpPend);
+  // Métricas CXP — usar IDs del HTML real
+  const elCxpTotal    = document.getElementById('cxp-total');
+  const elCxpVencido  = document.getElementById('cxp-vencido');
+  const elCxpPorVencer = document.getElementById('cxp-por-vencer');
+  if (elCxpTotal)    elCxpTotal.textContent    = fmt(totalPend);
+  if (elCxpVencido)  elCxpVencido.textContent  = fmt(vencido);
+  if (elCxpPorVencer) {
+    const porVencer = pendAll.filter(c => {
+      if (!c.vencimiento || c.estatus === 'Pagado') return false;
+      const v = new Date(c.vencimiento); const hoy = new Date();
+      return v >= hoy && (v - hoy) <= 3 * 86400000;
+    }).reduce((a,c) => a+c.total, 0);
+    elCxpPorVencer.textContent = fmt(porVencer);
+  }
 
   // Group by proveedor
   const provMap = {};
