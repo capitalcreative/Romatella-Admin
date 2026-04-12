@@ -515,7 +515,7 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
                   </button>
                 </div>
                 <div class="grid grid-cols-12 gap-2 text-xs text-slate-400 uppercase tracking-wider mb-2 px-1">
-                  <span class="col-span-5">Producto</span><span class="col-span-2">Unidad</span><span class="col-span-2">Cant.</span><span class="col-span-2">Precio</span><span class="col-span-1"></span>
+                  <span class="col-span-4">Producto</span><span class="col-span-2">Unidad</span><span class="col-span-1">Cant.</span><span class="col-span-2">P. Unit.</span><span class="col-span-2 text-right">Subtotal</span><span class="col-span-1"></span>
                 </div>
                 <div id="items-container" class="space-y-2"></div>
               </div>
@@ -525,13 +525,20 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           <div class="lg:col-span-4">
             <div class="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 sticky top-16">
               <h3 class="font-bold text-slate-900 mb-4">Resumen</h3>
-              <div class="border-t border-slate-100 pt-3 mb-5">
-                <div class="flex justify-between items-baseline">
-                  <span class="font-bold text-slate-900">Total</span>
+              <div class="border-t border-slate-100 pt-3 mb-3">
+                <div class="flex justify-between items-baseline mb-1">
+                  <span class="font-bold text-slate-900">Total factura</span>
                   <div class="text-right">
                     <span id="total-display" class="text-2xl font-bold text-primary">$0.00</span>
                     <p class="text-xs text-slate-400">MXN</p>
                   </div>
+                </div>
+                <!-- Indicador de cuadre suma de partidas -->
+                <div id="total-cuadre" class="hidden text-xs text-slate-400 text-right mt-1"></div>
+                <!-- Alerta si no cuadra -->
+                <div id="total-descuadre" class="hidden mt-2 p-2 bg-red-50 rounded-xl border border-red-100 text-xs text-red-600 flex items-center gap-1">
+                  <span class="ms text-sm">warning</span>
+                  <span id="total-descuadre-text"></span>
                 </div>
               </div>
               <button type="button" onclick="registerCompra()" class="w-full bg-primary-container text-white py-3 rounded-2xl font-semibold text-sm shadow-lg shadow-blue-200 hover:opacity-90 transition-opacity mb-3">
@@ -2169,17 +2176,15 @@ function calcVencimiento() { /* legacy — reemplazado por setCondicion */ }
 
 
 function addItem(nombre, unidad, precio) {
-  const uid = Date.now() + Math.random();
   const div = document.createElement('div');
   div.className = 'relative';
 
   const grid = document.createElement('div');
   grid.className = 'grid grid-cols-12 gap-2 items-center';
 
-  // Columna búsqueda de producto
+  // Producto (col-span-4)
   const colProd = document.createElement('div');
-  colProd.className = 'col-span-5 relative';
-
+  colProd.className = 'col-span-4 relative';
   const inputProd = document.createElement('input');
   inputProd.className = 'w-full px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none';
   inputProd.placeholder = 'Buscar producto...';
@@ -2187,14 +2192,12 @@ function addItem(nombre, unidad, precio) {
   inputProd.addEventListener('input', () => buscarProducto(inputProd));
   inputProd.addEventListener('focus', () => buscarProducto(inputProd));
   inputProd.addEventListener('blur', () => setTimeout(() => cerrarSugerencias(inputProd), 200));
-
   const sug = document.createElement('div');
   sug.className = 'sugerencias hidden absolute z-10 left-0 right-0 top-full mt-1 bg-white rounded-xl shadow-lg border border-slate-100 max-h-48 overflow-y-auto';
-
   colProd.appendChild(inputProd);
   colProd.appendChild(sug);
 
-  // Select unidad
+  // Unidad (col-span-2)
   const sel = document.createElement('select');
   sel.className = 'col-span-2 px-2 py-2 bg-surface-container-low rounded-xl text-sm outline-none';
   ['kg', 'pza', 'lt', 'caja', 'bot'].forEach(u => {
@@ -2204,22 +2207,25 @@ function addItem(nombre, unidad, precio) {
     sel.appendChild(opt);
   });
 
-  // Input cantidad
+  // Cantidad (col-span-1)
   const inputCant = document.createElement('input');
   inputCant.type = 'number'; inputCant.min = '0';
-  inputCant.className = 'col-span-2 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none';
+  inputCant.className = 'col-span-1 px-2 py-2 bg-surface-container-low rounded-xl text-sm outline-none';
   inputCant.placeholder = '0';
-  inputCant.addEventListener('input', calcTotal);
 
-  // Input precio
+  // Precio unitario (col-span-2)
   const inputPrecio = document.createElement('input');
-  inputPrecio.type = 'number'; inputPrecio.min = '0';
-  inputPrecio.className = 'col-span-2 px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none';
+  inputPrecio.type = 'number'; inputPrecio.min = '0'; inputPrecio.step = '0.01';
+  inputPrecio.className = 'col-span-2 px-2 py-2 bg-surface-container-low rounded-xl text-sm outline-none';
   inputPrecio.placeholder = '$0';
   inputPrecio.value = precio || '';
-  inputPrecio.addEventListener('input', calcTotal);
 
-  // Boton eliminar
+  // Subtotal (col-span-2) — solo lectura, actualización automática
+  const subtotalEl = document.createElement('div');
+  subtotalEl.className = 'col-span-2 text-right text-sm font-semibold text-slate-300 pr-1';
+  subtotalEl.textContent = '—';
+
+  // Botón eliminar (col-span-1)
   const delBtn = document.createElement('button');
   delBtn.type = 'button';
   delBtn.className = 'col-span-1 text-slate-300 hover:text-error flex justify-center';
@@ -2228,15 +2234,36 @@ function addItem(nombre, unidad, precio) {
   delBtn.appendChild(delIcon);
   delBtn.addEventListener('click', () => { div.remove(); calcTotal(); });
 
+  const updateSubtotal = () => {
+    const cant = parseFloat(inputCant.value) || 0;
+    const prec = parseFloat(inputPrecio.value) || 0;
+    const sub = cant * prec;
+    subtotalEl.textContent = sub > 0 ? fmt(sub) : '—';
+    if (sub > 0) {
+      subtotalEl.className = 'col-span-2 text-right text-sm font-semibold text-slate-800 pr-1';
+    } else if (cant > 0 || prec > 0) {
+      subtotalEl.textContent = '⚠ ' + fmt(sub);
+      subtotalEl.className = 'col-span-2 text-right text-xs font-semibold text-red-400 pr-1';
+    } else {
+      subtotalEl.className = 'col-span-2 text-right text-sm font-semibold text-slate-300 pr-1';
+    }
+    calcTotal();
+  };
+  inputCant.addEventListener('input', updateSubtotal);
+  inputPrecio.addEventListener('input', updateSubtotal);
+  sel.addEventListener('change', updateSubtotal);
+
   grid.appendChild(colProd);
   grid.appendChild(sel);
   grid.appendChild(inputCant);
   grid.appendChild(inputPrecio);
+  grid.appendChild(subtotalEl);
   grid.appendChild(delBtn);
   div.appendChild(grid);
   document.getElementById('items-container').appendChild(div);
-  if (precio) calcTotal();
+  if (precio) updateSubtotal();
 }
+
 
 function buscarProducto(input) {
   const val = input.value.toLowerCase().trim();
@@ -2301,6 +2328,15 @@ function calcTotal() {
     total += (parseFloat(nums[0]?.value)||0) * (parseFloat(nums[1]?.value)||0);
   });
   document.getElementById('total-display').textContent = fmt(total);
+
+  // Indicador de cuadre con el total de la factura
+  const checkEl = document.getElementById('total-cuadre');
+  if (checkEl && total > 0) {
+    checkEl.classList.remove('hidden');
+    checkEl.textContent = '∑ Suma partidas: ' + fmt(total);
+  } else if (checkEl) {
+    checkEl.classList.add('hidden');
+  }
 }
 function getItems() {
   const items = [];
@@ -2596,22 +2632,62 @@ async function handleFileUpload(event) {
       const sel = document.getElementById('f-pago');
       if (sel) { sel.value = data.forma_pago; calcVencimiento(); }
     }
+
+    // Guardar el total real de la factura para verificar cuadre
+    const totalFactura = parseFloat(data.total) || 0;
+
     if (data.productos?.length) {
       document.getElementById('items-container').innerHTML = '';
+
+      // ¿La factura tiene IVA desglosado?
+      // Si el backend devuelve tiene_iva=true, los precios unitarios son NETOS → multiplicar × 1.16
+      // Si no, los precios ya incluyen todo → usar tal cual
+      const tieneIVA = data.tiene_iva === true;
+
       data.productos.forEach(p => {
-        addItem(p.nombre || '', p.unidad || 'pza', p.costo_unitario || 0);
+        const precioNeto = parseFloat(p.costo_unitario) || 0;
+        const precioFinal = tieneIVA
+          ? Math.round(precioNeto * 1.16 * 100) / 100
+          : precioNeto;
+
+        addItem(p.nombre || '', p.unidad || 'bot', precioFinal);
         const rows = document.querySelectorAll('#items-container .relative');
         const last = rows[rows.length - 1];
         if (last) {
           const nums = last.querySelectorAll('input[type="number"]');
-          if (nums[0]) nums[0].value = p.cantidad || 1;
+          if (nums[0]) {
+            nums[0].value = p.cantidad || 1;
+            nums[0].dispatchEvent(new Event('input'));
+          }
         }
       });
       calcTotal();
+
+      // Verificar cuadre: suma de partidas vs total de la factura
+      if (totalFactura > 0) {
+        const sumaPartidas = getTotal();
+        const diferencia = Math.abs(sumaPartidas - totalFactura);
+        const pctDif = diferencia / totalFactura * 100;
+        const descuadreEl = document.getElementById('total-descuadre');
+        const descuadreText = document.getElementById('total-descuadre-text');
+        const cuadreEl = document.getElementById('total-cuadre');
+
+        if (cuadreEl) cuadreEl.textContent = '∑ Suma partidas: ' + fmt(sumaPartidas);
+
+        if (descuadreEl && descuadreText) {
+          if (diferencia > 1) { // tolerancia de $1 por redondeos
+            descuadreEl.classList.remove('hidden');
+            descuadreText.textContent = 'Diferencia de ' + fmt(diferencia) +
+              ' vs total factura (' + fmt(totalFactura) + '). Revisa precios o cantidades.';
+          } else {
+            descuadreEl.classList.add('hidden');
+          }
+        }
+      }
     }
 
     const n = data.productos?.length || 0;
-    txt.textContent = '✓ ' + (isPDF ? 'PDF' : 'Ticket') + ' analizado — ' + n + ' producto' + (n !== 1 ? 's' : '') + ' extraído' + (n !== 1 ? 's' : '') + ' · revisa y confirma';
+    txt.textContent = '✓ ' + (isPDF ? 'PDF' : 'Ticket') + ' analizado — ' + n + ' producto' + (n !== 1 ? 's' : '') + ' · revisa y confirma';
     toast('✓ ' + (isPDF ? 'Factura PDF' : 'Ticket') + ' analizado correctamente');
 
   } catch(e) {
