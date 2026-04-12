@@ -42,6 +42,7 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
 .nav-item:hover { background:rgba(0,0,0,0.04); }
 .nav-item.active { background:white; color:#0071e3; box-shadow:0 1px 4px rgba(0,0,0,0.08); }
 @keyframes fadeIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+@keyframes spin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 .fade { animation:fadeIn 0.25s ease; }
 </style>
 </head>
@@ -228,7 +229,12 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
           <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Ventas del Período</p>
           <p class="text-2xl font-bold text-slate-900" id="metric-ventas">—</p>
-          <p class="text-xs text-slate-400 mt-1">Loyverse · <button onclick="showSec('ventas')" class="text-primary hover:underline">sincronizar</button></p>
+          <div class="flex items-center justify-between mt-1">
+            <p class="text-xs text-slate-400">Loyverse</p>
+            <button onclick="sincronizarVentasDashboard(this)" class="text-xs font-semibold text-primary-container border border-primary-container/30 px-2 py-0.5 rounded-lg hover:bg-blue-50 flex items-center gap-1">
+              <span class="ms text-sm" id="dash-sync-icon">sync</span>Sincronizar
+            </button>
+          </div>
         </div>
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
           <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Cuentas por Pagar</p>
@@ -279,6 +285,69 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           </div>
           <p class="text-2xl font-bold text-slate-900" id="metric-compras">0</p>
           <p class="text-xs text-slate-400 mt-1">compras registradas</p>
+        </div>
+      </div>
+
+      <!-- KPIs FILA 3: Métricas de controller -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-3">
+        <!-- Margen bruto estimado -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <div class="flex items-center justify-between mb-1">
+            <p class="text-xs text-slate-400 uppercase tracking-wider">Margen Bruto Est.</p>
+            <span class="ms text-sm text-slate-300">trending_up</span>
+          </div>
+          <p class="text-2xl font-bold" id="metric-margen">—</p>
+          <p class="text-xs text-slate-400 mt-1" id="metric-margen-sub">Ventas − Compras</p>
+        </div>
+        <!-- Vs semana anterior -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <div class="flex items-center justify-between mb-1">
+            <p class="text-xs text-slate-400 uppercase tracking-wider">Vs. Semana Anterior</p>
+            <span class="ms text-sm text-slate-300" id="metric-vs-icon">compare_arrows</span>
+          </div>
+          <p class="text-2xl font-bold" id="metric-vs-anterior">—</p>
+          <p class="text-xs text-slate-400 mt-1" id="metric-vs-sub">variación en compras</p>
+        </div>
+        <!-- DPO — Días promedio de pago -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <div class="flex items-center justify-between mb-1">
+            <p class="text-xs text-slate-400 uppercase tracking-wider">DPO — Días Pago</p>
+            <span class="ms text-sm text-slate-300">calendar_clock</span>
+          </div>
+          <p class="text-2xl font-bold text-slate-900" id="metric-dpo">—</p>
+          <p class="text-xs text-slate-400 mt-1">días promedio a pagar</p>
+        </div>
+        <!-- Eficiencia de pago -->
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <div class="flex items-center justify-between mb-1">
+            <p class="text-xs text-slate-400 uppercase tracking-wider">Facturas a Tiempo</p>
+            <span class="ms text-sm text-slate-300">check_circle</span>
+          </div>
+          <p class="text-2xl font-bold" id="metric-eficiencia">—</p>
+          <p class="text-xs text-slate-400 mt-1" id="metric-eficiencia-sub">del total histórico</p>
+        </div>
+      </div>
+
+      <!-- ALERTA concentración de proveedor -->
+      <div id="alert-concentracion" class="hidden bg-yellow-50 border border-yellow-200 rounded-2xl p-3 mb-4 flex items-center justify-between">
+        <div class="flex items-center gap-2 text-sm text-yellow-800">
+          <span class="ms">warning_amber</span>
+          <span id="alert-concentracion-text"></span>
+        </div>
+        <button type="button" onclick="showSec('reportes')" class="text-xs font-semibold text-yellow-700 hover:underline">Ver detalle</button>
+      </div>
+
+      <!-- TENDENCIA semanal — gráfica de barras últimas 8 semanas -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-4">
+        <div class="flex justify-between items-center mb-4">
+          <div>
+            <h3 class="font-bold text-slate-900 text-sm">Tendencia de Compras</h3>
+            <p class="text-xs text-slate-400">Últimas 8 semanas operativas (martes→domingo)</p>
+          </div>
+          <span class="text-xs text-slate-300" id="dash-tendencia-label"></span>
+        </div>
+        <div id="dash-tendencia" class="flex items-end gap-1.5 h-24">
+          <p class="text-slate-200 text-xs m-auto">Sin datos suficientes</p>
         </div>
       </div>
 
@@ -1720,8 +1789,14 @@ function getDashCompras() {
     DB.dashHasta = hasta || null;
     if (desde) compras = compras.filter(c => c.fecha >= desde);
     if (hasta)  compras = compras.filter(c => c.fecha <= hasta);
+  } else {
+    // 'todo' — rango completo
+    const firstDate = DB.compras.length
+      ? [...DB.compras].sort((a,b) => a.fecha > b.fecha ? 1 : -1)[0]?.fecha || todayStr
+      : todayStr;
+    DB.dashDesde = firstDate;
+    DB.dashHasta = todayStr;
   }
-  // 'todo' → sin filtro
 
   return compras.sort((a, b) => (b.fecha > a.fecha ? 1 : -1));
 }
@@ -1762,7 +1837,12 @@ function renderDashboard() {
   set('metric-por-vencer-sub', porVencerList.length + ' factura' + (porVencerList.length !== 1 ? 's' : ''));
 
   // Food Cost % — si hay ventas en DB
-  const ventasPeriodo = DB.dashVentas || null;
+  // Ventas: solo usar si corresponden al mismo período y rango de fechas
+  const periodo = DB.dashPeriodo || 'semana';
+  const ventasValidas = DB.dashVentasPeriodo === periodo &&
+    DB.dashVentasDesde === DB.dashDesde &&
+    DB.dashVentasHasta === DB.dashHasta;
+  const ventasPeriodo = ventasValidas ? (DB.dashVentas || null) : null;
   const fcEl  = document.getElementById('metric-foodcost');
   const fcSub = document.getElementById('metric-foodcost-sub');
   if (fcEl) {
@@ -1800,6 +1880,183 @@ function renderDashboard() {
     } else {
       alertEl.classList.add('hidden');
     }
+  }
+
+  // ── Margen bruto estimado ────────────────────────────────
+  const margenEl  = document.getElementById('metric-margen');
+  const margenSub = document.getElementById('metric-margen-sub');
+  if (margenEl) {
+    if (ventasPeriodo && ventasPeriodo > 0) {
+      const margen = ventasPeriodo - totalCompras;
+      const margenPct = (margen / ventasPeriodo * 100).toFixed(1);
+      margenEl.textContent = fmt(margen);
+      margenEl.className = 'text-2xl font-bold ' + (margen >= 0 ? 'text-green-700' : 'text-red-600');
+      if (margenSub) margenSub.textContent = margenPct + '% del total ventas';
+    } else {
+      margenEl.textContent = '—';
+      margenEl.className = 'text-2xl font-bold text-slate-300';
+      if (margenSub) margenSub.textContent = 'Sincroniza ventas Loyverse';
+    }
+  }
+
+  // ── Vs semana anterior ───────────────────────────────────
+  const vsEl  = document.getElementById('metric-vs-anterior');
+  const vsSub = document.getElementById('metric-vs-sub');
+  const vsIcon = document.getElementById('metric-vs-icon');
+  if (vsEl) {
+    // Calcular semana actual (martes→hoy) y semana anterior
+    const hoyVs = new Date();
+    const padVs = n => String(n).padStart(2, '0');
+    const dow = hoyVs.getDay();
+    const diasDesdeMartes = (dow + 5) % 7;
+    const martesActual = new Date(hoyVs); martesActual.setDate(hoyVs.getDate() - diasDesdeMartes);
+    const martesAnterior = new Date(martesActual); martesAnterior.setDate(martesActual.getDate() - 7);
+    const domAnterior = new Date(martesActual); domAnterior.setDate(martesActual.getDate() - 1);
+
+    const toDateStr = d => d.getFullYear() + '-' + padVs(d.getMonth()+1) + '-' + padVs(d.getDate());
+    const semActualStr  = toDateStr(martesActual);
+    const semAntDesde   = toDateStr(martesAnterior);
+    const semAntHasta   = toDateStr(domAnterior);
+    const todayStr2     = toDateStr(hoyVs);
+
+    const totalActual   = DB.compras.filter(c => c.fecha >= semActualStr && c.fecha <= todayStr2).reduce((a,c) => a+(c.total||0), 0);
+    const totalAnterior = DB.compras.filter(c => c.fecha >= semAntDesde  && c.fecha <= semAntHasta).reduce((a,c) => a+(c.total||0), 0);
+
+    if (totalAnterior > 0) {
+      const diff = totalActual - totalAnterior;
+      const pct  = (diff / totalAnterior * 100).toFixed(1);
+      vsEl.textContent = (diff >= 0 ? '+' : '') + pct + '%';
+      vsEl.className = 'text-2xl font-bold ' + (diff <= 0 ? 'text-green-700' : 'text-red-600');
+      if (vsSub) vsSub.textContent = (diff >= 0 ? '▲ ' : '▼ ') + fmt(Math.abs(diff)) + ' vs sem. anterior';
+      if (vsIcon) vsIcon.textContent = diff <= 0 ? 'trending_down' : 'trending_up';
+      if (vsIcon) vsIcon.className = 'ms text-sm ' + (diff <= 0 ? 'text-green-500' : 'text-red-400');
+    } else {
+      vsEl.textContent = '—';
+      vsEl.className = 'text-2xl font-bold text-slate-300';
+      if (vsSub) vsSub.textContent = 'Sin datos semana anterior';
+    }
+  }
+
+  // ── DPO — Días Promedio de Pago ──────────────────────────
+  const dpoEl = document.getElementById('metric-dpo');
+  if (dpoEl) {
+    const pagadas = allCompras.filter(c => c.estatus === 'Pagado' && c.fecha && c.vencimiento);
+    if (pagadas.length > 0) {
+      // DPO: promedio de días entre fecha de compra y vencimiento (plazo concedido)
+      const totalDias = pagadas.reduce((a, c) => {
+        const diff = (new Date(c.vencimiento) - new Date(c.fecha)) / (1000*60*60*24);
+        return a + (diff > 0 ? diff : 0);
+      }, 0);
+      const dpo = Math.round(totalDias / pagadas.length);
+      dpoEl.textContent = dpo + 'd';
+      dpoEl.className = 'text-2xl font-bold ' + (dpo <= 8 ? 'text-green-700' : dpo <= 15 ? 'text-orange-500' : 'text-red-600');
+    } else {
+      dpoEl.textContent = '—';
+      dpoEl.className = 'text-2xl font-bold text-slate-300';
+    }
+  }
+
+  // ── Eficiencia de pago ───────────────────────────────────
+  const eficEl  = document.getElementById('metric-eficiencia');
+  const eficSub = document.getElementById('metric-eficiencia-sub');
+  if (eficEl) {
+    const totalFacturas   = allCompras.length;
+    const pagadasATiempo  = allCompras.filter(c => {
+      if (c.estatus !== 'Pagado') return false;
+      if (!c.vencimiento) return true; // sin vencimiento = contado = a tiempo
+      return c.fecha <= c.vencimiento;
+    }).length;
+    if (totalFacturas > 0) {
+      const pct = Math.round(pagadasATiempo / totalFacturas * 100);
+      eficEl.textContent = pct + '%';
+      eficEl.className = 'text-2xl font-bold ' + (pct >= 90 ? 'text-green-700' : pct >= 70 ? 'text-orange-500' : 'text-red-600');
+      if (eficSub) eficSub.textContent = pagadasATiempo + ' de ' + totalFacturas + ' facturas';
+    } else {
+      eficEl.textContent = '—';
+      eficEl.className = 'text-2xl font-bold text-slate-300';
+    }
+  }
+
+  // ── Alerta de concentración de proveedor ─────────────────
+  const alertConc     = document.getElementById('alert-concentracion');
+  const alertConcText = document.getElementById('alert-concentracion-text');
+  if (alertConc && totalCompras > 0) {
+    const provGasto = {};
+    compras.forEach(c => { provGasto[c.proveedor||'?'] = (provGasto[c.proveedor||'?']||0) + (c.total||0); });
+    const topProv = Object.entries(provGasto).sort((a,b) => b[1]-a[1])[0];
+    if (topProv) {
+      const pctConc = topProv[1] / totalCompras * 100;
+      if (pctConc > 40) {
+        alertConc.classList.remove('hidden');
+        if (alertConcText) alertConcText.textContent =
+          topProv[0] + ' representa el ' + pctConc.toFixed(0) + '% de tus compras — alta dependencia de un proveedor';
+      } else {
+        alertConc.classList.add('hidden');
+      }
+    } else {
+      alertConc.classList.add('hidden');
+    }
+  } else if (alertConc) {
+    alertConc.classList.add('hidden');
+  }
+
+  // ── Tendencia semanal (últimas 8 semanas) ────────────────
+  const tendContainer = document.getElementById('dash-tendencia');
+  const tendLabel     = document.getElementById('dash-tendencia-label');
+  if (tendContainer) {
+    // Construir semanas: semana 0 = actual, semana -1 = anterior, etc.
+    const hoyT = new Date();
+    const padT = n => String(n).padStart(2, '0');
+    const toStr = d => d.getFullYear() + '-' + padT(d.getMonth()+1) + '-' + padT(d.getDate());
+    const dowT = hoyT.getDay();
+    const diasDesdeMartes2 = (dowT + 5) % 7;
+    const martesEsta = new Date(hoyT); martesEsta.setDate(hoyT.getDate() - diasDesdeMartes2);
+
+    const semanas = [];
+    for (let i = 7; i >= 0; i--) {
+      const desde = new Date(martesEsta); desde.setDate(martesEsta.getDate() - i*7);
+      const hasta = new Date(desde); hasta.setDate(desde.getDate() + 6);
+      const desdeStr = toStr(desde);
+      const hastaStr = toStr(hasta);
+      const total = DB.compras
+        .filter(c => c.fecha >= desdeStr && c.fecha <= hastaStr)
+        .reduce((a,c) => a+(c.total||0), 0);
+      const label = desde.toLocaleDateString('es-MX', {day:'2-digit', month:'short'});
+      semanas.push({ label, total, desdeStr, hastaStr, esActual: i === 0 });
+    }
+
+    const maxSem = Math.max(...semanas.map(s => s.total), 1);
+    tendContainer.innerHTML = '';
+
+    semanas.forEach(s => {
+      const pct = Math.max(s.total / maxSem * 100, s.total > 0 ? 4 : 2);
+      const col = s.esActual ? 'bg-primary-container' : 'bg-slate-200';
+      const wrap = el('div', { cls: 'flex flex-col items-center flex-1 gap-1', style: 'min-width:0' });
+
+      const barWrap = el('div', { cls: 'w-full flex items-end', style: 'height:72px' });
+      const bar = el('div', {
+        cls: col + ' rounded-t-lg w-full transition-all cursor-pointer',
+        style: 'height:' + pct + '%',
+        title: s.label + ': ' + fmt(s.total)
+      });
+      bar.addEventListener('mouseenter', () => {
+        if (tendLabel) tendLabel.textContent = s.label + ' → ' + fmt(s.total);
+      });
+      bar.addEventListener('mouseleave', () => {
+        if (tendLabel) tendLabel.textContent = '';
+      });
+
+      barWrap.appendChild(bar);
+      const lbl = el('p', {
+        cls: 'text-center leading-tight ' + (s.esActual ? 'text-primary-container font-bold' : 'text-slate-400'),
+        style: 'font-size:9px'
+      });
+      lbl.textContent = s.label.replace(' ', '\n');
+
+      wrap.appendChild(barWrap);
+      wrap.appendChild(lbl);
+      tendContainer.appendChild(wrap);
+    });
   }
 
   // ── Top Categorías ──────────────────────────────────────
@@ -2414,6 +2671,81 @@ function poblarProveedoresDatalist() {
 // ============================================================
 // VENTAS LOYVERSE
 // ============================================================
+// ============================================================
+// SINCRONIZACIÓN VENTAS → DASHBOARD
+// ============================================================
+async function sincronizarVentasDashboard(btn) {
+  const icon = document.getElementById('dash-sync-icon');
+  if (icon) { icon.style.animation = 'spin 1s linear infinite'; icon.textContent = 'sync'; }
+  if (btn)  btn.disabled = true;
+
+  // Obtener el rango exacto del dashboard
+  const periodo = DB.dashPeriodo || 'semana';
+  let desde, hasta;
+  const hoy = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const toStr = d => d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+  const todayStr = toStr(hoy);
+
+  if (periodo === 'semana') {
+    const dow = hoy.getDay();
+    const diasDesdeMartes = (dow + 5) % 7;
+    const martes = new Date(hoy);
+    martes.setDate(hoy.getDate() - diasDesdeMartes);
+    desde = toStr(martes);
+    hasta = todayStr;
+  } else if (periodo === 'mes') {
+    desde = hoy.getFullYear() + '-' + pad(hoy.getMonth()+1) + '-01';
+    hasta = todayStr;
+  } else if (periodo === 'custom') {
+    desde = document.getElementById('dash-desde')?.value || todayStr;
+    hasta = document.getElementById('dash-hasta')?.value || todayStr;
+  } else {
+    // 'todo' — usamos el año actual como límite razonable
+    desde = hoy.getFullYear() + '-01-01';
+    hasta = todayStr;
+  }
+
+  const metricVentas = document.getElementById('metric-ventas');
+
+  try {
+    const dateFrom = encodeURIComponent(desde + 'T00:00:00.000Z');
+    const dateTo   = encodeURIComponent(hasta + 'T23:59:59.000Z');
+    const resp = await fetch('/api/loyverse?endpoint=summary&date_from=' + dateFrom + '&date_to=' + dateTo);
+    const data = await resp.json();
+
+    if (data.error) throw new Error(data.error);
+
+    const receipts = data.receipts || [];
+    const totalVentas = receipts.reduce((a, r) => a + (r.total_money || 0), 0);
+
+    // Guardar desagregado por período para que renderDashboard use el correcto
+    if (!DB.ventasPorPeriodo) DB.ventasPorPeriodo = {};
+    DB.ventasPorPeriodo[periodo + '_' + desde + '_' + hasta] = totalVentas;
+    DB.dashVentas = totalVentas;
+    DB.dashVentasDesde = desde;
+    DB.dashVentasHasta = hasta;
+    DB.dashVentasPeriodo = periodo;
+
+    if (metricVentas) {
+      metricVentas.textContent = fmt(totalVentas);
+      metricVentas.className = 'text-2xl font-bold text-slate-900';
+    }
+
+    renderDashboard();
+    toast('✓ Ventas sincronizadas: ' + fmt(totalVentas) + ' (' + receipts.length + ' tickets)');
+  } catch(e) {
+    if (metricVentas) {
+      metricVentas.textContent = 'Error';
+      metricVentas.className = 'text-2xl font-bold text-red-400';
+    }
+    toast('⚠ ' + (e.message || 'Error al conectar con Loyverse'));
+  } finally {
+    if (icon) { icon.style.animation = ''; icon.textContent = 'sync'; }
+    if (btn)  btn.disabled = false;
+  }
+}
+
 async function renderVentas() {
   const loading = document.getElementById('ventas-loading');
   const error = document.getElementById('ventas-error');
