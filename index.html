@@ -2644,21 +2644,27 @@ async function handleFileUpload(event) {
       // Si no, los precios ya incluyen todo → usar tal cual
       const tieneIVA = data.tiene_iva === true;
 
+      // Paso 1: agregar todas las filas primero
       data.productos.forEach(p => {
         const precioNeto = parseFloat(p.costo_unitario) || 0;
         const precioFinal = tieneIVA
           ? Math.round(precioNeto * 1.16 * 100) / 100
           : precioNeto;
-
         addItem(p.nombre || '', p.unidad || 'bot', precioFinal);
-        const rows = document.querySelectorAll('#items-container .relative');
-        const last = rows[rows.length - 1];
-        if (last) {
-          const nums = last.querySelectorAll('input[type="number"]');
-          if (nums[0]) {
-            nums[0].value = p.cantidad || 1;
-            nums[0].dispatchEvent(new Event('input'));
-          }
+      });
+
+      // Paso 2: filtrar solo filas con inputs numéricos (excluye divs de sugerencias)
+      const filasValidas = Array.from(document.querySelectorAll('#items-container .relative'))
+        .filter(row => row.querySelectorAll('input[type="number"]').length > 0);
+
+      // Paso 3: llenar cantidades por índice
+      data.productos.forEach((p, i) => {
+        const row = filasValidas[i];
+        if (!row) return;
+        const nums = row.querySelectorAll('input[type="number"]');
+        if (nums[0]) {
+          nums[0].value = p.cantidad || 1;
+          nums[0].dispatchEvent(new Event('input', { bubbles: true }));
         }
       });
       calcTotal();
