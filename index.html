@@ -516,7 +516,21 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
     <!-- HISTORIAL DE COMPRAS -->
     <section id="sec-historial" class="sec p-5 fade">
       <div class="flex justify-between items-center mb-5">
-        <div><h2 class="text-2xl font-bold text-slate-900">Historial de Compras</h2><p class="text-sm text-slate-400">Todas las compras registradas</p></div>
+        <div>
+          <h2 class="text-2xl font-bold text-slate-900">Historial de Compras</h2>
+          <p class="text-sm text-slate-400">Todas las compras registradas</p>
+        </div>
+        <!-- Toggle vista -->
+        <div class="flex gap-1 bg-slate-100 p-1 rounded-xl">
+          <button type="button" id="hist-vista-lista-btn" onclick="setHistVista('lista',this)"
+            class="px-3 py-1.5 rounded-lg bg-white text-slate-900 text-xs font-semibold shadow-sm flex items-center gap-1">
+            <span class="ms text-sm">list</span>Lista
+          </button>
+          <button type="button" id="hist-vista-prov-btn" onclick="setHistVista('proveedor',this)"
+            class="px-3 py-1.5 rounded-lg text-slate-500 text-xs font-semibold flex items-center gap-1 hover:bg-white/60 transition-colors">
+            <span class="ms text-sm">store</span>Por Proveedor
+          </button>
+        </div>
       </div>
       <!-- Filters -->
       <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 mb-4 flex flex-wrap gap-3 items-center">
@@ -555,39 +569,30 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           <p class="text-xl font-bold" id="hist-promedio-filtrado">$0.00</p>
         </div>
       </div>
-      <!-- Table -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <table class="w-full">
-          <thead class="bg-surface-container-low"><tr class="text-xs text-slate-400 uppercase tracking-wider">
-            <th class="text-left p-4 font-medium">Fecha</th>
-            <th class="text-left p-4 font-medium">Proveedor</th>
-            <th class="text-left p-4 font-medium hidden md:table-cell">Categoría</th>
-            <th class="text-left p-4 font-medium hidden md:table-cell">Folio</th>
-            <th class="text-left p-4 font-medium hidden lg:table-cell">Forma Pago</th>
-            <th class="text-right p-4 font-medium">Total</th>
-            <th class="text-center p-4 font-medium">Estatus</th>
-            <th class="p-4"></th>
-          </tr></thead>
-          <tbody id="hist-list" class="divide-y divide-slate-50">
-            <tr><td colspan="8" class="py-8 text-center text-slate-300 text-sm">No hay compras registradas</td></tr>
-          </tbody>
-        </table>
-      </div>
-      
-      <!-- Vista por proveedor -->
-      <div id="cxp-proveedor-view" class="hidden">
+      <!-- Vista tabla (lista) -->
+      <div id="hist-vista-lista">
         <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
           <table class="w-full">
             <thead class="bg-surface-container-low"><tr class="text-xs text-slate-400 uppercase tracking-wider">
+              <th class="text-left p-4 font-medium">Fecha</th>
               <th class="text-left p-4 font-medium">Proveedor</th>
-              <th class="text-center p-4 font-medium"># Facturas</th>
-              <th class="text-right p-4 font-medium">Total Pendiente</th>
-              <th class="text-center p-4 font-medium">Estado</th>
+              <th class="text-left p-4 font-medium hidden md:table-cell">Categoría</th>
+              <th class="text-left p-4 font-medium hidden md:table-cell">Folio</th>
+              <th class="text-left p-4 font-medium hidden lg:table-cell">Forma Pago</th>
+              <th class="text-right p-4 font-medium">Total</th>
+              <th class="text-center p-4 font-medium">Estatus</th>
               <th class="p-4"></th>
             </tr></thead>
-            <tbody id="cxp-proveedor-list" class="divide-y divide-slate-50"></tbody>
+            <tbody id="hist-list" class="divide-y divide-slate-50">
+              <tr><td colspan="8" class="py-8 text-center text-slate-300 text-sm">No hay compras registradas</td></tr>
+            </tbody>
           </table>
         </div>
+      </div>
+
+      <!-- Vista por proveedor (acordeón) -->
+      <div id="hist-vista-proveedor" class="hidden space-y-3">
+        <!-- Se rellena con renderHistorialPorProveedor() -->
       </div>
     </section>
 
@@ -4020,6 +4025,12 @@ function filtrarHistorial(filtro, btnEl) {
     btnEl.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-medium';
   }
 
+  // Si la vista activa es "por proveedor", refrescar esa vista en lugar de la tabla
+  if (DB.histVista === 'proveedor') {
+    renderHistorialPorProveedor();
+    return;
+  }
+
   const hoy = new Date();
   const pad = n => String(n).padStart(2, '0');
   const todayStr = hoy.getFullYear() + '-' + pad(hoy.getMonth() + 1) + '-' + pad(hoy.getDate());
@@ -4104,8 +4115,200 @@ function filtrarHistorial(filtro, btnEl) {
 }
 
 // ============================================================
-// DETALLE Y EDICION DE COMPRA
+// HISTORIAL — VISTA POR PROVEEDOR
 // ============================================================
+function setHistVista(vista, btnEl) {
+  DB.histVista = vista;
+
+  // Toggle botones
+  const btnLista = document.getElementById('hist-vista-lista-btn');
+  const btnProv  = document.getElementById('hist-vista-prov-btn');
+  const clsActivo   = 'px-3 py-1.5 rounded-lg bg-white text-slate-900 text-xs font-semibold shadow-sm flex items-center gap-1';
+  const clsInactivo = 'px-3 py-1.5 rounded-lg text-slate-500 text-xs font-semibold flex items-center gap-1 hover:bg-white/60 transition-colors';
+
+  if (vista === 'lista') {
+    if (btnLista) btnLista.className = clsActivo;
+    if (btnProv)  btnProv.className  = clsInactivo;
+    const vLista = document.getElementById('hist-vista-lista');
+    const vProv  = document.getElementById('hist-vista-proveedor');
+    if (vLista) vLista.classList.remove('hidden');
+    if (vProv)  vProv.classList.add('hidden');
+    filtrarHistorial(DB.histFiltro || 'todo');
+  } else {
+    if (btnLista) btnLista.className = clsInactivo;
+    if (btnProv)  btnProv.className  = clsActivo;
+    const vLista = document.getElementById('hist-vista-lista');
+    const vProv  = document.getElementById('hist-vista-proveedor');
+    if (vLista) vLista.classList.add('hidden');
+    if (vProv)  vProv.classList.remove('hidden');
+    renderHistorialPorProveedor();
+  }
+}
+
+function renderHistorialPorProveedor() {
+  // Reusar el mismo filtro activo del historial
+  const filtro = DB.histFiltro || 'todo';
+  const hoy = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const todayStr = hoy.getFullYear() + '-' + pad(hoy.getMonth()+1) + '-' + pad(hoy.getDate());
+
+  let compras = [...DB.compras].sort((a, b) => b.fecha > a.fecha ? 1 : -1);
+
+  if (filtro === 'hoy') {
+    compras = compras.filter(c => c.fecha === todayStr);
+  } else if (filtro === 'semana') {
+    const diasDesdeMartes = (hoy.getDay() + 5) % 7;
+    const martes = new Date(hoy); martes.setDate(hoy.getDate() - diasDesdeMartes);
+    const martesStr = martes.getFullYear() + '-' + pad(martes.getMonth()+1) + '-' + pad(martes.getDate());
+    compras = compras.filter(c => c.fecha >= martesStr && c.fecha <= todayStr);
+  } else if (filtro === 'mes') {
+    const mesStr = hoy.getFullYear() + '-' + pad(hoy.getMonth()+1);
+    compras = compras.filter(c => c.fecha && c.fecha.startsWith(mesStr));
+  } else if (filtro === 'custom') {
+    const desde = document.getElementById('hist-desde')?.value;
+    const hasta  = document.getElementById('hist-hasta')?.value;
+    if (desde) compras = compras.filter(c => c.fecha >= desde);
+    if (hasta)  compras = compras.filter(c => c.fecha <= hasta);
+  }
+
+  // Aplicar filtro de categoría si está activo
+  const catSel = document.querySelector('#sec-historial select');
+  if (catSel && catSel.value) compras = compras.filter(c => c.categoria === catSel.value);
+
+  // Actualizar métricas resumen (reutilizar los mismos elementos)
+  const total = compras.reduce((a, c) => a + (c.total||0), 0);
+  const count = compras.length;
+  const tEl = document.getElementById('hist-total-filtrado');
+  const cEl = document.getElementById('hist-count-filtrado');
+  const pEl = document.getElementById('hist-promedio-filtrado');
+  if (tEl) tEl.textContent = fmt(total);
+  if (cEl) cEl.textContent = count;
+  if (pEl) pEl.textContent = fmt(count ? total / count : 0);
+
+  // Agrupar por proveedor
+  const provMap = {};
+  compras.forEach(c => {
+    const pn = c.proveedor || 'Sin proveedor';
+    if (!provMap[pn]) provMap[pn] = { facturas: [], total: 0, pendiente: 0, pagado: 0 };
+    provMap[pn].facturas.push(c);
+    provMap[pn].total += (c.total || 0);
+    if (c.estatus === 'Pagado') provMap[pn].pagado += (c.total || 0);
+    else provMap[pn].pendiente += (c.total || 0);
+  });
+
+  // Ordenar por total descendente
+  const provs = Object.entries(provMap).sort((a, b) => b[1].total - a[1].total);
+
+  const container = document.getElementById('hist-vista-proveedor');
+  if (!container) return;
+  container.innerHTML = '';
+
+  if (!provs.length) {
+    container.appendChild(el('div', { cls: 'text-center py-12 text-slate-300 text-sm', text: 'No hay compras en este período' }));
+    return;
+  }
+
+  const badgeMap = { Pagado: 'bg-green-50 text-green-700', Pendiente: 'bg-orange-50 text-orange-700', Parcial: 'bg-blue-50 text-blue-700' };
+
+  provs.forEach(([nombre, data]) => {
+    const inicial = nombre.substring(0, 2).toUpperCase();
+    const hasPend = data.pendiente > 0;
+    const facturasId = 'hprov-' + nombre.replace(/\W+/g, '_');
+
+    // Avatar
+    const avatar = el('div', {
+      cls: 'w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm flex-shrink-0',
+      style: hasPend ? 'background:#FEF3C7;color:#92400E' : 'background:#DCFCE7;color:#166534',
+      text: inicial
+    });
+
+    // Info proveedor
+    const nFacturas = data.facturas.length;
+    const provNombre = el('p', { cls: 'font-semibold text-slate-900 text-sm', text: nombre });
+    const provSub    = el('p', { cls: 'text-xs text-slate-400', text: nFacturas + ' factura' + (nFacturas !== 1 ? 's' : '') });
+    const provInfo   = el('div', { cls: 'flex-1 min-w-0' }, [provNombre, provSub]);
+
+    // Totales lado derecho
+    const totalEl = el('p', { cls: 'font-bold text-slate-900 text-right', text: fmt(data.total) });
+    const subTotales = [];
+    if (data.pendiente > 0) subTotales.push(el('span', { cls: 'text-xs text-orange-600 font-semibold', text: fmt(data.pendiente) + ' pend.' }));
+    if (data.pagado > 0)    subTotales.push(el('span', { cls: 'text-xs text-green-600 font-semibold', text: fmt(data.pagado) + ' pag.' }));
+    const subRow = el('div', { cls: 'flex gap-2 justify-end mt-0.5' }, subTotales);
+    const totalesDiv = el('div', { cls: 'text-right mr-3' }, [totalEl, subRow]);
+
+    // Chevron
+    const chevron = el('span', { cls: 'ms text-slate-300 text-lg flex-shrink-0', text: 'expand_more', id: 'hprov-chev-' + facturasId });
+
+    // Header clickable
+    const header = el('div', {
+      cls: 'flex items-center gap-3 p-4 cursor-pointer hover:bg-slate-50/50 transition-colors'
+    }, [avatar, provInfo, totalesDiv, chevron]);
+    header.addEventListener('click', () => toggleHistProv(facturasId));
+
+    // ── Detalle de facturas (colapsado por defecto) ──
+    const facturasDiv = el('div', { id: facturasId, cls: 'hidden border-t border-slate-100' });
+
+    data.facturas.sort((a, b) => b.fecha > a.fecha ? 1 : -1).forEach(c => {
+      const badge = el('span', {
+        cls: (badgeMap[c.estatus] || 'bg-slate-100 text-slate-600') + ' text-xs font-semibold px-2 py-0.5 rounded-full flex-shrink-0',
+        text: c.estatus || '—'
+      });
+      const vencLabel = c.vencimiento
+        ? el('span', { cls: 'text-xs ' + (isVencida(c.vencimiento) && c.estatus !== 'Pagado' ? 'text-red-500 font-semibold' : 'text-slate-400'), text: 'Vence ' + fmtDate(c.vencimiento) })
+        : null;
+
+      const productosResumen = c.items?.length
+        ? c.items.slice(0, 3).map(i => i.nombre).join(', ') + (c.items.length > 3 ? ' +' + (c.items.length - 3) : '')
+        : null;
+
+      const btnVer  = el('button', { cls: 'text-xs text-primary-container font-semibold hover:underline', type: 'button', text: 'Ver' });
+      btnVer.addEventListener('click', e => { e.stopPropagation(); verDetalle(c.id); });
+      const btnEdit = el('button', { cls: 'text-xs text-slate-400 hover:text-slate-700 font-semibold', type: 'button', text: 'Editar' });
+      btnEdit.addEventListener('click', e => { e.stopPropagation(); abrirEditar(c.id); });
+
+      const leftCol = el('div', { cls: 'flex-1 min-w-0' }, [
+        el('div', { cls: 'flex items-center gap-2 flex-wrap' }, [
+          el('span', { cls: 'text-xs text-slate-500', text: fmtDate(c.fecha) }),
+          c.folio && c.folio !== 'S/F' ? el('span', { cls: 'text-xs text-slate-300', text: '·' + c.folio }) : null,
+          c.categoria ? el('span', { cls: 'text-xs text-slate-400', text: c.categoria }) : null,
+          vencLabel
+        ]),
+        productosResumen ? el('p', { cls: 'text-xs text-slate-400 mt-0.5 truncate', text: productosResumen }) : null
+      ]);
+
+      const rightCol = el('div', { cls: 'flex items-center gap-2 ml-2 flex-shrink-0' }, [
+        el('span', { cls: 'text-sm font-semibold', text: fmt(c.total) }),
+        badge,
+        btnVer,
+        btnEdit
+      ]);
+
+      const factRow = el('div', { cls: 'flex items-center gap-3 px-4 py-3 border-b border-slate-50 hover:bg-slate-50/50 last:border-0' }, [leftCol, rightCol]);
+      facturasDiv.appendChild(factRow);
+    });
+
+    const card = el('div', { cls: 'bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden' });
+    card.appendChild(header);
+    card.appendChild(facturasDiv);
+    container.appendChild(card);
+  });
+}
+
+function toggleHistProv(id) {
+  const panel = document.getElementById(id);
+  const chev  = document.getElementById('hprov-chev-' + id);
+  if (!panel) return;
+  const isOpen = !panel.classList.contains('hidden');
+  if (isOpen) {
+    panel.classList.add('hidden');
+    if (chev) chev.textContent = 'expand_more';
+  } else {
+    panel.classList.remove('hidden');
+    if (chev) chev.textContent = 'expand_less';
+  }
+}
+
+
 function verDetalle(id) {
   const c = DB.compras.find(x => String(x.id) === String(id));
   if (!c) return;
