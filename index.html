@@ -1779,749 +1779,106 @@ function resetForm() {
   document.getElementById('f-fecha').value = today;
 }
 async function registerCompra() {
-  const proveedor = document.getElementById('f-proveedor').value.trim();
+  const proveedor = document.getElementById('f-proveedor').value.trim().toUpperCase();
   const fecha = document.getElementById('f-fecha').value;
   if (!proveedor || !fecha) { toast('Completa proveedor y fecha'); return; }
-  
-  const compra = {
-    id: Date.now(),
-    fecha,
-    proveedor,
-    folio: 'S/F',
-    categoria: document.getElementById('f-categoria').value,
-    forma_pago: document.getElementById('f-pago').value,
-    estatus: DB.currentEstatus,
-    total: getTotal(),
-    vencimiento: getVencimiento(),
-    items: getItems(),
-  };
-  
-  DB.compras.push(compra);
-  
-  // Update or create proveedor
-  let prov = DB.proveedores.find(p => p.nombre.toLowerCase() === proveedor.toLowerCase());
-  if (!prov) {
-    prov = { id: Date.now()+1, nombre: proveedor, tel: '', condicion: '8 días', saldo: 0, compras: 0 };
-    DB.proveedores.push(prov);
-  }
-  prov.compras = (prov.compras||0) + 1;
-  if (compra.estatus !== 'Pagado') prov.saldo = (prov.saldo||0) + compra.total;
 
-  // Save to Supabase
+  const items = getItems();
+  const total = getTotal();
+  const vencimiento = getVencimiento();
+  const categoria = document.getElementById('f-categoria').value;
+  const forma_pago = document.getElementById('f-pago').value;
+  const estatus = DB.currentEstatus || 'Pendiente';
+
+  toast('Guardando...');
+
   try {
-    fetch('/api/supabase', {
+    // 1. Save compra
+    const resp = await fetch('/api/supabase', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ table:'compras', action:'insert', data:{ fecha:compra.fecha, folio:compra.folio, forma_pago:compra.forma_pago, estatus_pago:compra.estatus.toLowerCase(), total:compra.total, notas:compra.categoria }})
+      body: JSON.stringify({
+        table: 'compras',
+        action: 'insert',
+        data: {
+          fecha,
+          proveedor_nombre: proveedor,
+          folio: 'S/F',
+          categoria,
+          forma_pago,
+          estatus_pago: estatus,
+          total,
+          vencimiento: vencimiento || null,
+          notas: ''
+        }
+      })
     });
-  } catch(e) {}
-  
-  toast('✓ Compra registrada — ' + proveedor + ' ' + fmt(compra.total));
-  resetForm();
-  setTimeout(() => { showSec('home'); }, 1200);
-}
+    const saved = await resp.json();
+    const compraId = Array.isArray(saved) ? saved[0]?.id : saved?.id;
 
-// ============================================================
-// PRODUCTOS
-// ============================================================
-function renderProductos(filtro) {
-  filtro = (filtro !== undefined ? filtro : document.getElementById('prod-search')?.value || '').toLowerCase().trim();
-  const filtroCategoria = DB.prodFiltroCategoria || '';
-  const filtroProveedor = DB.prodFiltroProveedor || '';
-
-  // Build product map from compras items + historialPrecios
-  const prodMap = {};
-  const addEntry = (nombre, categoria, unidad, precio, proveedor, fecha) => {
-    const key = nombre.toUpperCase().trim();
-    if (!key) return;
-    if (!prodMap[key]) prodMap[key] = { nombre: key, categoria: categoria||'', unidad: unidad||'pza', proveedor: proveedor||'', precios: [] };
-    if (precio > 0) prodMap[key].precios.push({ precio, fecha, proveedor });
-    if (categoria) prodMap[key].categoria = categoria;
-    if (proveedor) prodMap[key].proveedor = proveedor;
-  };
-
-  DB.compras.forEach(c => {
-    (c.items||[]).forEach(item => {
-      if (item.nombre) addEntry(item.nombre, c.categoria, item.unidad, item.costo_unitario, c.proveedor, c.fecha);
-    });
-  });
-  (DB.historialPrecios||[]).forEach(h => {
-    if (h.producto_nombre) addEntry(h.producto_nombre, '', h.unidad, h.costo_unitario, h.proveedor_nombre, h.fecha);
-  });
-
-  // Apply filters
-  let prods = Object.values(prodMap);
-  if (filtro) prods = prods.filter(p =>
-    p.nombre.toLowerCase().includes(filtro) ||
-    p.proveedor.toLowerCase().includes(filtro) ||
-    p.categoria.toLowerCase().includes(filtro)
-  );
-  if (filtroCategoria) prods = prods.filter(p => p.categoria === filtroCategoria);
-  if (filtroProveedor) prods = prods.filter(p => p.proveedor === filtroProveedor);
-  prods.sort((a,b) => a.nombre.localeCompare(b.nombre));
-
-
-
-  const tbody = document.getElementById('prod-list');
-  if (!prods.length) {
-    tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center text-slate-300 text-sm">Sin productos que coincidan</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = prods.map(p => {
-    const sorted = [...p.precios].sort((a,b) => a.fecha > b.fecha ? 1 : -1);
-    const ultimo = sorted[sorted.length-1]?.precio || 0;
-    const primero = sorted[0]?.precio || 0;
-    const avg = p.precios.length ? p.precios.reduce((a,x) => a+x.precio, 0) / p.precios.length : 0;
-    const variacion = primero > 0 && sorted.length > 1 ? ((ultimo - primero) / primero * 100) : null;
-    const varColor = variacion === null ? 'text-slate-300' : variacion > 5 ? 'text-red-500' : variacion < -5 ? 'text-green-600' : 'text-slate-400';
-    const varTxt = variacion === null ? '—' : (variacion > 0 ? '▲ +' : '▼ ') + variacion.toFixed(1) + '%';
-    const encNombre = encodeURIComponent(p.nombre);
-    return '<tr class="text-sm hover:bg-blue-50/30 cursor-pointer" onclick="verProductoDetalle(decodeURIComponent(this.dataset.nombre))" data-nombre="' + encNombre + '">' +
-      '<td class="p-3 font-medium">' + p.nombre + '</td>' +
-      '<td class="p-3 hidden md:table-cell"><span class="text-xs px-2 py-0.5 bg-slate-100 text-slate-500 rounded-full">' + (p.categoria||'—') + '</span></td>' +
-      '<td class="p-3 text-slate-400 hidden md:table-cell text-xs">' + (p.proveedor||'—') + '</td>' +
-      '<td class="p-3 text-right font-semibold">' + fmt(ultimo) + '</td>' +
-      '<td class="p-3 text-right text-slate-500 hidden md:table-cell">' + (avg > 0 ? fmt(Math.round(avg*100)/100) : '—') + '</td>' +
-      '<td class="p-3 text-right hidden lg:table-cell"><span class="text-xs font-semibold ' + varColor + '">' + varTxt + '</span></td>' +
-      '<td class="p-3 text-right text-slate-400 hidden md:table-cell text-xs">' + p.precios.length + '</td>' +
-      '</tr>';
-  }).join('');
-}
-
-// ============================================================
-// PROVEEDORES
-// ============================================================
-function renderProveedores() {
-  document.getElementById('prov-total').textContent = DB.proveedores.length;
-  const totalCxP = DB.proveedores.reduce((a,p) => a+(p.saldo||0), 0);
-  const vencidos = DB.compras.filter(c => c.estatus !== 'Pagado' && isVencida(c.vencimiento)).reduce((a,c) => a+c.total, 0);
-  document.getElementById('prov-total-cxp').textContent = fmt(totalCxP);
-  document.getElementById('prov-vencidos').textContent = fmt(vencidos);
-  
-  const grid = document.getElementById('proveedores-grid');
-  const cards = DB.proveedores.map(p => {
-    const isVenc = p.saldo > 0; // simplified
-    const color = p.saldo === 0 ? 'bg-green-50 text-green-700' : isVenc ? 'bg-red-50 text-red-700' : 'bg-orange-50 text-orange-700';
-    const dot = p.saldo === 0 ? 'bg-green-400' : 'bg-error';
-    return `<div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover:shadow-md transition-shadow cursor-pointer">
-      <div class="flex items-start justify-between mb-3">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center font-bold text-slate-600 text-sm">${p.nombre.substring(0,2).toUpperCase()}</div>
-          <div><p class="font-semibold text-slate-900 text-sm">${p.nombre}</p><p class="text-xs text-slate-400">📞 ${p.tel||'—'}</p></div>
-        </div>
-        <span class="w-2.5 h-2.5 rounded-full ${dot} mt-1"></span>
-      </div>
-      <div class="flex justify-between items-center mb-3">
-        <span class="text-xs text-slate-400">Condición</span>
-        <span class="text-xs font-semibold bg-slate-100 px-2 py-0.5 rounded-full">${p.condicion}</span>
-      </div>
-      <div class="${color} rounded-xl p-3">
-        <p class="text-xs font-semibold uppercase tracking-wider mb-1">Saldo Pendiente</p>
-        <p class="text-xl font-bold">${fmt(p.saldo||0)}</p>
-        <p class="text-xs mt-0.5">${p.saldo===0?'✅ Al día':'⚠ Pendiente de pago'}</p>
-      </div>
-    </div>`;
-  }).join('');
-  
-  grid.innerHTML = cards + `<div class="bg-surface-container-low rounded-2xl p-5 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center cursor-pointer hover:border-primary/40 transition-colors" onclick="showAddProveedor()">
-    <span class="ms text-3xl text-slate-300 mb-2">add</span>
-    <p class="font-semibold text-slate-400">Nuevo Proveedor</p>
-  </div>`;
-}
-function showAddProveedor() { document.getElementById('modal-proveedor').classList.remove('hidden'); }
-function guardarProveedor() {
-  const nombre = document.getElementById('np-nombre').value.trim();
-  if (!nombre) { toast('Ingresa el nombre del proveedor'); return; }
-  DB.proveedores.push({ id:Date.now(), nombre, tel:document.getElementById('np-tel').value, condicion:document.getElementById('np-condicion').value, saldo:0, compras:0 });
-  closeModal('modal-proveedor');
-  document.getElementById('np-nombre').value = '';
-  document.getElementById('np-tel').value = '';
-  renderProveedores();
-  toast('Proveedor agregado');
-}
-
-// ============================================================
-// CUENTAS POR PAGAR
-// ============================================================
-function renderCuentas(filtro) {
-  filtro = filtro || 'todas';
-  let compras = DB.compras.filter(c => c.estatus !== 'Pagado');
-  
-  const totalPend = compras.reduce((a,c) => a+c.total, 0);
-  const vencidoTotal = compras.filter(c => isVencida(c.vencimiento)).reduce((a,c) => a+c.total, 0);
-  const porVencerTotal = compras.filter(c => porVencer(c.vencimiento)).reduce((a,c) => a+c.total, 0);
-  
-  document.getElementById('cxp-total').textContent = fmt(totalPend);
-  document.getElementById('cxp-vencido').textContent = fmt(vencidoTotal);
-  document.getElementById('cxp-por-vencer').textContent = fmt(porVencerTotal);
-  
-  if (filtro === 'vencidas') compras = compras.filter(c => isVencida(c.vencimiento));
-  else if (filtro === 'pendientes') compras = compras.filter(c => !isVencida(c.vencimiento));
-  
-  let todas = DB.compras;
-  if (filtro === 'pagadas') todas = DB.compras.filter(c => c.estatus === 'Pagado');
-  else if (filtro !== 'pagadas') todas = compras;
-  
-  const tbody = document.getElementById('cxp-list');
-  if (!DB.compras.length) {
-    tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-300 text-sm">No hay facturas registradas</td></tr>';
-    return;
-  }
-  const list = filtro === 'pagadas' ? DB.compras.filter(c => c.estatus === 'Pagado') : compras;
-  if (!list.length) {
-    tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-slate-300 text-sm">No hay facturas ${filtro}</td></tr>`;
-    return;
-  }
-  tbody.innerHTML = list.map(c => {
-    const venc = isVencida(c.vencimiento);
-    const rowBg = venc ? 'bg-red-50/40' : '';
-    return `<tr class="text-sm ${rowBg}">
-      <td class="p-4"><p class="font-semibold">${c.proveedor}</p><p class="text-xs text-slate-400">Folio: ${c.folio}</p></td>
-      <td class="p-4 text-slate-500 hidden md:table-cell">${fmtDate(c.fecha)}</td>
-      <td class="p-4 ${venc?'text-red-600 font-semibold':''} hidden md:table-cell">${c.vencimiento?fmtDate(c.vencimiento):'Contado'}</td>
-      <td class="p-4 text-right font-semibold">${fmt(c.total)}</td>
-      <td class="p-4 text-center">${estatusBadge(c.estatus)}</td>
-      <td class="p-4 text-right">
-        ${c.estatus !== 'Pagado' ? `<button type="button" onclick="openPayModal('${c.id}')" class="${venc?'bg-error':'bg-primary-container'} text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:opacity-90">Registrar pago</button>` : '<span class="text-xs text-green-600 font-semibold">✓ Pagado</span>'}
-      </td>
-    </tr>`;
-  }).join('');
-}
-function setCxPVista(vista, btn) {
-  DB.cxpVista = vista;
-  // Toggle button styles
-  ['detalle','proveedor'].forEach(v => {
-    const b = document.getElementById('cxp-vista-' + v);
-    if (b) b.className = v === vista
-      ? 'px-3 py-1 rounded-lg bg-white text-slate-900 text-xs font-semibold shadow-sm'
-      : 'px-3 py-1 rounded-lg text-slate-500 text-xs font-semibold';
-  });
-  // Show/hide views
-  const detalleTable = document.querySelector('#sec-cuentas .bg-white.rounded-2xl.shadow-sm:not(#cxp-proveedor-view .bg-white)');
-  const provView = document.getElementById('cxp-proveedor-view');
-  if (vista === 'proveedor') {
-    document.querySelector('#sec-cuentas table').closest('.bg-white.rounded-2xl').classList.add('hidden');
-    provView.classList.remove('hidden');
-    renderCxPProveedor();
-  } else {
-    document.querySelector('#sec-cuentas table').closest('.bg-white.rounded-2xl').classList.remove('hidden');
-    provView.classList.add('hidden');
-  }
-}
-
-function renderCxPProveedor() {
-  // Group pending compras by proveedor
-  const comprasPend = DB.compras.filter(c => c.estatus !== 'Pagado');
-  const map = {};
-  comprasPend.forEach(c => {
-    if (!map[c.proveedor]) map[c.proveedor] = { facturas: 0, total: 0, ids: [], vencida: false };
-    map[c.proveedor].facturas++;
-    map[c.proveedor].total += c.total;
-    map[c.proveedor].ids.push(c.id);
-    if (isVencida(c.vencimiento)) map[c.proveedor].vencida = true;
-  });
-
-  const provs = Object.entries(map).sort((a,b) => b[1].total - a[1].total);
-  const tbody = document.getElementById('cxp-proveedor-list');
-
-  if (!provs.length) {
-    tbody.innerHTML = '<tr><td colspan="5" class="py-8 text-center text-slate-300 text-sm">No hay cuentas pendientes</td></tr>';
-    return;
-  }
-
-  tbody.innerHTML = provs.map(([nombre, data]) => {
-    const color = data.vencida ? 'bg-red-50' : '';
-    const badge = data.vencida
-      ? '<span class="bg-red-100 text-red-700 text-xs font-bold px-2 py-1 rounded-full">VENCIDO</span>'
-      : '<span class="bg-orange-100 text-orange-700 text-xs font-bold px-2 py-1 rounded-full">PENDIENTE</span>';
-    return `<tr class="text-sm ${color} hover:bg-slate-50/50">
-      <td class="p-4 font-semibold">${nombre}</td>
-      <td class="p-4 text-center text-slate-500">${data.facturas} factura${data.facturas>1?'s':''}</td>
-      <td class="p-4 text-right font-bold text-lg">${fmt(data.total)}</td>
-      <td class="p-4 text-center">${badge}</td>
-      <td class="p-4 text-right">
-        <button type="button" onclick="pagarTodoProveedor('${nombre}')" 
-          class="${data.vencida?'bg-error':'bg-primary-container'} text-white text-xs font-semibold px-3 py-1.5 rounded-xl hover:opacity-90">
-          Registrar pago
-        </button>
-      </td>
-    </tr>`;
-  }).join('');
-}
-
-function pagarTodoProveedor(nombre) {
-  // Find all pending compras for this proveedor
-  const compras = DB.compras.filter(c => c.proveedor === nombre && c.estatus !== 'Pagado');
-  const total = compras.reduce((a,c) => a+c.total, 0);
-  // Use first compra id as reference but mark all
-  DB.currentPayProveedorNombre = nombre;
-  document.getElementById('pay-prov').textContent = nombre + ' — ' + compras.length + ' factura(s)';
-  document.getElementById('pay-monto').value = total.toFixed(2);
-  document.getElementById('modal-pay').classList.remove('hidden');
-}
-
-function filterCxP(tipo, btn) {
-  document.querySelectorAll('#sec-cuentas .flex.gap-2 button').forEach(b => {
-    b.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 font-medium text-xs hover:bg-slate-200';
-  });
-  btn.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white font-medium text-xs';
-  renderCuentas(tipo);
-}
-function openPayModal(id) {
-  DB.currentPayId = id;
-  const c = DB.compras.find(x => String(x.id) === String(id));
-  if (!c) return;
-  document.getElementById('pay-prov').textContent = c.proveedor + ' — ' + c.folio;
-  document.getElementById('pay-monto').value = c.total;
-  document.getElementById('modal-pay').classList.remove('hidden');
-}
-async function confirmarPago() {
-  const idsToUpdate = [];
-
-  if (DB.currentPayProveedorNombre) {
-    const nombre = DB.currentPayProveedorNombre;
-    DB.compras.filter(c => c.proveedor === nombre && c.estatus !== 'Pagado').forEach(c => {
-      c.estatus = 'Pagado';
-      idsToUpdate.push(c.id);
-    });
-    const p = DB.proveedores.find(x => x.nombre === nombre);
-    if (p) p.saldo = 0;
-    DB.currentPayProveedorNombre = null;
-  } else {
-    const c = DB.compras.find(x => x.id === DB.currentPayId);
-    if (c) {
-      c.estatus = 'Pagado';
-      idsToUpdate.push(c.id);
-      const p = DB.proveedores.find(x => x.nombre.toLowerCase() === c.proveedor.toLowerCase());
-      if (p) p.saldo = Math.max(0, (p.saldo||0) - c.total);
+    // 2. Save detalle_compras + historial_precios
+    if (compraId && items.length) {
+      for (const item of items) {
+        if (!item.nombre) continue;
+        await fetch('/api/supabase', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            table: 'detalle_compras',
+            action: 'insert',
+            data: {
+              compra_id: compraId,
+              nombre_producto: item.nombre,
+              unidad: item.unidad,
+              cantidad: item.cantidad,
+              costo_unitario: item.costo_unitario
+            }
+          })
+        });
+        if (item.costo_unitario > 0) {
+          await saveHistorialPrecio(
+            { nombre: item.nombre, unidad: item.unidad, costo_unitario: item.costo_unitario },
+            { proveedor, fecha, id: compraId }
+          );
+        }
+      }
     }
-  }
 
-  // Update in Supabase
-  for (const id of idsToUpdate) {
-    try {
-      await fetch('/api/supabase', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ table:'compras', action:'update', id, data:{ estatus_pago:'Pagado' } })
-      });
-    } catch(e) {}
-  }
+    // 3. Update local DB
+    const compra = {
+      id: compraId || Date.now(),
+      fecha, proveedor, folio: 'S/F',
+      categoria, forma_pago, estatus,
+      total, vencimiento, items
+    };
+    DB.compras.push(compra);
 
-  closeModal('modal-pay');
-  renderCuentas();
-  if (DB.cxpVista === 'proveedor') renderCxPProveedor();
-  renderDashboard();
-  toast('Pago registrado correctamente');
-}
-
-// ============================================================
-// REQUISICIONES
-// ============================================================
-function renderRequisiciones(filtro) {
-  filtro = filtro || 'pendientes';
-  // Map filter names to estatus values
-  const estatusMap = { pendientes: 'pendiente', aprobadas: 'aprobadas', rechazadas: 'rechazadas' };
-  const estatusBuscar = estatusMap[filtro] || filtro;
-  const list = DB.requisiciones.filter(r => r.estatus === estatusBuscar);
-  const pendCount = DB.requisiciones.filter(r => r.estatus === 'pendiente').length;
-  document.getElementById('req-subtitle').textContent = pendCount + ' solicitudes pendientes de revisión';
-  document.getElementById('req-badge').textContent = pendCount > 0 ? pendCount : '';
-  const mobBadge = document.getElementById('mob-req-badge');
-  if (mobBadge) mobBadge.textContent = pendCount > 0 ? pendCount : '';
-  
-  const grid = document.getElementById('req-grid');
-  if (!list.length) {
-    grid.innerHTML = `<div class="col-span-3 py-12 text-center text-slate-300">No hay requisiciones ${filtro}</div>`;
-    return;
-  }
-  // Sort urgentes first
-  const sorted = [...list].sort((a,b) => a.prioridad === 'Urgente' ? -1 : 1);
-  grid.innerHTML = sorted.map(r => `
-    <div id="req-card-${r.id}" class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
-      <div class="flex items-center gap-3 mb-3">
-        <div class="w-9 h-9 rounded-full bg-slate-200 flex items-center justify-center text-sm font-bold">${r.nombre.substring(0,2).toUpperCase()}</div>
-        <div><p class="font-semibold text-sm">${r.nombre}</p><p class="text-xs text-slate-400">${r.area}</p></div>
-        ${r.prioridad==='Urgente' ? '<span class="ml-auto bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">! URGENTE</span>' : '<span class="ml-auto bg-slate-100 text-slate-500 text-xs font-bold px-2 py-0.5 rounded-full">Normal</span>'}
-      </div>
-      <h3 class="text-lg font-bold text-slate-900 mb-1">${r.producto} <span class="text-slate-400 font-normal text-sm">x${r.cantidad} ${r.unidad}</span></h3>
-      <p class="text-xs text-slate-400 mb-3">${r.notas||''}</p>
-      <p class="text-xs text-slate-300 mb-4">⏱ ${r.hora}</p>
-      ${r.estatus === 'pendiente' ? `
-      <div class="flex gap-2 mb-2">
-        <button type="button" onclick="aprobarReq(${r.id})" class="flex-1 py-2 rounded-xl text-sm font-medium border border-slate-200 hover:bg-green-50 hover:text-green-700 hover:border-green-200 transition-colors">Aprobar</button>
-        <button type="button" onclick="rechazarReq(${r.id})" class="flex-1 py-2 rounded-xl text-sm font-medium border border-slate-200 hover:bg-red-50 hover:text-red-700 hover:border-red-200 transition-colors">Rechazar</button>
-      </div>
-      <button type="button" onclick="convertirCompra(${r.id})" class="w-full py-2 rounded-xl text-sm font-semibold bg-primary-container text-white flex items-center justify-center gap-2 hover:opacity-90">
-        <span class="ms text-base">shopping_cart</span> Convertir en Compra
-      </button>` : `<div class="text-center py-2 text-sm font-semibold ${r.estatus==='aprobadas'?'text-green-600':'text-red-600'}">${r.estatus==='aprobadas'?'✓ Aprobada':'✕ Rechazada'}</div>`}
-    </div>`).join('');
-}
-function aprobarReq(id) {
-  const r = DB.requisiciones.find(x => x.id === id);
-  if (r) { r.estatus = 'aprobadas'; r.horaAccion = new Date().toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'}); }
-  renderRequisiciones('pendientes');
-  renderDashboard();
-  toast('✓ Requisición aprobada');
-}
-function rechazarReq(id) {
-  const r = DB.requisiciones.find(x => x.id === id);
-  if (r) { r.estatus = 'rechazadas'; r.horaAccion = new Date().toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'}); }
-  renderRequisiciones('pendientes');
-  renderDashboard();
-  toast('Requisición rechazada');
-}
-function convertirCompra(id) {
-  const r = DB.requisiciones.find(x => x.id === id);
-  if (!r) return;
-  document.getElementById('f-proveedor').value = '';
-  document.getElementById('items-container').innerHTML = '';
-  addItem();
-  const row = document.querySelector('#items-container .grid');
-  if (row) {
-    const inputs = row.querySelectorAll('input');
-    const sel = row.querySelector('select');
-    inputs[0].value = r.producto;
-    if (sel) sel.value = r.unidad||'pza';
-    const nums = row.querySelectorAll('input[type="number"]');
-    if (nums[0]) nums[0].value = r.cantidad;
-  }
-  const req = DB.requisiciones.find(x => x.id === id);
-  if (req) req.estatus = 'aprobadas';
-  renderDashboard();
-  showSec('compras');
-  toast('Formulario prellenado con la requisición');
-}
-function filterReq(tipo, btn) {
-  document.querySelectorAll('#sec-requisiciones .flex.gap-2 button').forEach(b => {
-    b.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200';
-  });
-  if (btn) btn.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-medium';
-  renderRequisiciones(tipo);
-}
-
-// ============================================================
-// REPORTES
-// ============================================================
-function setPeriodo(p, btn) {
-  DB.periodo = p;
-  document.querySelectorAll('#sec-reportes .flex.gap-2 button:not(.bg-primary-container)').forEach(b => {
-    b.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200';
-  });
-  btn.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-medium';
-  renderReportes();
-}
-function renderReportes() {
-  let compras = DB.compras;
-  const now = new Date();
-  if (DB.periodo === 'semana') {
-    const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate()-7);
-    compras = compras.filter(c => new Date(c.fecha) >= weekAgo);
-  } else if (DB.periodo === 'mes') {
-    compras = compras.filter(c => {
-      const d = new Date(c.fecha);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    });
-  }
-  
-  const total = compras.reduce((a,c) => a+c.total, 0);
-  const promedio = compras.length ? total/compras.length : 0;
-  document.getElementById('rep-total').textContent = fmt(total);
-  document.getElementById('rep-promedio').textContent = fmt(promedio);
-  document.getElementById('rep-ordenes').textContent = compras.length;
-  
-  // By category
-  const catMap = {};
-  compras.forEach(c => { catMap[c.categoria||'Sin categoría'] = (catMap[c.categoria||'Sin categoría']||0) + c.total; });
-  const cats = Object.entries(catMap).sort((a,b) => b[1]-a[1]);
-  const maxCat = cats[0]?.[1] || 1;
-  const catDiv = document.getElementById('rep-categorias');
-  if (!cats.length) {
-    catDiv.innerHTML = '<p class="text-slate-300 text-sm text-center py-4">Registra compras para ver el reporte</p>';
-  } else {
-    catDiv.innerHTML = cats.map(([cat, monto]) => `
-      <div>
-        <div class="flex justify-between text-sm mb-1"><span>${cat}</span><span class="font-semibold">${fmt(monto)}</span></div>
-        <div class="h-2 bg-slate-100 rounded-full"><div class="h-2 bg-primary-container rounded-full" style="width:${(monto/maxCat*100).toFixed(0)}%"></div></div>
-      </div>`).join('');
-  }
-  
-  // By proveedor
-  const provMap = {};
-  compras.forEach(c => { 
-    if (!provMap[c.proveedor]) provMap[c.proveedor] = { total:0, ordenes:0 };
-    provMap[c.proveedor].total += c.total;
-    provMap[c.proveedor].ordenes++;
-  });
-  const provs = Object.entries(provMap).sort((a,b) => b[1].total-a[1].total);
-  const provDiv = document.getElementById('rep-proveedores');
-  if (!provs.length) {
-    provDiv.innerHTML = '<p class="text-slate-300 text-sm text-center py-4">Registra compras para ver el ranking</p>';
-  } else {
-    provDiv.innerHTML = provs.map(([nombre, data], i) => `
-      <div class="flex items-center gap-3 py-2 border-b border-slate-50 last:border-0">
-        <span class="text-lg font-bold text-slate-300">${i+1}</span>
-        <div class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-600">${nombre.substring(0,2).toUpperCase()}</div>
-        <div class="flex-1"><p class="text-sm font-medium">${nombre}</p><p class="text-xs text-slate-400">${data.ordenes} orden(es)</p></div>
-        <span class="font-semibold text-sm">${fmt(data.total)}</span>
-      </div>`).join('');
-  }
-}
-function exportarCSV() {
-  const compras = DB.compras;
-  if (!compras.length) { toast('No hay compras para exportar'); return; }
-  const header = ['Fecha','Proveedor','Folio','Categoría','Forma de Pago','Estatus','Total'];
-  const rows = compras.map(c => [c.fecha, c.proveedor, c.folio, c.categoria, c.forma_pago, c.estatus, c.total]);
-  const csv = [header, ...rows].map(r => r.join(',')).join('\n');
-  const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'romatella-compras-'+new Date().toISOString().split('T')[0]+'.csv';
-  document.body.appendChild(a); a.click();
-  document.body.removeChild(a); URL.revokeObjectURL(url);
-  toast('CSV exportado exitosamente');
-}
-
-// ============================================================
-// EMPLOYEE / PIN
-// ============================================================
-function pinKey(n) {
-  if (DB.pinVal.length < 4) {
-    DB.pinVal.push(n);
-    for (let i=1;i<=4;i++) {
-      document.getElementById('pd'+i).className = 'w-4 h-4 rounded-full ' + (i<=DB.pinVal.length?'bg-primary-container':'bg-slate-200');
+    // 4. Update proveedor
+    let prov = DB.proveedores.find(p => p.nombre === proveedor);
+    if (!prov) {
+      prov = { id: Date.now()+1, nombre: proveedor, tel: '', condicion: '8 dias', saldo: 0, compras: 0 };
+      DB.proveedores.push(prov);
     }
+    prov.compras = (prov.compras||0) + 1;
+    if (estatus !== 'Pagado') prov.saldo = (prov.saldo||0) + total;
+
+    toast('Compra guardada: ' + proveedor + ' ' + fmt(total));
+    resetForm();
+    setTimeout(() => showSec('home'), 1200);
+
+  } catch(e) {
+    // Save locally if Supabase fails
+    const compra = {
+      id: Date.now(), fecha, proveedor, folio: 'S/F',
+      categoria, forma_pago, estatus, total, vencimiento, items
+    };
+    DB.compras.push(compra);
+    toast('Guardado local (sin conexion)');
+    resetForm();
+    setTimeout(() => showSec('home'), 1200);
   }
-}
-function pinDel() {
-  DB.pinVal.pop();
-  for (let i=1;i<=4;i++) {
-    document.getElementById('pd'+i).className = 'w-4 h-4 rounded-full ' + (i<=DB.pinVal.length?'bg-primary-container':'bg-slate-200');
-  }
-}
-function pinConfirm() {
-  if (DB.pinVal.length === 4) {
-    DB.pinVal = [];
-    for (let i=1;i<=4;i++) document.getElementById('pd'+i).className = 'w-4 h-4 rounded-full bg-slate-200';
-    showEmp('form');
-  } else {
-    toast('Ingresa 4 dígitos');
-  }
-}
-function selArea(btn, area) {
-  DB.currentArea = area;
-  document.querySelectorAll('.area-btn').forEach(b => {
-    b.className = 'area-btn py-4 rounded-2xl bg-white border border-slate-200 text-sm font-medium text-slate-700 hover:border-primary/40 hover:bg-blue-50 transition-all';
-  });
-  btn.className = 'area-btn py-4 rounded-2xl bg-blue-50 border border-primary-container text-sm font-medium text-primary transition-all';
-}
-function selPrioridad(btn, p) {
-  DB.currentPrioridad = p;
-  ['normal','urgente'].forEach(id => {
-    const b = document.getElementById('pri-'+id);
-    b.className = 'py-3.5 rounded-2xl border border-slate-200 text-slate-600 text-sm font-semibold';
-  });
-  btn.className = 'py-3.5 rounded-2xl border ' + (p==='Urgente'?'border-red-200 bg-red-50 text-red-700':'border-primary-container bg-blue-50 text-primary') + ' text-sm font-semibold';
-}
-function enviarReq() {
-  const nombre = document.getElementById('req-nombre').value.trim();
-  const producto = document.getElementById('req-producto').value.trim();
-  if (!nombre || !producto) { toast('Completa nombre y producto'); return; }
-  const req = {
-    id: Date.now(),
-    nombre,
-    area: DB.currentArea || 'Sin área',
-    producto,
-    cantidad: parseInt(document.getElementById('req-cantidad').value)||1,
-    unidad: document.getElementById('req-unidad').value,
-    prioridad: DB.currentPrioridad,
-    notas: document.getElementById('req-notas').value,
-    estatus: 'pendiente',
-    hora: 'Ahora mismo'
-  };
-  DB.requisiciones.push(req);
-  
-  // Show confirm
-  document.getElementById('req-confirm-detail').innerHTML = `
-    <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-3">Resumen</p>
-    <div class="space-y-2 text-sm">
-      <div><p class="text-xs text-slate-400">Folio</p><p class="font-bold">#REQ-${req.id}</p></div>
-      <div><p class="text-xs text-slate-400">Producto</p><p class="font-medium">${req.producto} x${req.cantidad} ${req.unidad}</p></div>
-      <div><p class="text-xs text-slate-400">Área</p><p class="font-medium">${req.area}</p></div>
-      <div><p class="text-xs text-slate-400">Prioridad</p><p class="font-medium ${req.prioridad==='Urgente'?'text-red-600':''}">${req.prioridad}</p></div>
-    </div>`;
-  showEmp('confirm');
 }
 
-// ============================================================
-// HISTORIAL DE COMPRAS
-// ============================================================
-let histFiltro = 'todo';
-let histCategoria = '';
-
-function renderHistorial(filtro, categoriaFiltro) {
-  histFiltro = filtro || histFiltro;
-  histCategoria = categoriaFiltro !== undefined ? categoriaFiltro : histCategoria;
-  
-  const now = new Date();
-  let compras = [...DB.compras];
-  
-  if (histFiltro === 'hoy') {
-    const hoy = now.toISOString().split('T')[0];
-    compras = compras.filter(c => c.fecha === hoy);
-  } else if (histFiltro === 'semana') {
-    const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate()-7);
-    compras = compras.filter(c => new Date(c.fecha) >= weekAgo);
-  } else if (histFiltro === 'mes') {
-    compras = compras.filter(c => {
-      const d = new Date(c.fecha);
-      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-    });
-  } else if (histFiltro === 'custom') {
-    const desde = document.getElementById('hist-desde').value;
-    const hasta = document.getElementById('hist-hasta').value;
-    if (desde) compras = compras.filter(c => c.fecha >= desde);
-    if (hasta) compras = compras.filter(c => c.fecha <= hasta);
-  }
-  
-  if (histCategoria) compras = compras.filter(c => c.categoria === histCategoria);
-  
-  // Sort newest first
-  compras = compras.sort((a,b) => b.fecha.localeCompare(a.fecha));
-  
-  // Summary
-  const total = compras.reduce((a,c) => a+c.total, 0);
-  document.getElementById('hist-total-filtrado').textContent = fmt(total);
-  document.getElementById('hist-count-filtrado').textContent = compras.length;
-  document.getElementById('hist-promedio-filtrado').textContent = fmt(compras.length ? total/compras.length : 0);
-  
-  const tbody = document.getElementById('hist-list');
-  if (!compras.length) {
-    tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-slate-300 text-sm">No hay compras en este período</td></tr>';
-    return;
-  }
-  
-  tbody.innerHTML = compras.map(c => `
-    <tr class="text-sm hover:bg-slate-50/50 cursor-pointer" onclick="verDetalle('${c.id}')">
-      <td class="p-4 text-slate-500">${fmtDate(c.fecha)}</td>
-      <td class="p-4 font-medium">${c.proveedor}</td>
-      <td class="p-4 text-slate-400 hidden md:table-cell"><span class="bg-blue-50 text-blue-700 text-xs px-2 py-0.5 rounded-full">${c.categoria||'—'}</span></td>
-      <td class="p-4 text-slate-400 hidden md:table-cell text-xs">${c.folio}</td>
-      <td class="p-4 text-slate-400 hidden lg:table-cell text-xs">${c.forma_pago}</td>
-      <td class="p-4 text-right font-semibold">${fmt(c.total)}</td>
-      <td class="p-4 text-center">${estatusBadge(c.estatus)}</td>
-      <td class="p-4 text-right text-slate-300 flex items-center justify-end gap-2">
-        <span class="ms cursor-pointer hover:text-primary" onclick="event.stopPropagation();verDetalle('${c.id}')">chevron_right</span>
-        <span class="ms cursor-pointer hover:text-blue-400" onclick="event.stopPropagation();editarCompra('${c.id}')">edit</span>
-        <span class="ms cursor-pointer hover:text-error" onclick="event.stopPropagation();borrarCompra('${c.id}')">delete</span>
-      </td>
-    </tr>`).join('');
-}
-
-function filtrarHistorial(tipo, btnOrValue) {
-  if (tipo === 'categoria') {
-    histCategoria = btnOrValue || '';
-    renderHistorial();
-    return;
-  }
-  if (tipo === 'custom') {
-    histFiltro = 'custom';
-    renderHistorial('custom');
-    return;
-  }
-  histFiltro = tipo;
-  // Update button styles
-  document.querySelectorAll('#sec-historial .flex.gap-2 button').forEach(b => {
-    b.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200';
-  });
-  if (btnOrValue && btnOrValue.classList) {
-    btnOrValue.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-medium';
-  }
-  renderHistorial(tipo);
-}
-
-function verDetalle(id) {
-  const c = DB.compras.find(x => String(x.id) === String(id));
-  if (!c) return;
-  const items = (c.items||[]).length ? c.items.map(it => `
-    <tr class="text-sm">
-      <td class="py-2 text-slate-700">${it.nombre}</td>
-      <td class="py-2 text-center text-slate-400">${it.cantidad} ${it.unidad}</td>
-      <td class="py-2 text-right font-medium">${fmt(it.costo_unitario)}</td>
-      <td class="py-2 text-right font-semibold">${fmt(it.cantidad * it.costo_unitario)}</td>
-    </tr>`).join('') : '<tr><td colspan="4" class="py-3 text-slate-300 text-sm text-center">Sin detalle de productos</td></tr>';
-  
-  document.getElementById('detalle-content').innerHTML = `
-    <div class="space-y-4">
-      <div class="grid grid-cols-2 gap-3">
-        <div class="bg-surface-container-low rounded-xl p-3"><p class="text-xs text-slate-400 mb-1">Proveedor</p><p class="font-semibold">${c.proveedor}</p></div>
-        <div class="bg-surface-container-low rounded-xl p-3"><p class="text-xs text-slate-400 mb-1">Fecha</p><p class="font-semibold">${fmtDate(c.fecha)}</p></div>
-        <div class="bg-surface-container-low rounded-xl p-3"><p class="text-xs text-slate-400 mb-1">Folio</p><p class="font-semibold">${c.folio}</p></div>
-        <div class="bg-surface-container-low rounded-xl p-3"><p class="text-xs text-slate-400 mb-1">Categoría</p><p class="font-semibold">${c.categoria||'—'}</p></div>
-        <div class="bg-surface-container-low rounded-xl p-3"><p class="text-xs text-slate-400 mb-1">Forma de pago</p><p class="font-semibold">${c.forma_pago}</p></div>
-        <div class="bg-surface-container-low rounded-xl p-3"><p class="text-xs text-slate-400 mb-1">Estatus</p>${estatusBadge(c.estatus)}</div>
-        ${c.vencimiento ? `<div class="bg-orange-50 rounded-xl p-3 col-span-2"><p class="text-xs text-orange-500 mb-1">Vencimiento</p><p class="font-semibold text-orange-700">${fmtDate(c.vencimiento)}</p></div>` : ''}
-      </div>
-      <div class="border border-slate-100 rounded-xl overflow-hidden">
-        <div class="bg-surface-container-low px-4 py-2">
-          <h4 class="font-semibold text-sm text-slate-700">Productos comprados</h4>
-        </div>
-        <table class="w-full">
-          <thead><tr class="text-xs text-slate-400 border-b border-slate-100">
-            <th class="text-left px-4 py-2 font-medium">Producto</th>
-            <th class="text-center px-4 py-2 font-medium">Cantidad</th>
-            <th class="text-right px-4 py-2 font-medium">Precio unit.</th>
-            <th class="text-right px-4 py-2 font-medium">Subtotal</th>
-          </tr></thead>
-          <tbody class="divide-y divide-slate-50 px-4">${items}</tbody>
-        </table>
-      </div>
-      <div class="bg-slate-900 rounded-xl p-4 flex justify-between items-center">
-        <span class="font-bold text-white">TOTAL</span>
-        <span class="text-2xl font-bold text-white">${fmt(c.total)}</span>
-      </div>
-      <div class="flex gap-3">
-        ${c.estatus !== 'Pagado' ? `<button type="button" onclick="closeModal('modal-detalle');openPayModal('${c.id}')" class="flex-1 bg-primary-container text-white py-3 rounded-2xl font-semibold hover:opacity-90">Registrar Pago</button>` : ''}
-        <button type="button" onclick="closeModal('modal-detalle');borrarCompra(${c.id})" class="flex-1 bg-red-50 text-error border border-red-200 py-3 rounded-2xl font-semibold hover:bg-red-100 transition-colors flex items-center justify-center gap-2">
-          <span class="ms text-lg">delete</span>Eliminar compra
-        </button>
-      </div>
-    </div>`;
-  document.getElementById('modal-detalle').classList.remove('hidden');
-}
-
-// ============================================================
-// BORRAR COMPRA
-// ============================================================
-function editarCompra(id) {
-  const c = DB.compras.find(x => String(x.id) === String(id));
-  if (!c) return;
-  document.getElementById('edit-id').value = c.id;
-  document.getElementById('edit-proveedor').value = c.proveedor || '';
-  document.getElementById('edit-fecha').value = c.fecha || '';
-  document.getElementById('edit-categoria').value = c.categoria || 'Abarrotes';
-  document.getElementById('edit-pago').value = c.forma_pago || 'Efectivo';
-  document.getElementById('edit-total').value = c.total || 0;
-  document.getElementById('edit-estatus').value = c.estatus || 'Pendiente';
-  document.getElementById('edit-vencimiento').value = c.vencimiento || '';
-  // Populate items
-  const itemsDiv = document.getElementById('edit-items');
-  itemsDiv.innerHTML = '';
-  (c.items || []).forEach(item => addEditItem(item));
-  document.getElementById('modal-editar').classList.remove('hidden');
-}
-
-function addEditItem(item) {
-  const div = document.createElement('div');
-  div.className = 'grid grid-cols-12 gap-1 items-center';
-  div.innerHTML = '<input class="col-span-5 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none" placeholder="Producto" value="' + (item?.nombre||'') + '"/>' +
-    '<input class="col-span-2 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none" placeholder="Unid" value="' + (item?.unidad||'pza') + '"/>' +
-    '<input type="number" class="col-span-2 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none" placeholder="Cant" value="' + (item?.cantidad||'') + '"/>' +
-    '<input type="number" class="col-span-2 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none" placeholder="Precio" value="' + (item?.costo_unitario||'') + '"/>' +
-    '<span class="ms col-span-1 text-red-300 cursor-pointer hover:text-error text-center" onclick="this.parentElement.remove()">close</span>';
-  document.getElementById('edit-items').appendChild(div);
-}
 
 async function guardarEdicion() {
   const id = document.getElementById('edit-id').value;
