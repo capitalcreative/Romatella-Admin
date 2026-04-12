@@ -608,177 +608,44 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
     </div>
 
     <!-- PRODUCTOS -->
-    <!-- PRODUCTOS -->
     <section id="sec-productos" class="sec p-5 fade">
       <div class="mb-5">
         <h2 class="text-2xl font-bold text-slate-900">Productos</h2>
         <p class="text-sm text-slate-400">Historial de precios — clic en producto para ver detalle</p>
       </div>
+      <!-- Búsqueda -->
       <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-3">
         <input id="prod-search" class="w-full px-4 py-2.5 bg-surface-container-low rounded-xl text-sm outline-none" placeholder="Buscar por nombre, proveedor o categoría..." oninput="renderProductos(this.value)"/>
       </div>
+      <!-- Filtro categoría -->
       <div class="mb-2">
         <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">Categoría</p>
-        <div class="flex flex-wrap gap-1.5"><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-900 text-white" data-cat="" onclick="filterProdCat(this)">Todas</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Carnicería" onclick="filterProdCat(this)">Carnicería</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Mariscos" onclick="filterProdCat(this)">Mariscos</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Abarrotes" onclick="filterProdCat(this)">Abarrotes</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Lácteos" onclick="filterProdCat(this)">Lácteos</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Frutas y Verduras" onclick="filterProdCat(this)">Frutas y Verduras</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Vinos" onclick="filterProdCat(this)">Vinos</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Licores" onclick="filterProdCat(this)">Licores</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Refrescos" onclick="filterProdCat(this)">Refrescos</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Panadería" onclick="filterProdCat(this)">Panadería</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Limpieza" onclick="filterProdCat(this)">Limpieza</button><button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Otros insumos" onclick="filterProdCat(this)">Otros insumos</button></div>
+        <div class="flex flex-wrap gap-1.5">
+          <button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-900 text-white" data-cat="" onclick="filterProdCat(this)">Todas</button>
+          <button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Carnicería" onclick="filterProdCat(this)">Carnicería</button>
+          <button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Mariscos" onclick="filterProdCat(this)">Mariscos</button>
+          <button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Abarrotes" onclick="filterProdCat(this)">Abarrotes</button>
+          <button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Lácteos" onclick="filterProdCat(this)">Lácteos</button>
+          <button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Frutas y Verduras" onclick="filterProdCat(this)">Frutas y Verduras</button>
+          <button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Vinos" onclick="filterProdCat(this)">Vinos</button>
+          <button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Licores" onclick="filterProdCat(this)">Licores</button>
+          <button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Refrescos" onclick="filterProdCat(this)">Refrescos</button>
+          <button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Panadería" onclick="filterProdCat(this)">Panadería</button>
+          <button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Limpieza" onclick="filterProdCat(this)">Limpieza</button>
+          <button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Semillas" onclick="filterProdCat(this)">Semillas</button>
+          <button type="button" class="prod-cat-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-cat="Otros insumos" onclick="filterProdCat(this)">Otros insumos</button>
+        </div>
       </div>
+      <!-- Filtro proveedor (dinámico) -->
       <div class="mb-4">
         <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-2">Proveedor</p>
-        <div class="flex flex-wrap gap-1.5"><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-primary-container text-white" data-prov="" onclick="filterProdProv(this)">Todos</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="DISFRULEG" onclick="filterProdProv(this)">DISFRULEG</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="KRILL" onclick="filterProdProv(this)">KRILL</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="CARNICIERIA DIANA" onclick="filterProdProv(this)">CARNICIERIA DIANA</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="COSTCO DE MÉXICO" onclick="filterProdProv(this)">COSTCO DE MÉXICO</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="WALMART" onclick="filterProdProv(this)">WALMART</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="VIPARMEX" onclick="filterProdProv(this)">VIPARMEX</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="AYALA" onclick="filterProdProv(this)">AYALA</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="SAMS CLUB" onclick="filterProdProv(this)">SAMS CLUB</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="SORIANA" onclick="filterProdProv(this)">SORIANA</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="PANADERIA" onclick="filterProdProv(this)">PANADERIA</button><button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200" data-prov="AGRUPAMIENTO TIGRE" onclick="filterProdProv(this)">AGRUPAMIENTO TIGRE</button></div>
-      </div>
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-surface-container-low">
-              <tr class="text-xs text-slate-400 uppercase tracking-wider">
-                <th class="text-left p-3 font-medium">Producto</th>
-                <th class="text-left p-3 font-medium hidden md:table-cell">Categoría</th>
-                <th class="text-left p-3 font-medium hidden md:table-cell">Proveedor</th>
-                <th class="text-right p-3 font-medium">Último precio</th>
-                <th class="text-right p-3 font-medium hidden md:table-cell">Promedio</th>
-                <th class="text-right p-3 font-medium hidden lg:table-cell">Variación</th>
-                <th class="text-right p-3 font-medium hidden md:table-cell">Compras</th>
-              </tr>
-            </thead>
-            <tbody id="prod-list" class="divide-y divide-slate-50">
-              <tr><td colspan="7" class="py-8 text-center text-slate-300 text-sm">Cargando...</td></tr>
-            </tbody>
-          </table>
+        <div id="prod-prov-grid" class="flex flex-wrap gap-1.5">
+          <button type="button" class="prod-prov-btn px-3 py-1 rounded-xl text-xs font-semibold bg-primary-container text-white" data-prov="" onclick="filterProdProv(this)">Todos</button>
         </div>
       </div>
-    </section>
-
-    <!-- PROVEEDORES -->
-    <section id="sec-proveedores" class="sec p-5 fade">
-      <div class="flex justify-between items-center mb-5">
-        <div><h2 class="text-2xl font-bold text-slate-900">Proveedores</h2><p class="text-sm text-slate-400">Gestión de cuentas y saldos</p></div>
-        <button type="button" onclick="showAddProveedor()" class="bg-primary-container text-white px-4 py-2.5 rounded-xl font-semibold text-sm flex items-center gap-2 shadow-md"><span class="ms">person_add</span>Agregar</button>
-      </div>
-      <div class="grid grid-cols-3 gap-4 mb-5">
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Total Proveedores</p>
-          <p class="text-2xl font-bold" id="prov-total">0</p>
-        </div>
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Por Pagar</p>
-          <p class="text-2xl font-bold" id="prov-total-cxp">$0</p>
-        </div>
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Vencidos</p>
-          <p class="text-2xl font-bold text-error" id="prov-vencidos">$0</p>
-        </div>
-      </div>
-      <div id="proveedores-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div class="bg-surface-container-low rounded-2xl p-5 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-center cursor-pointer hover:border-primary/40 transition-colors" onclick="showAddProveedor()">
-          <span class="ms text-3xl text-slate-300 mb-2">add</span>
-          <p class="font-semibold text-slate-400">Agregar Proveedor</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- CUENTAS POR PAGAR -->
-    <section id="sec-cuentas" class="sec p-5 fade">
-
-      <!-- Header -->
-      <div class="flex justify-between items-center mb-4">
-        <div><h2 class="text-2xl font-bold text-slate-900">Cuentas por Pagar</h2>
-          <p class="text-sm text-slate-400">Facturas y obligaciones pendientes</p></div>
-      </div>
-
-      <!-- Métricas -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
-        <div class="bg-surface-container-low rounded-2xl p-4">
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Total pendiente</p>
-          <p class="text-2xl font-bold text-slate-900" id="cxp-m-total">$0</p>
-        </div>
-        <div class="bg-red-50 rounded-2xl p-4">
-          <p class="text-xs text-red-400 uppercase tracking-wider font-semibold mb-1">Vencido</p>
-          <p class="text-2xl font-bold text-red-600" id="cxp-m-vencido">$0</p>
-        </div>
-        <div class="bg-blue-50 rounded-2xl p-4">
-          <p class="text-xs text-blue-500 uppercase tracking-wider font-semibold mb-1">Por Banamex</p>
-          <p class="text-2xl font-bold text-blue-700" id="cxp-m-banamex">$0</p>
-        </div>
-        <div class="rounded-2xl p-4" style="background:#F3F0FE">
-          <p class="text-xs uppercase tracking-wider font-semibold mb-1" style="color:#7F77DD">Por Mercado Pago</p>
-          <p class="text-2xl font-bold" style="color:#3C3489" id="cxp-m-mp">$0</p>
-        </div>
-      </div>
-
-      <!-- Filtros -->
-      <div class="flex flex-wrap gap-2 mb-5 items-center">
-        <!-- Período -->
-        <div class="flex gap-1 bg-slate-100 p-1 rounded-xl">
-          <button type="button" id="cxp-f-semana" onclick="setCxPFiltro('semana',this)" class="px-3 py-1 rounded-lg bg-white text-slate-900 text-xs font-semibold shadow-sm">Esta semana</button>
-          <button type="button" id="cxp-f-mes" onclick="setCxPFiltro('mes',this)" class="px-3 py-1 rounded-lg text-slate-500 text-xs font-semibold">Este mes</button>
-          <button type="button" id="cxp-f-todo" onclick="setCxPFiltro('todo',this)" class="px-3 py-1 rounded-lg text-slate-500 text-xs font-semibold">Todo</button>
-          <button type="button" id="cxp-f-rango" onclick="setCxPFiltro('rango',this)" class="px-3 py-1 rounded-lg text-slate-500 text-xs font-semibold">Rango</button>
-        </div>
-        <!-- Rango fechas (oculto por defecto) -->
-        <div id="cxp-rango-fechas" class="hidden flex gap-2 items-center">
-          <input type="date" id="cxp-desde" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs outline-none"/>
-          <span class="text-slate-300 text-xs">→</span>
-          <input type="date" id="cxp-hasta" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs outline-none"/>
-          <button type="button" onclick="renderCuentasNuevo()" class="px-3 py-1.5 bg-primary-container text-white rounded-xl text-xs font-semibold">Aplicar</button>
-        </div>
-        <div class="w-px h-5 bg-slate-200"></div>
-        <!-- Estado -->
-        <div class="flex gap-1 bg-slate-100 p-1 rounded-xl">
-          <button type="button" id="cxp-e-pendientes" onclick="setCxPEstado('pendientes',this)" class="px-3 py-1 rounded-lg bg-white text-slate-900 text-xs font-semibold shadow-sm">Pendientes</button>
-          <button type="button" id="cxp-e-pagadas" onclick="setCxPEstado('pagadas',this)" class="px-3 py-1 rounded-lg text-slate-500 text-xs font-semibold">Pagadas</button>
-          <button type="button" id="cxp-e-todas" onclick="setCxPEstado('todas',this)" class="px-3 py-1 rounded-lg text-slate-500 text-xs font-semibold">Todas</button>
-        </div>
-        <div class="w-px h-5 bg-slate-200"></div>
-        <!-- Cuenta -->
-        <button type="button" id="cxp-c-todos" onclick="setCxPCuenta('todos',this)" class="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold">Todas las cuentas</button>
-        <button type="button" id="cxp-c-banamex" onclick="setCxPCuenta('banamex',this)" class="px-3 py-1.5 rounded-xl text-xs font-semibold" style="background:#E6F1FB;color:#185FA5">Banamex</button>
-        <button type="button" id="cxp-c-mp" onclick="setCxPCuenta('mp',this)" class="px-3 py-1.5 rounded-xl text-xs font-semibold" style="background:#EEEDFE;color:#534AB7">Mercado Pago</button>
-      </div>
-
-      <!-- Lista acordeón por proveedor -->
-      <div id="cxp-acordeon" class="space-y-2"></div>
-
-    </section>
-
-        <!-- MODAL DETALLE COMPRA -->
-    <div id="modal-detalle" class="hidden fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div class="bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div class="flex justify-between items-center mb-4">
-          <h3 class="font-bold text-lg">Detalle de Compra</h3>
-          <button type="button" onclick="closeModal('modal-detalle')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center hover:bg-slate-200"><span class="ms">close</span></button>
-        </div>
-        <div id="detalle-content"></div>
-      </div>
-    </div>
-
-    <!-- PRODUCTOS -->
-    <!-- PRODUCTOS -->
-    <section id="sec-productos" class="sec p-5 fade">
-      <div class="flex justify-between items-center mb-5">
-        <div><h2 class="text-2xl font-bold text-slate-900">Productos</h2>
-          <p class="text-sm text-slate-400">Historial de precios por ingrediente</p></div>
-      </div>
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div class="p-4 border-b border-slate-100">
-          <input id="prod-search" class="w-full px-4 py-2 bg-surface-container-low rounded-xl text-sm outline-none" placeholder="Buscar por nombre, proveedor o categoría..." oninput="renderProductos(this.value)"/>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full">
-            <thead class="bg-surface-container-low">
-              <tr class="text-xs text-slate-400 uppercase tracking-wider">
-                <th class="text-left p-4 font-medium">Producto</th>
-                <th class="text-left p-4 font-medium hidden md:table-cell">Categoría</th>
-                <th class="text-left p-4 font-medium hidden md:table-cell">Proveedor</th>
-                <th class="text-right p-4 font-medium">Último precio</th>
-                <th class="text-right p-4 font-medium hidden md:table-cell">Promedio</th>
-                <th class="text-right p-4 font-medium hidden lg:table-cell">Var. precio</th>
-                <th class="text-right p-4 font-medium hidden md:table-cell">Compras</th>
-              </tr>
-            </thead>
-            <tbody id="prod-list" class="divide-y divide-slate-50">
-              <tr><td colspan="7" class="py-8 text-center text-slate-300 text-sm">Los productos aparecerán aquí al registrar compras</td></tr>
-            </tbody>
-          </table>
-        </div>
+      <!-- Grid de productos -->
+      <div id="prod-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        <p class="col-span-full text-center text-slate-300 text-sm py-8">Los productos aparecerán al registrar compras</p>
       </div>
     </section>
 
