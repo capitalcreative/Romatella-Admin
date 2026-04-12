@@ -536,9 +536,9 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
       <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 mb-4 flex flex-wrap gap-3 items-center">
         <div class="flex gap-2">
           <button type="button" onclick="filtrarHistorial('todo',this)" id="hist-btn-todo" class="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-medium">Todas</button>
-          <button type="button" onclick="filtrarHistorial('hoy',this)" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200">Hoy</button>
-          <button type="button" onclick="filtrarHistorial('semana',this)" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200">Esta semana</button>
-          <button type="button" onclick="filtrarHistorial('mes',this)" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200">Este mes</button>
+          <button type="button" onclick="filtrarHistorial('hoy',this)" id="hist-btn-hoy" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200">Hoy</button>
+          <button type="button" onclick="filtrarHistorial('semana',this)" id="hist-btn-semana" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200">Esta semana</button>
+          <button type="button" onclick="filtrarHistorial('mes',this)" id="hist-btn-mes" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200">Este mes</button>
         </div>
         <div class="flex gap-2 items-center ml-auto">
           <label class="text-xs text-slate-400">Desde:</label>
@@ -4010,14 +4010,45 @@ function clearEl(id) {
 // HISTORIAL DE COMPRAS
 // ============================================================
 function renderHistorial(filtro) {
+  // Si viene un filtro explícito, usarlo. Si no, respetar el que ya estaba activo.
   if (filtro !== undefined) DB.histFiltro = filtro;
-  filtrarHistorial(DB.histFiltro || 'todo');
+  const filtroActivo = DB.histFiltro || 'todo';
+
+  // Sincronizar botón activo visualmente
+  document.querySelectorAll('[onclick^="filtrarHistorial"]').forEach(b => {
+    b.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200';
+  });
+  const btnActivo = document.getElementById('hist-btn-' + filtroActivo);
+  if (btnActivo) btnActivo.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-medium';
+
+  // Sincronizar vista activa (lista vs proveedor)
+  const vista = DB.histVista || 'lista';
+  const vLista = document.getElementById('hist-vista-lista');
+  const vProv  = document.getElementById('hist-vista-proveedor');
+  const clsActivo   = 'px-3 py-1.5 rounded-lg bg-white text-slate-900 text-xs font-semibold shadow-sm flex items-center gap-1';
+  const clsInactivo = 'px-3 py-1.5 rounded-lg text-slate-500 text-xs font-semibold flex items-center gap-1 hover:bg-white/60 transition-colors';
+  const btnL = document.getElementById('hist-vista-lista-btn');
+  const btnP = document.getElementById('hist-vista-prov-btn');
+
+  if (vista === 'proveedor') {
+    if (vLista) vLista.classList.add('hidden');
+    if (vProv)  vProv.classList.remove('hidden');
+    if (btnL) btnL.className = clsInactivo;
+    if (btnP) btnP.className = clsActivo;
+    renderHistorialPorProveedor();
+  } else {
+    if (vLista) vLista.classList.remove('hidden');
+    if (vProv)  vProv.classList.add('hidden');
+    if (btnL) btnL.className = clsActivo;
+    if (btnP) btnP.className = clsInactivo;
+    filtrarHistorial(filtroActivo);
+  }
 }
 
 function filtrarHistorial(filtro, btnEl) {
   DB.histFiltro = filtro;
 
-  // Actualizar botones de filtro rápido
+  // Actualizar botones de filtro rápido (cuando se llama directo desde un botón)
   if (btnEl) {
     document.querySelectorAll('[onclick^="filtrarHistorial"]').forEach(b => {
       b.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200';
@@ -4025,7 +4056,7 @@ function filtrarHistorial(filtro, btnEl) {
     btnEl.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-medium';
   }
 
-  // Si la vista activa es "por proveedor", refrescar esa vista en lugar de la tabla
+  // Si la vista activa es "por proveedor", refrescar esa vista
   if (DB.histVista === 'proveedor') {
     renderHistorialPorProveedor();
     return;
@@ -4265,6 +4296,8 @@ function renderHistorialPorProveedor() {
       btnVer.addEventListener('click', e => { e.stopPropagation(); verDetalle(c.id); });
       const btnEdit = el('button', { cls: 'text-xs text-slate-400 hover:text-slate-700 font-semibold', type: 'button', text: 'Editar' });
       btnEdit.addEventListener('click', e => { e.stopPropagation(); abrirEditar(c.id); });
+      const btnDel  = el('button', { cls: 'text-xs text-red-400 hover:text-red-600 font-semibold', type: 'button', text: '✕' });
+      btnDel.addEventListener('click', e => { e.stopPropagation(); borrarCompra(c.id); });
 
       const leftCol = el('div', { cls: 'flex-1 min-w-0' }, [
         el('div', { cls: 'flex items-center gap-2 flex-wrap' }, [
@@ -4280,7 +4313,8 @@ function renderHistorialPorProveedor() {
         el('span', { cls: 'text-sm font-semibold', text: fmt(c.total) }),
         badge,
         btnVer,
-        btnEdit
+        btnEdit,
+        btnDel
       ]);
 
       const factRow = el('div', { cls: 'flex items-center gap-3 px-4 py-3 border-b border-slate-50 hover:bg-slate-50/50 last:border-0' }, [leftCol, rightCol]);
