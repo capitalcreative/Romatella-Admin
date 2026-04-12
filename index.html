@@ -1606,6 +1606,8 @@ function doLogin() {
 }
 
 async function loadFromSupabase() {
+  if (DB._loading) return; // Evitar doble llamado simultáneo
+  DB._loading = true;
   try {
     // Load compras with detalle
     const resp = await fetch('/api/supabase', {
@@ -1625,7 +1627,8 @@ async function loadFromSupabase() {
     const detalles = await respD.json();
     const detallesArr = Array.isArray(detalles) ? detalles : [];
 
-    // Map to local DB format
+    // Reemplazar DB.compras completamente con lo que viene de Supabase
+    // (nunca acumular — esto evita duplicados)
     DB.compras = comprasDB.map(c => ({
       id: c.id,
       fecha: c.fecha,
@@ -1646,7 +1649,8 @@ async function loadFromSupabase() {
         }))
     }));
 
-    // Rebuild proveedores from compras
+    // Reconstruir proveedores LIMPIO desde cero (sin acumular sobre el array anterior)
+    const provPreconfigurados = DB.proveedores.filter(p => p._preconfigurado);
     const provMap = {};
     DB.compras.forEach(c => {
       if (!c.proveedor) return;
@@ -1654,15 +1658,23 @@ async function loadFromSupabase() {
       provMap[c.proveedor].compras++;
       if (c.estatus !== 'Pagado') provMap[c.proveedor].saldo += c.total;
     });
-    // Merge with existing proveedores (keep preconfigured ones)
-    Object.values(provMap).forEach(p => {
-      const existing = DB.proveedores.find(x => x.nombre === p.nombre);
-      if (existing) {
-        existing.saldo = p.saldo;
-        existing.compras = p.compras;
-      } else {
-        DB.proveedores.push({ id: Date.now()+Math.random(), ...p, tel:'', condicion:'8 días' });
-      }
+
+    // Resetear y reconstruir lista de proveedores limpia
+    DB.proveedores = [
+      ...provPreconfigurados,
+      ...Object.values(provMap).map(p => ({
+        id: Date.now() + Math.random(),
+        ...p,
+        tel: '',
+        condicion: '8 días'
+      }))
+    ];
+    // Eliminar duplicados por nombre
+    const provVisto = new Set();
+    DB.proveedores = DB.proveedores.filter(p => {
+      if (provVisto.has(p.nombre)) return false;
+      provVisto.add(p.nombre);
+      return true;
     });
 
     renderDashboard();
@@ -1675,6 +1687,8 @@ async function loadFromSupabase() {
     toast('✓ ' + DB.compras.length + ' compras cargadas');
   } catch(e) {
     renderDashboard();
+  } finally {
+    DB._loading = false;
   }
 }
 function doLogout() {
@@ -2446,14 +2460,17 @@ async function registerCompra() {
       }
     }
 
-    // 3. Update local DB
+    // 3. Agregar al DB local con el ID real de Supabase
     const compra = {
       id: compraId || Date.now(),
       fecha, proveedor, folio: 'S/F',
       categoria, forma_pago, estatus,
       total, vencimiento, items
     };
-    DB.compras.push(compra);
+    // Solo hacer push si el id aún no existe (evitar duplicado si Supabase ya lo devolvió)
+    if (!DB.compras.find(x => String(x.id) === String(compra.id))) {
+      DB.compras.push(compra);
+    }
 
     // 4. Update proveedor
     let prov = DB.proveedores.find(p => p.nombre === proveedor);
@@ -2466,7 +2483,11 @@ async function registerCompra() {
 
     toast('Compra guardada: ' + proveedor + ' ' + fmt(total));
     resetForm();
-    setTimeout(() => showSec('home'), 1200);
+    // Recargar desde Supabase para garantizar consistencia (evita duplicados)
+    setTimeout(async () => {
+      await loadFromSupabase();
+      showSec('home');
+    }, 800);
 
   } catch(e) {
     // Save locally if Supabase fails
@@ -2546,10 +2567,9 @@ async function guardarEdicion() {
       }
     }
     closeModal('modal-editar');
-    renderHistorial();
-    renderDashboard();
-    renderCuentasNuevo();
     toast('✓ Compra actualizada');
+    await loadFromSupabase();
+    renderHistorial();
   } catch(e) {
     closeModal('modal-editar');
     renderHistorial();
