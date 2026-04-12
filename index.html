@@ -2562,25 +2562,46 @@ async function guardarEdicion() {
   }
 }
 
-function borrarCompra(id) {
+async function borrarCompra(id) {
   const c = DB.compras.find(x => String(x.id) === String(id));
   if (!c) return;
-  if (!confirm(`¿Eliminar la compra de ${c.proveedor} por ${fmt(c.total)}? Esta acción no se puede deshacer.`)) return;
-  
-  // Remove from DB
-  DB.compras = DB.compras.filter(x => x.id !== id);
-  
-  // Update proveedor saldo
-  const p = DB.proveedores.find(x => x.nombre.toLowerCase() === c.proveedor.toLowerCase());
-  if (p && c.estatus !== 'Pagado') {
-    p.saldo = Math.max(0, (p.saldo||0) - c.total);
-    p.compras = Math.max(0, (p.compras||0) - 1);
+  if (!confirm('¿Eliminar la compra de ' + c.proveedor + ' por ' + fmt(c.total) + '? Esta acción no se puede deshacer.')) return;
+
+  toast('Eliminando...');
+
+  try {
+    // 1. Borrar detalle_compras en Supabase
+    await fetch('/api/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table: 'detalle_compras', action: 'delete_by_compra', id })
+    });
+
+    // 2. Borrar la compra en Supabase
+    await fetch('/api/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table: 'compras', action: 'delete', id })
+    });
+
+    // 3. Eliminar del DB local
+    DB.compras = DB.compras.filter(x => String(x.id) !== String(id));
+
+    // 4. Update proveedor saldo local
+    const p = DB.proveedores.find(x => x.nombre.toLowerCase() === c.proveedor.toLowerCase());
+    if (p && c.estatus !== 'Pagado') {
+      p.saldo = Math.max(0, (p.saldo||0) - c.total);
+      p.compras = Math.max(0, (p.compras||0) - 1);
+    }
+
+    renderHistorial();
+    renderDashboard();
+    if (typeof renderCuentasNuevo === 'function') renderCuentasNuevo();
+    toast('✓ Compra eliminada permanentemente');
+
+  } catch(e) {
+    toast('Error al eliminar: ' + e.message);
   }
-  
-  // Re-render
-  renderHistorial();
-  renderDashboard();
-  toast('Compra eliminada');
 }
 
 // ============================================================
