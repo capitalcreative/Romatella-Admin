@@ -418,9 +418,9 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
                 <div class="w-14 h-14 rounded-full bg-blue-50 mx-auto mb-3 flex items-center justify-center">
                   <span class="ms ms-fill text-primary text-2xl">photo_camera</span>
                 </div>
-                <p class="font-semibold text-slate-700 mb-1">Fotografía tu ticket o factura</p>
-                <p class="text-xs text-slate-400">Arrastra o haz clic para subir</p>
-                <input id="file-input" type="file" accept="image/*,.pdf" class="hidden" onchange="handleFileUpload(event)"/>
+                <p class="font-semibold text-slate-700 mb-1">Fotografía o sube tu factura</p>
+                <p class="text-xs text-slate-400">PDF · JPG · PNG — la IA extrae los datos automáticamente</p>
+                <input id="file-input" type="file" accept="image/*,.pdf,application/pdf" class="hidden" onchange="handleFileUpload(event)"/>
               </div>
               <div id="upload-status" class="hidden mt-3 p-3 bg-blue-50 rounded-xl text-sm text-primary font-medium flex items-center gap-2">
                 <span class="ms ms-fill text-lg">auto_awesome</span>
@@ -2471,51 +2471,94 @@ function borrarCompra(id) {
 async function handleFileUpload(event) {
   const file = event.target.files[0];
   if (!file) return;
+
   const status = document.getElementById('upload-status');
-  const txt = document.getElementById('upload-text');
+  const txt    = document.getElementById('upload-text');
   status.classList.remove('hidden');
-  txt.textContent = 'Leyendo imagen...';
+
+  const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+  txt.textContent = isPDF ? 'Leyendo PDF...' : 'Leyendo imagen...';
+
   try {
-    const base64 = await new Promise((res,rej) => {
+    const base64 = await new Promise((res, rej) => {
       const r = new FileReader();
       r.onload = () => res(r.result.split(',')[1]);
       r.onerror = rej;
       r.readAsDataURL(file);
     });
-    txt.textContent = 'Analizando ticket con IA...';
-    const resp = await fetch('/api/analyze-ticket', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ imageBase64:base64, mediaType:file.type||'image/jpeg' })
+
+    txt.textContent = isPDF ? 'Analizando factura PDF con IA...' : 'Analizando ticket con IA...';
+
+    const fileBlock = isPDF
+      ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
+      : { type: 'image',    source: { type: 'base64', media_type: file.type || 'image/jpeg', data: base64 } };
+
+    const prompt = `Analiza este ${isPDF ? 'PDF de factura' : 'ticket o factura'} de compra de un restaurante.
+Extrae la información y responde SOLO con este JSON (sin texto adicional):
+{
+  "proveedor": "NOMBRE EN MAYUSCULAS",
+  "fecha": "DD/MM/YYYY",
+  "categoria": "una de: Carnicería, Mariscos, Abarrotes, Lácteos, Frutas y Verduras, Vinos, Licores, Refrescos, Panadería, Limpieza, Semillas, Otros insumos",
+  "forma_pago": "una de: Efectivo, Banamex, Mercado Pago, Crédito 8 días",
+  "total": número,
+  "productos": [{ "nombre": "NOMBRE EN MAYUSCULAS", "unidad": "kg/pza/lt/caja/bot", "cantidad": número, "costo_unitario": número }]
+}
+Omite campos que no encuentres. costo_unitario es precio POR UNIDAD, no subtotal.`;
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        messages: [{ role: 'user', content: [fileBlock, { type: 'text', text: prompt }] }]
+      })
     });
-    const data = await resp.json();
-    if (data.error) { txt.textContent = '⚠ ' + data.error + ' — llena los campos manualmente'; return; }
+
+    const result = await resp.json();
+    if (result.error) throw new Error(result.error.message || 'Error de API');
+
+    const rawText = result.content?.[0]?.text || '';
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('No se pudo interpretar la respuesta');
+
+    const data = JSON.parse(jsonMatch[0]);
+
     if (data.proveedor) document.getElementById('f-proveedor').value = data.proveedor;
     if (data.fecha) {
       const parts = data.fecha.split('/');
-      if (parts.length===3) document.getElementById('f-fecha').value = parts[2]+'-'+parts[1]+'-'+parts[0];
+      if (parts.length === 3) {
+        document.getElementById('f-fecha').value = parts[2] + '-' + parts[1].padStart(2,'0') + '-' + parts[0].padStart(2,'0');
+      }
     }
-    if (data.categoria) document.getElementById('f-categoria').value = data.categoria;
+    if (data.categoria) {
+      const sel = document.getElementById('f-categoria');
+      if (sel) sel.value = data.categoria;
+    }
+    if (data.forma_pago) {
+      const sel = document.getElementById('f-pago');
+      if (sel) { sel.value = data.forma_pago; calcVencimiento(); }
+    }
     if (data.productos?.length) {
       document.getElementById('items-container').innerHTML = '';
       data.productos.forEach(p => {
-        addItem();
-        const rows = document.querySelectorAll('#items-container .grid');
-        const row = rows[rows.length-1];
-        const inputs = row.querySelectorAll('input');
-        const sel = row.querySelector('select');
-        const nums = row.querySelectorAll('input[type="number"]');
-        inputs[0].value = p.nombre||'';
-        if (sel) sel.value = p.unidad||'pza';
-        if (nums[0]) nums[0].value = p.cantidad||0;
-        if (nums[1]) nums[1].value = p.costo_unitario||0;
+        addItem(p.nombre || '', p.unidad || 'pza', p.costo_unitario || 0);
+        const rows = document.querySelectorAll('#items-container .relative');
+        const last = rows[rows.length - 1];
+        if (last) {
+          const nums = last.querySelectorAll('input[type="number"]');
+          if (nums[0]) nums[0].value = p.cantidad || 1;
+        }
       });
       calcTotal();
     }
-    txt.textContent = '✓ Datos extraídos — revisa y confirma';
-    toast('Ticket analizado exitosamente');
+
+    const n = data.productos?.length || 0;
+    txt.textContent = '✓ ' + (isPDF ? 'PDF' : 'Ticket') + ' analizado — ' + n + ' producto' + (n !== 1 ? 's' : '') + ' extraído' + (n !== 1 ? 's' : '') + ' · revisa y confirma';
+    toast('✓ ' + (isPDF ? 'Factura PDF' : 'Ticket') + ' analizado correctamente');
+
   } catch(e) {
-    txt.textContent = '⚠ Error de conexión — llena los campos manualmente';
+    txt.textContent = '⚠ ' + (e.message || 'Error al analizar') + ' — llena los campos manualmente';
   }
 }
 
