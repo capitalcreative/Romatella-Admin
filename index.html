@@ -2571,40 +2571,15 @@ async function handleFileUpload(event) {
 
     txt.textContent = isPDF ? 'Analizando factura PDF con IA...' : 'Analizando ticket con IA...';
 
-    const fileBlock = isPDF
-      ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } }
-      : { type: 'image',    source: { type: 'base64', media_type: file.type || 'image/jpeg', data: base64 } };
-
-    const prompt = `Analiza este ${isPDF ? 'PDF de factura' : 'ticket o factura'} de compra de un restaurante.
-Extrae la información y responde SOLO con este JSON (sin texto adicional):
-{
-  "proveedor": "NOMBRE EN MAYUSCULAS",
-  "fecha": "DD/MM/YYYY",
-  "categoria": "una de: Carnicería, Mariscos, Abarrotes, Lácteos, Frutas y Verduras, Vinos, Licores, Refrescos, Panadería, Limpieza, Semillas, Otros insumos",
-  "forma_pago": "una de: Efectivo, Banamex, Mercado Pago, Crédito 8 días",
-  "total": número,
-  "productos": [{ "nombre": "NOMBRE EN MAYUSCULAS", "unidad": "kg/pza/lt/caja/bot", "cantidad": número, "costo_unitario": número }]
-}
-Omite campos que no encuentres. costo_unitario es precio POR UNIDAD, no subtotal.`;
-
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    // Llamar al endpoint serverless de Vercel (evita CORS)
+    const resp = await fetch('/api/analyze-ticket', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1500,
-        messages: [{ role: 'user', content: [fileBlock, { type: 'text', text: prompt }] }]
-      })
+      body: JSON.stringify({ imageBase64: base64, mediaType: isPDF ? 'application/pdf' : (file.type || 'image/jpeg') })
     });
 
-    const result = await resp.json();
-    if (result.error) throw new Error(result.error.message || 'Error de API');
-
-    const rawText = result.content?.[0]?.text || '';
-    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('No se pudo interpretar la respuesta');
-
-    const data = JSON.parse(jsonMatch[0]);
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error);
 
     if (data.proveedor) document.getElementById('f-proveedor').value = data.proveedor;
     if (data.fecha) {
