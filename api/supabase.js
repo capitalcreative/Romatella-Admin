@@ -4,14 +4,41 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Prefer');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
-  const URL = process.env.SUPABASE_URL;
-  const KEY = process.env.SUPABASE_KEY;
-  if (!URL || !KEY) return res.status(500).json({ error: 'Supabase no configurado' });
+  const SUPA_URL = process.env.SUPABASE_URL;
+  const KEY      = process.env.SUPABASE_KEY;
+  if (!SUPA_URL || !KEY) return res.status(500).json({ error: 'Supabase no configurado' });
 
   try {
     const { table, action, data, id, filters } = req.method === 'GET' ? req.query : (req.body || {});
 
-    let url = `${URL}/rest/v1/${table}`;
+    // ── Autenticación de usuario ─────────────────────────────
+    if (action === 'login') {
+      const { email, password } = data || {};
+      if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
+
+      const authResp = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': KEY
+        },
+        body: JSON.stringify({ email, password })
+      });
+
+      const authData = await authResp.json();
+
+      if (!authResp.ok || authData.error) {
+        return res.status(401).json({ error: authData.error_description || 'Credenciales incorrectas' });
+      }
+
+      return res.status(200).json({
+        ok: true,
+        user: { email: authData.user?.email, id: authData.user?.id }
+      });
+    }
+
+    // ── Operaciones de datos ─────────────────────────────────
+    let url = `${SUPA_URL}/rest/v1/${table}`;
     let method = 'GET';
     let body = null;
     let prefer = '';
@@ -54,6 +81,7 @@ export default async function handler(req, res) {
     const text = await response.text();
     const result = text ? JSON.parse(text) : {};
     res.status(response.ok ? 200 : response.status).json(result);
+
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
