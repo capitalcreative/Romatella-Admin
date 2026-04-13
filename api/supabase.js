@@ -11,33 +11,62 @@ export default async function handler(req, res) {
   try {
     const { table, action, data, id, filters } = req.method === 'GET' ? req.query : (req.body || {});
 
-    // ── Autenticación de usuario ─────────────────────────────
+    // ── Autenticación ────────────────────────────────────────
     if (action === 'login') {
       const { email, password } = data || {};
       if (!email || !password) return res.status(400).json({ error: 'Email y contraseña requeridos' });
 
       const authResp = await fetch(`${SUPA_URL}/auth/v1/token?grant_type=password`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'apikey': KEY
-        },
+        headers: { 'Content-Type': 'application/json', 'apikey': KEY },
         body: JSON.stringify({ email, password })
       });
-
       const authData = await authResp.json();
-
       if (!authResp.ok || authData.error) {
         return res.status(401).json({ error: authData.error_description || 'Credenciales incorrectas' });
       }
-
       return res.status(200).json({
         ok: true,
         user: { email: authData.user?.email, id: authData.user?.id }
       });
     }
 
-    // ── Operaciones de datos ─────────────────────────────────
+    // ── Select con paginación automática (sin límite duro) ───
+    if (action === 'select') {
+      const PAGE = 1000;
+      let allRows = [];
+      let offset  = 0;
+      let keepGoing = true;
+
+      while (keepGoing) {
+        let pageUrl = `${SUPA_URL}/rest/v1/${table}?select=*&order=created_at.desc&limit=${PAGE}&offset=${offset}`;
+        if (filters) pageUrl += '&' + filters;
+
+        const pageResp = await fetch(pageUrl, {
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': KEY,
+            'Authorization': `Bearer ${KEY}`,
+            'Prefer': 'count=exact'
+          }
+        });
+
+        if (!pageResp.ok) {
+          const errText = await pageResp.text();
+          return res.status(pageResp.status).json({ error: errText });
+        }
+
+        const rows = await pageResp.json();
+        if (!Array.isArray(rows) || rows.length === 0) break;
+        allRows = allRows.concat(rows);
+        if (rows.length < PAGE) keepGoing = false;
+        else offset += PAGE;
+      }
+
+      return res.status(200).json(allRows);
+    }
+
+    // ── Operaciones de escritura ─────────────────────────────
     let url = `${SUPA_URL}/rest/v1/${table}`;
     let method = 'GET';
     let body = null;
@@ -55,9 +84,6 @@ export default async function handler(req, res) {
     } else if (action === 'delete') {
       method = 'DELETE';
       url += `?id=eq.${id}`;
-    } else if (action === 'select') {
-      url += '?select=*&order=created_at.desc&limit=500';
-      if (filters) url += '&' + filters;
     } else if (action === 'upsert') {
       method = 'POST';
       body = JSON.stringify(data);
