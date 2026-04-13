@@ -68,6 +68,7 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Contraseña</label>
           <input type="password" id="login-pass" placeholder="••••••••" class="w-full px-4 py-3 bg-surface-container-low rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
         </div>
+        <p id="login-error" class="hidden text-xs text-red-600 bg-red-50 px-3 py-2 rounded-xl text-center"></p>
         <button type="button" onclick="doLogin()" class="w-full bg-primary-container text-white py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-200 hover:opacity-90 transition-opacity">
           Entrar <span class="ms">arrow_forward</span>
         </button>
@@ -1503,13 +1504,46 @@ const DB = {
 // ============================================================
 // NAVIGATION
 // ============================================================
-function doLogin() {
-  hideAllPages();
-  document.getElementById('page-app').style.setProperty('display','flex','important');
-  showSec('home');
-  initDate();
-  loadFromSupabase();
-  poblarProveedoresDatalist();
+async function doLogin() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-pass').value;
+  const btn      = document.querySelector('#page-login button[onclick="doLogin()"]');
+  const errEl    = document.getElementById('login-error');
+
+  if (!email || !password) {
+    if (errEl) { errEl.textContent = 'Ingresa tu correo y contraseña.'; errEl.classList.remove('hidden'); }
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="ms" style="animation:spin 1s linear infinite;display:inline-block">progress_activity</span> Verificando...'; }
+  if (errEl) errEl.classList.add('hidden');
+
+  try {
+    const resp = await fetch('/api/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'login', data: { email, password } })
+    });
+    const result = await resp.json();
+
+    if (!resp.ok || !result.ok) {
+      const msg = result.error || 'Credenciales incorrectas.';
+      if (errEl) { errEl.textContent = msg; errEl.classList.remove('hidden'); }
+      if (btn) { btn.disabled = false; btn.innerHTML = 'Entrar <span class="ms">arrow_forward</span>'; }
+      return;
+    }
+
+    hideAllPages();
+    document.getElementById('page-app').style.setProperty('display','flex','important');
+    showSec('home');
+    initDate();
+    loadFromSupabase();
+    poblarProveedoresDatalist();
+
+  } catch (e) {
+    if (errEl) { errEl.textContent = 'Error de conexión. Intenta de nuevo.'; errEl.classList.remove('hidden'); }
+    if (btn) { btn.disabled = false; btn.innerHTML = 'Entrar <span class="ms">arrow_forward</span>'; }
+  }
 }
 
 async function loadFromSupabase() {
