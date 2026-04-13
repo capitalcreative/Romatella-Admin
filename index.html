@@ -2527,41 +2527,41 @@ async function guardarEdicion() {
   const c = DB.compras.find(x => String(x.id) === String(id));
   if (!c) return;
 
-  const proveedor = document.getElementById('edit-proveedor').value.trim().toUpperCase();
-  const fecha = document.getElementById('edit-fecha').value;
-  const categoria = document.getElementById('edit-categoria').value;
-  const forma_pago = document.getElementById('edit-pago').value;
-  const total = parseFloat(document.getElementById('edit-total').value) || 0;
-  const estatus = document.getElementById('edit-estatus').value;
+  const proveedor   = document.getElementById('edit-proveedor').value.trim().toUpperCase();
+  const fecha       = document.getElementById('edit-fecha').value;
+  const categoria   = document.getElementById('edit-categoria').value;
+  const forma_pago  = document.getElementById('edit-pago').value;
+  const total       = parseFloat(document.getElementById('edit-total').value) || 0;
+  const estatus     = document.getElementById('edit-estatus').value;
   const vencimiento = document.getElementById('edit-vencimiento').value || null;
 
-  // Get items from edit form
+  // Leer items del formulario de edición
   const itemRows = document.getElementById('edit-items').querySelectorAll('div');
   const newItems = [];
   itemRows.forEach(row => {
     const inputs = row.querySelectorAll('input');
     if (inputs[0]?.value.trim()) {
       newItems.push({
-        nombre: inputs[0].value.trim().toUpperCase(),
-        unidad: inputs[1]?.value.trim() || 'pza',
-        cantidad: parseFloat(inputs[2]?.value) || 0,
+        nombre:        inputs[0].value.trim().toUpperCase(),
+        unidad:        inputs[1]?.value.trim() || 'pza',
+        cantidad:      parseFloat(inputs[2]?.value) || 0,
         costo_unitario: parseFloat(inputs[3]?.value) || 0
       });
     }
   });
 
-  // Update local DB
-  c.proveedor = proveedor;
-  c.fecha = fecha;
-  c.categoria = categoria;
-  c.forma_pago = forma_pago;
-  c.total = total;
-  c.estatus = estatus;
+  // Actualizar DB local
+  c.proveedor   = proveedor;
+  c.fecha       = fecha;
+  c.categoria   = categoria;
+  c.forma_pago  = forma_pago;
+  c.total       = total;
+  c.estatus     = estatus;
   c.vencimiento = vencimiento;
-  c.items = newItems;
+  c.items       = newItems;
 
-  // Update Supabase - compra header
   try {
+    // 1. Actualizar encabezado de compra
     await fetch('/api/supabase', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
@@ -2570,25 +2570,42 @@ async function guardarEdicion() {
         data: { proveedor_nombre: proveedor, fecha, categoria, forma_pago, total, estatus_pago: estatus, vencimiento: vencimiento || null }
       })
     });
-    // Delete old items and reinsert
+
+    // 2. Reemplazar detalle_compras e historial_precios
     if (newItems.length > 0) {
+      // Borrar partidas anteriores
       await fetch('/api/supabase', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ table: 'detalle_compras', action: 'delete_by_compra', id })
       });
+
+      // Reinsertar partidas y actualizar historial de precios
       for (const item of newItems) {
         await fetch('/api/supabase', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ table: 'detalle_compras', action: 'insert', data: { compra_id: id, nombre_producto: item.nombre, unidad: item.unidad, cantidad: item.cantidad, costo_unitario: item.costo_unitario } })
+          body: JSON.stringify({
+            table: 'detalle_compras', action: 'insert',
+            data: { compra_id: id, nombre_producto: item.nombre, unidad: item.unidad, cantidad: item.cantidad, costo_unitario: item.costo_unitario }
+          })
         });
+
+        // ✅ CORRECCIÓN: guardar precio actualizado en historial_precios
+        if (item.costo_unitario > 0) {
+          await saveHistorialPrecio(
+            { nombre: item.nombre, unidad: item.unidad, costo_unitario: item.costo_unitario },
+            { proveedor, fecha, id }
+          );
+        }
       }
     }
+
     closeModal('modal-editar');
     toast('✓ Compra actualizada');
     await loadFromSupabase();
     renderHistorial();
+
   } catch(e) {
     closeModal('modal-editar');
     renderHistorial();
