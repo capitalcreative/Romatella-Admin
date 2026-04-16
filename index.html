@@ -1763,7 +1763,7 @@ function recalcInvTotales() {
   INV_INSUMOS.forEach(ins => {
     const key = ins.nombre.toUpperCase().trim();
     const st = INV_STATE[key] || { ini: '', fin: '' };
-    if (st.fin === '' || st.fin === null) return;
+    if (st.ini === '' && st.fin === '') return;
     conteos++;
     const ini = parseFloat(st.ini) || 0;
     const fin = parseFloat(st.fin) || 0;
@@ -1801,7 +1801,9 @@ function recalcInvTotales() {
 async function guardarInventario() {
   const fecha = document.getElementById('inv-fecha')?.value;
   if (!fecha) { toast('Selecciona la fecha del conteo'); return; }
-  const conConteo = Object.entries(INV_STATE).filter(([,v]) => v.fin !== '' && v.fin !== null);
+  const conConteo = Object.entries(INV_STATE).filter(([,v]) => 
+    (v.ini !== '' && v.ini !== null) || (v.fin !== '' && v.fin !== null)
+  );
   if (!conConteo.length) { toast('Captura al menos un conteo antes de guardar'); return; }
 
   toast('Guardando...');
