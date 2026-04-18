@@ -3663,21 +3663,27 @@ function csvDownload(filename, rows) {
 }
 
 function setExpSemana(tipo) {
-  // Calcula martes a domingo de la semana operativa actual
+  // Calcula martes a hoy (o domingo si la semana ya cerró)
   const hoy = new Date();
   const pad = n => String(n).padStart(2, '0');
   const toStr = d => d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
-  const dow = hoy.getDay(); // 0=dom,1=lun,...,6=sab
+  const dow = hoy.getDay();
   const diasDesdeMartes = (dow + 5) % 7;
   const martes = new Date(hoy); martes.setDate(hoy.getDate() - diasDesdeMartes);
-  // Domingo de esa semana
   const domingo = new Date(martes); domingo.setDate(martes.getDate() + 6);
   const desde = toStr(martes);
   const hasta = toStr(domingo) < toStr(hoy) ? toStr(domingo) : toStr(hoy);
-  const dEl = document.getElementById('exp-' + tipo + '-desde');
-  const hEl = document.getElementById('exp-' + tipo + '-hasta');
-  if (dEl) dEl.value = desde;
-  if (hEl) hEl.value = hasta;
+
+  // Si es el reporte completo, sincroniza TODOS los exportadores a la vez
+  const tipos = tipo === 'semana' ? ['compras','ventas','caja','cortes','semana'] : [tipo];
+  tipos.forEach(t => {
+    const dEl = document.getElementById('exp-' + t + '-desde');
+    const hEl = document.getElementById('exp-' + t + '-hasta');
+    if (dEl) dEl.value = desde;
+    if (hEl) hEl.value = hasta;
+  });
+
+  if (tipo === 'semana') toast('↗ Semana ' + desde + ' → ' + hasta + ' aplicada a todos los reportes');
 }
 
 function getExpDates(prefix) {
