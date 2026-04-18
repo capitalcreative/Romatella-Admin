@@ -235,7 +235,7 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
           <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Ventas del Período</p>
           <p class="text-2xl font-bold text-slate-900" id="metric-ventas">—</p>
-          <p class="text-xs text-slate-400 mt-1">Loyverse</p>
+          <p class="text-xs text-slate-400 mt-1">Loyverse <span id="dash-sync-icon" class="ms text-xs text-slate-300" style="vertical-align:middle"></span></p>
         </div>
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
           <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Cuentas por Pagar</p>
@@ -1068,19 +1068,24 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
         <div>
           <h2 class="text-2xl font-bold text-slate-900">Inventario & Stocks</h2>
-          <p class="text-sm text-slate-400">Conteo semanal · Semáforo de arranque · Cruce Loyverse</p>
+          <p class="text-sm text-slate-400">Conteo semanal · Semáforo de mínimos/máximos</p>
         </div>
-        <button type="button" onclick="guardarConteoInventario()" class="px-3 py-1.5 rounded-xl bg-primary-container text-white text-xs font-semibold flex items-center gap-1.5">
-          <span class="ms text-sm">save</span>Guardar conteo
-        </button>
+        <div class="flex gap-2 items-center flex-wrap">
+          <span class="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl font-medium flex items-center gap-1.5">
+            <span class="ms text-sm">schedule</span>En espera de recetario — cruce automático pendiente
+          </span>
+          <button type="button" onclick="guardarConteoInventario()" class="px-3 py-1.5 rounded-xl bg-primary-container text-white text-xs font-semibold flex items-center gap-1.5">
+            <span class="ms text-sm">save</span>Guardar conteo
+          </button>
+        </div>
       </div>
 
       <!-- Leyenda semáforo -->
       <div class="flex gap-4 mb-5 flex-wrap">
-        <span class="flex items-center gap-1.5 text-xs text-slate-500"><span class="inline-block w-3 h-3 rounded-full bg-green-400"></span>OK — suficiente para cerrar la semana</span>
-        <span class="flex items-center gap-1.5 text-xs text-slate-500"><span class="inline-block w-3 h-3 rounded-full bg-amber-400"></span>Pedir jueves — activa 2do pedido planificado</span>
-        <span class="flex items-center gap-1.5 text-xs text-slate-500"><span class="inline-block w-3 h-3 rounded-full bg-red-400"></span>Pedir ya — riesgo de quedarse sin insumo</span>
-        <span class="flex items-center gap-1.5 text-xs text-slate-500"><span class="inline-block w-3 h-3 rounded-full bg-slate-300"></span>Sin conteo registrado</span>
+        <span class="flex items-center gap-1.5 text-xs text-slate-500"><span class="inline-block w-3 h-3 rounded-full bg-green-400"></span>OK — por encima del mínimo</span>
+        <span class="flex items-center gap-1.5 text-xs text-slate-500"><span class="inline-block w-3 h-3 rounded-full bg-amber-400"></span>Alerta — entre 50% y 100% del mínimo</span>
+        <span class="flex items-center gap-1.5 text-xs text-slate-500"><span class="inline-block w-3 h-3 rounded-full bg-red-400"></span>Crítico — por debajo del mínimo · pedir ya</span>
+        <span class="flex items-center gap-1.5 text-xs text-slate-500"><span class="inline-block w-3 h-3 rounded-full bg-slate-300"></span>Sin dato</span>
       </div>
 
       <!-- MARISCOS -->
@@ -1093,11 +1098,11 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
             <thead>
               <tr class="bg-slate-50 border-b border-slate-200/80">
                 <th class="text-left px-4 py-2.5 font-semibold text-slate-500 text-xs w-44">Insumo</th>
-                <th class="text-right px-3 py-2.5 font-semibold text-slate-800 text-xs">Arranque martes</th>
-                <th class="text-right px-3 py-2.5 font-semibold text-blue-500 text-xs">2do pedido jue</th>
-                <th class="text-right px-3 py-2.5 font-semibold text-slate-400 text-xs">Máx bodega</th>
+                <th class="text-right px-3 py-2.5 font-semibold text-slate-500 text-xs">Mín (kg)</th>
+                <th class="text-right px-3 py-2.5 font-semibold text-slate-500 text-xs">Máx (kg)</th>
+                <th class="text-right px-3 py-2.5 font-semibold text-slate-500 text-xs">Pedido base</th>
                 <th class="text-center px-3 py-2.5 font-semibold text-slate-500 text-xs">Conteo físico (kg)</th>
-                <th class="text-center px-3 py-2.5 font-semibold text-slate-500 text-xs w-28">Estado</th>
+                <th class="text-center px-3 py-2.5 font-semibold text-slate-500 text-xs w-24">Estado</th>
                 <th class="text-left px-3 py-2.5 font-semibold text-slate-500 text-xs">Nota</th>
               </tr>
             </thead>
@@ -1116,11 +1121,11 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
             <thead>
               <tr class="bg-slate-50 border-b border-slate-200/80">
                 <th class="text-left px-4 py-2.5 font-semibold text-slate-500 text-xs w-44">Insumo</th>
-                <th class="text-right px-3 py-2.5 font-semibold text-slate-800 text-xs">Arranque martes</th>
-                <th class="text-right px-3 py-2.5 font-semibold text-blue-500 text-xs">2do pedido jue</th>
-                <th class="text-right px-3 py-2.5 font-semibold text-slate-400 text-xs">Máx bodega</th>
+                <th class="text-right px-3 py-2.5 font-semibold text-slate-500 text-xs">Mín (kg)</th>
+                <th class="text-right px-3 py-2.5 font-semibold text-slate-500 text-xs">Máx (kg)</th>
+                <th class="text-right px-3 py-2.5 font-semibold text-slate-500 text-xs">Pedido base</th>
                 <th class="text-center px-3 py-2.5 font-semibold text-slate-500 text-xs">Conteo físico (kg)</th>
-                <th class="text-center px-3 py-2.5 font-semibold text-slate-500 text-xs w-28">Estado</th>
+                <th class="text-center px-3 py-2.5 font-semibold text-slate-500 text-xs w-24">Estado</th>
                 <th class="text-left px-3 py-2.5 font-semibold text-slate-500 text-xs">Nota</th>
               </tr>
             </thead>
@@ -1139,11 +1144,11 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
             <thead>
               <tr class="bg-slate-50 border-b border-slate-200/80">
                 <th class="text-left px-4 py-2.5 font-semibold text-slate-500 text-xs w-44">Insumo</th>
-                <th class="text-right px-3 py-2.5 font-semibold text-slate-800 text-xs">Arranque martes</th>
-                <th class="text-right px-3 py-2.5 font-semibold text-blue-500 text-xs">2do pedido jue</th>
-                <th class="text-right px-3 py-2.5 font-semibold text-slate-400 text-xs">Máx bodega</th>
+                <th class="text-right px-3 py-2.5 font-semibold text-slate-500 text-xs">Mín (kg)</th>
+                <th class="text-right px-3 py-2.5 font-semibold text-slate-500 text-xs">Máx (kg)</th>
+                <th class="text-right px-3 py-2.5 font-semibold text-slate-500 text-xs">Pedido base</th>
                 <th class="text-center px-3 py-2.5 font-semibold text-slate-500 text-xs">Conteo físico (kg)</th>
-                <th class="text-center px-3 py-2.5 font-semibold text-slate-500 text-xs w-28">Estado</th>
+                <th class="text-center px-3 py-2.5 font-semibold text-slate-500 text-xs w-24">Estado</th>
                 <th class="text-left px-3 py-2.5 font-semibold text-slate-500 text-xs">Nota</th>
               </tr>
             </thead>
@@ -1152,29 +1157,12 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         </div>
       </div>
 
-      <!-- VINOS Y CERVEZAS — cruce Loyverse -->
-      <div class="border-t border-slate-200 pt-6 mt-2 mb-5">
-        <div class="flex flex-wrap items-center gap-3 mb-4">
-          <div>
-            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Fecha de cierre del conteo</p>
-            <input type="date" id="inv-bar-fecha" onchange="sincronizarBarLoyverse()" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
-          </div>
-          <p class="text-xs text-slate-400 mt-4" id="inv-bar-sync-label">Selecciona la fecha para cargar ventas de Loyverse</p>
-        </div>
-        <div id="inv-bar-container">
-          <div class="flex flex-col items-center justify-center py-10 text-center">
-            <span class="ms text-4xl text-slate-200 mb-3">wine_bar</span>
-            <p class="text-slate-400 text-sm">Selecciona una fecha para ver el cruce de vinos y cervezas</p>
-          </div>
-        </div>
-      </div>
-
       <!-- Banner recetario pendiente -->
       <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex gap-3 items-start">
         <span class="ms text-xl text-blue-400 mt-0.5">info</span>
         <div>
-          <p class="text-sm font-semibold text-blue-800">Cruce automático de cocina pendiente</p>
-          <p class="text-xs text-blue-600 mt-0.5">Cuando llegue el recetario en Excel, carnes/mariscos/lácteos calcularán consumo teórico × ventas Loyverse igual que vinos. Los valores de arranque actuales son estimados con 7 semanas de compras históricas (feb–abr 2026).</p>
+          <p class="text-sm font-semibold text-blue-800">Cruce automático con Loyverse pendiente</p>
+          <p class="text-xs text-blue-600 mt-0.5">Cuando llegue el recetario en Excel, los mínimos y máximos se calcularán automáticamente a partir del consumo real por platillo × ventas Loyverse. Los valores actuales son estimados con base en 7 semanas de compras históricas (feb–abr 2026). El conteo se guarda localmente y se migrará a Supabase en Fase 2.</p>
         </div>
       </div>
     </section>
@@ -1801,6 +1789,7 @@ function setDashPeriodo(periodo, btnEl) {
     btnEl.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold';
   }
   renderDashboard();
+  sincronizarVentasDashboard(null); // Auto-sync Loyverse al cambiar período
 }
 
 function getDashCompras() {
@@ -5183,56 +5172,30 @@ function initCondicionFechas() {
 }
 
 // ============================================================
-// INVENTARIO & STOCKS — Mínimos / Máximos + Cruce Vinos/Cervezas Loyverse
-// Arranque = promedio exacto 7 semanas (feb–abr 2026). Sin buffer.
-// 2do pedido planificado jueves si semana pinta alta. Máx = techo de bodega.
-// PENDIENTE: carnes/mariscos/lácteos cruzan con recetario Excel (pendiente entrega)
+// INVENTARIO & STOCKS — Mínimos / Máximos
+// Basado en 7 semanas de registro histórico (feb–abr 2026)
+// PENDIENTE: recalcular con recetario Excel cuando sea entregado
 // ============================================================
 
 const STOCKS = {
   mariscos: [
-    { nombre:'Camarón 31/35',     arranque:3.0, segundoPedido:1.5, max:4.5, cv:31, nota:'2do pedido jueves si semana pinta alta' },
-    { nombre:'Camarón 21/25',     arranque:3.0, segundoPedido:1.5, max:4.5, cv:27, nota:'2do pedido jueves si semana pinta alta' },
-    { nombre:'Salmón lonja',      arranque:2.4, segundoPedido:1.0, max:3.5, cv:40, nota:'2do pedido jueves si semana pinta alta' },
-    { nombre:'Calamar americano', arranque:1.2, segundoPedido:0.5, max:2.0, cv:0,  nota:'2do pedido rara vez necesario' },
+    { nombre:'Camarón 31/35',     min:3.0, max:5.5, pedidoBase:3.0, cv:31, nota:'Pedir si quedan < 1 kg en cocina' },
+    { nombre:'Camarón 21/25',     min:3.0, max:5.0, pedidoBase:3.0, cv:27, nota:'Pedir si quedan < 1 kg en cocina' },
+    { nombre:'Salmón lonja',      min:2.5, max:4.5, pedidoBase:2.5, cv:40, nota:'Confirmar con chef antes de pedir' },
+    { nombre:'Calamar americano', min:1.0, max:2.5, pedidoBase:1.0, cv:0,  nota:'Pedido fijo semanal' },
   ],
   carniceria: [
-    { nombre:'Carne molida',  arranque:4.1, segundoPedido:2.0, max:6.0, cv:24, nota:'2do pedido jueves si semana pinta alta' },
-    { nombre:'Pollo porción', arranque:3.6, segundoPedido:1.5, max:5.0, cv:20, nota:'2do pedido jueves si semana pinta alta' },
-    { nombre:'Milanesa',      arranque:1.7, segundoPedido:1.0, max:3.0, cv:41, nota:'2do pedido solo si hay reservaciones' },
-    { nombre:'Tocino',        arranque:1.8, segundoPedido:1.0, max:3.0, cv:33, nota:'2do pedido jueves si semana pinta alta' },
+    { nombre:'Carne molida',  min:3.5, max:6.0, pedidoBase:3.5, cv:24, nota:'Consumo bajó sem 4–7, revisar menú' },
+    { nombre:'Pollo porción', min:3.0, max:5.5, pedidoBase:3.0, cv:20, nota:'Pedir si quedan < 1 kg' },
+    { nombre:'Milanesa',      min:1.0, max:3.0, pedidoBase:1.5, cv:41, nota:'Bajo demanda confirmada' },
+    { nombre:'Tocino',        min:2.0, max:3.0, pedidoBase:2.0, cv:33, nota:'Pedido quincenal, patrón alterno' },
   ],
   lacteos: [
-    { nombre:'Queso Parmesano', arranque:4.8, segundoPedido:2.0, max:7.0, cv:53, nota:'2do pedido jueves si hay eventos' },
+    { nombre:'Queso Parmesano', min:4.0, max:7.0, pedidoBase:4.0, cv:53, nota:'Alta variabilidad — confirmar recetas de la semana' },
   ],
 };
 
-// VINOS Y CERVEZAS — cruce con Loyverse (del módulo original)
-const INV_INSUMOS_BAR = [
-  { cat:'Vinos', nombre:'Cal y Canto',           unidad:'bot', precio_ref:164, loyverse:[{ item:'CAL & CANTO COPA', copas:5 },{ item:'CAL & CANTO BOTELLA', copas:1 }]},
-  { cat:'Vinos', nombre:'Rincones Rosé',         unidad:'bot', precio_ref:160, loyverse:[{ item:'COPA Rincones ROSADO', copas:5 }]},
-  { cat:'Vinos', nombre:"Nero d'Avola IGT",      unidad:'bot', precio_ref:253, loyverse:[{ item:"Nero D'Avola Copa", copas:5 },{ item:'Botella NERO DAVOLA IGT', copas:1 }]},
-  { cat:'Vinos', nombre:'Soave DOC',             unidad:'bot', precio_ref:235, loyverse:[{ item:'SOAVE BLANCO COPA', copas:5 }]},
-  { cat:'Vinos', nombre:'Alvarinho Desvario',    unidad:'bot', precio_ref:290, loyverse:[{ item:'Botella Alvarinho', copas:1 }]},
-  { cat:'Vinos', nombre:'Prosecco Villa Sandi',  unidad:'bot', precio_ref:209, loyverse:[{ item:'Prosecco DOC Copa', copas:5 }]},
-  { cat:'Vinos', nombre:'Gran Passione Merlot',  unidad:'bot', precio_ref:310, loyverse:[{ item:'GRAN PASSIONE, MERLOT BOTELLA', copas:1 }]},
-  { cat:'Vinos', nombre:'Chauvenet 5L (blanco cocina)', unidad:'pza', precio_ref:476, loyverse:[{ item:'COPA CLERICOT', copas:0.2 },{ item:'JARRA DE CLERICOT', copas:1 },{ item:'TINTO DE VERANO', copas:0.2 }]},
-  { cat:'Vinos', nombre:'Vino tinto Clericot',   unidad:'pza', precio_ref:280, loyverse:[]},
-  { cat:'Vinos', nombre:'Bacardi Blanco 1.75L',  unidad:'bot', precio_ref:464, loyverse:[{ item:'BACARDI BLANCO', copas:29 }]},
-  { cat:'Vinos', nombre:'Tanqueray 750ml',       unidad:'bot', precio_ref:549, loyverse:[{ item:'TANQUERAY', copas:15 }]},
-  { cat:'Vinos', nombre:'Campari 750ml',         unidad:'bot', precio_ref:450, loyverse:[{ item:'SPRITZ', copas:8 }]},
-  { cat:'Refrescos y Cervezas', nombre:'Coca Cola',       unidad:'pza', precio_ref:20.35, loyverse:[{ item:'COCA COLA',       copas:1 }]},
-  { cat:'Refrescos y Cervezas', nombre:'Coca Cola Zero',  unidad:'pza', precio_ref:22.00, loyverse:[{ item:'COCA COLA ZERO',  copas:1 }]},
-  { cat:'Refrescos y Cervezas', nombre:'Topo Chico',      unidad:'pza', precio_ref:20.31, loyverse:[{ item:'TOPO CHICO',      copas:1 }]},
-  { cat:'Refrescos y Cervezas', nombre:'Modelo Especial', unidad:'pza', precio_ref:23.32, loyverse:[{ item:'MODELO ESPECIAL', copas:1 }]},
-  { cat:'Refrescos y Cervezas', nombre:'Negra Modelo',    unidad:'pza', precio_ref:24.38, loyverse:[{ item:'NEGRA MODELO',    copas:1 }]},
-  { cat:'Refrescos y Cervezas', nombre:'Corona',          unidad:'pza', precio_ref:23.32, loyverse:[{ item:'CORONA',          copas:1 }]},
-  { cat:'Refrescos y Cervezas', nombre:'Stella Artois',   unidad:'pza', precio_ref:24.38, loyverse:[{ item:'STELLA ARTOIS',   copas:1 }]},
-  { cat:'Refrescos y Cervezas', nombre:'Victoria',        unidad:'pza', precio_ref:16.96, loyverse:[{ item:'VICTORIA',        copas:1 }]},
-];
-
 let conteoInventario = JSON.parse(localStorage.getItem('romatella_conteo_inv') || '{}');
-let INV_STATE_BAR = {};
 
 function renderTablaStock(tbody, items, categoria) {
   tbody.innerHTML = '';
@@ -5248,15 +5211,15 @@ function renderTablaStock(tbody, items, categoria) {
     let estadoColor = 'text-slate-400';
 
     if (tieneConteo && !isNaN(val)) {
-      if (val >= item.arranque) {
+      if (val >= item.min) {
         dot = '<span class="inline-block w-3 h-3 rounded-full bg-green-400"></span>';
         estadoTexto = 'OK'; estadoColor = 'text-green-700';
-      } else if (val >= item.arranque * 0.4) {
+      } else if (val >= item.min * 0.5) {
         dot = '<span class="inline-block w-3 h-3 rounded-full bg-amber-400"></span>';
-        estadoTexto = 'Pedir jueves'; estadoColor = 'text-amber-700'; rowBg = 'background:rgba(251,191,36,0.06)';
+        estadoTexto = 'Alerta'; estadoColor = 'text-amber-700'; rowBg = 'background:rgba(251,191,36,0.06)';
       } else {
         dot = '<span class="inline-block w-3 h-3 rounded-full bg-red-400" style="animation:pulse 1s infinite"></span>';
-        estadoTexto = 'Pedir ya'; estadoColor = 'text-red-700'; rowBg = 'background:rgba(239,68,68,0.05)';
+        estadoTexto = 'Crítico'; estadoColor = 'text-red-700'; rowBg = 'background:rgba(239,68,68,0.05)';
       }
     }
 
@@ -5268,9 +5231,9 @@ function renderTablaStock(tbody, items, categoria) {
     tr.setAttribute('style', (rowBg || '') + ';border-bottom:1px solid #f1f5f9');
     tr.innerHTML = `
       <td class="px-4 py-3 font-medium text-slate-800 text-sm">${item.nombre}${cvBadge}</td>
-      <td class="px-3 py-3 text-right font-mono text-sm font-semibold text-slate-800">${item.arranque} kg</td>
-      <td class="px-3 py-3 text-right font-mono text-xs text-blue-600">${item.segundoPedido} kg</td>
-      <td class="px-3 py-3 text-right font-mono text-xs text-slate-400">${item.max} kg</td>
+      <td class="px-3 py-3 text-right text-slate-600 font-mono text-xs">${item.min}</td>
+      <td class="px-3 py-3 text-right text-slate-600 font-mono text-xs">${item.max}</td>
+      <td class="px-3 py-3 text-right text-slate-500 font-mono text-xs">${item.pedidoBase}</td>
       <td class="px-3 py-3 text-center">
         <input type="number" min="0" step="0.1"
           value="${tieneConteo && !isNaN(val) ? val : ''}"
@@ -5289,165 +5252,24 @@ function renderTablaStock(tbody, items, categoria) {
   });
 }
 
-function renderTablaBar(cat, items, ventasSemana, comprasSemana, desde, hasta) {
-  const catColors = {
-    'Vinos':                { badge:'text-purple-700 bg-purple-50', icon:'wine_bar'  },
-    'Refrescos y Cervezas': { badge:'text-cyan-700 bg-cyan-50',     icon:'local_bar' },
-  };
-  const cc = catColors[cat] || { badge:'text-slate-600 bg-slate-50', icon:'inventory_2' };
-  let html = `<div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-5">
-    <div class="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100">
-      <span class="ms ${cc.badge.split(' ')[0]}">${cc.icon}</span>
-      <span class="font-semibold text-slate-900 text-sm">${cat}</span>
-      <span class="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-lg font-medium">✓ Cruce Loyverse activo</span>
-      <span class="text-xs text-slate-400 ml-auto">${items.length} productos · ${desde} → ${hasta}</span>
-    </div>
-    <div class="overflow-x-auto"><table class="w-full text-sm">
-      <thead class="bg-slate-50/60"><tr>
-        <th class="text-left px-4 py-2.5 text-xs text-slate-500 font-semibold min-w-36">Producto</th>
-        <th class="text-center px-2 py-2.5 text-xs text-slate-500 font-semibold">Unidad</th>
-        <th class="text-center px-2 py-2.5 text-xs text-slate-500 font-semibold">Inv. inicial</th>
-        <th class="text-center px-2 py-2.5 text-xs text-slate-500 font-semibold">+ Compras</th>
-        <th class="text-center px-2 py-2.5 text-xs text-slate-400 font-semibold bg-green-50/50">Vendido Loyverse</th>
-        <th class="text-center px-2 py-2.5 text-xs font-semibold bg-blue-50/60" style="color:#0059b5">Debería haber</th>
-        <th class="text-center px-2 py-2.5 text-xs text-slate-500 font-semibold">Existencia real</th>
-        <th class="text-center px-2 py-2.5 text-xs text-slate-500 font-semibold">Diferencia</th>
-        <th class="text-center px-2 py-2.5 text-xs text-slate-500 font-semibold w-20">Estado</th>
-      </tr></thead><tbody>`;
-
-  items.forEach(ins => {
-    const key = ins.nombre.toUpperCase().trim();
-    const st = INV_STATE_BAR[key] || { ini:'', fin:'' };
-    const compras = comprasSemana[key] || 0;
-    let vendidoLP = 0;
-    ins.loyverse.forEach(lp => {
-      const lkey = lp.item.toUpperCase().trim();
-      vendidoLP += (ventasSemana[lkey] || 0) / lp.copas;
-    });
-    const ini = st.ini !== '' ? parseFloat(st.ini) : null;
-    const fin = st.fin !== '' ? parseFloat(st.fin) : null;
-    const deberia = ini !== null ? Math.max(0, ini + compras - vendidoLP) : null;
-    const diferencia = (fin !== null && deberia !== null) ? (fin - deberia) : null;
-    let estadoHtml = '<span class="text-slate-300">—</span>';
-    if (diferencia !== null) {
-      if (Math.abs(diferencia) <= (deberia||0) * 0.03)      estadoHtml = '<span class="text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-lg">OK</span>';
-      else if (diferencia < 0 && Math.abs(diferencia) <= (deberia||0) * 0.10) estadoHtml = '<span class="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-lg">Merma leve</span>';
-      else if (diferencia < 0) estadoHtml = '<span class="text-xs font-semibold text-red-700 bg-red-50 px-2 py-0.5 rounded-lg">⚠ Merma</span>';
-      else estadoHtml = '<span class="text-xs font-semibold text-blue-700 bg-blue-50 px-2 py-0.5 rounded-lg">Sobrante</span>';
-    }
-    const fmt2 = v => v !== null ? v.toFixed(2) : '—';
-    html += `<tr class="border-b border-slate-50 hover:bg-slate-50/50">
-      <td class="px-4 py-2.5 font-medium text-slate-800">${ins.nombre}</td>
-      <td class="px-2 py-2.5 text-center text-slate-500 text-xs">${ins.unidad}</td>
-      <td class="px-2 py-2.5 text-center"><input type="number" step="0.01" value="${st.ini}" placeholder="0"
-        oninput="invUpdateBar('${key}','ini',this.value)"
-        class="w-16 text-center border border-slate-200 rounded-lg px-1 py-0.5 text-xs focus:outline-none focus:border-primary bg-white"/></td>
-      <td class="px-2 py-2.5 text-center text-slate-600 text-xs font-mono">${compras > 0 ? '+'+compras.toFixed(2) : '—'}</td>
-      <td class="px-2 py-2.5 text-center bg-green-50/30 text-xs font-mono text-green-700">${vendidoLP.toFixed(2)}</td>
-      <td class="px-2 py-2.5 text-center bg-blue-50/40 text-xs font-mono font-semibold" style="color:#0059b5">${fmt2(deberia)}</td>
-      <td class="px-2 py-2.5 text-center"><input type="number" step="0.01" value="${st.fin}" placeholder="0"
-        oninput="invUpdateBar('${key}','fin',this.value)"
-        class="w-16 text-center border border-slate-200 rounded-lg px-1 py-0.5 text-xs focus:outline-none focus:border-primary bg-white"/></td>
-      <td class="px-2 py-2.5 text-center text-xs font-mono ${diferencia !== null ? (diferencia < 0 ? 'text-red-600':'text-green-700') : 'text-slate-300'}">
-        ${diferencia !== null ? (diferencia >= 0 ? '+':'') + diferencia.toFixed(2) : '—'}
-      </td>
-      <td class="px-2 py-3 text-center">${estadoHtml}</td>
-    </tr>`;
-  });
-  html += `</tbody></table></div></div>`;
-  return html;
-}
-
-function invUpdateBar(key, campo, valor) {
-  if (!INV_STATE_BAR[key]) INV_STATE_BAR[key] = { ini:'', fin:'' };
-  INV_STATE_BAR[key][campo] = valor;
-}
-
 function renderInventario() {
-  // — Tablas de cocina con semáforo de stocks —
   const bM = document.getElementById('inv-mariscos-body');
   const bC = document.getElementById('inv-carniceria-body');
   const bL = document.getElementById('inv-lacteos-body');
   if (bM) renderTablaStock(bM, STOCKS.mariscos, 'mariscos');
   if (bC) renderTablaStock(bC, STOCKS.carniceria, 'carniceria');
   if (bL) renderTablaStock(bL, STOCKS.lacteos, 'lacteos');
-
-  // — Tablas de bar con cruce Loyverse —
-  const barContainer = document.getElementById('inv-bar-container');
-  if (!barContainer) return;
-
-  const fechaEl = document.getElementById('inv-bar-fecha');
-  if (!fechaEl || !fechaEl.value) { barContainer.innerHTML = '<p class="text-xs text-slate-400 italic p-4">Selecciona una fecha para ver el cruce de vinos y cervezas</p>'; return; }
-
-  const hasta = fechaEl.value;
-  const desde = getInvBarSemanaDesde(hasta);
-
-  const comprasSemana = {};
-  DB.compras.filter(c => c.fecha >= desde && c.fecha <= hasta).forEach(c => {
-    (c.items||[]).forEach(item => {
-      const key = (item.nombre||'').toUpperCase().trim();
-      comprasSemana[key] = (comprasSemana[key]||0) + (parseFloat(item.cantidad)||0);
-    });
-  });
-
-  const ventasSemana = {};
-  (DB.invRecibos || []).filter(r => {
-    const d = (r.created_at||'').substring(0,10);
-    return d >= desde && d <= hasta;
-  }).forEach(r => {
-    (r.line_items||[]).forEach(li => {
-      const key = (li.item_name||'').toUpperCase().trim();
-      ventasSemana[key] = (ventasSemana[key]||0) + (parseFloat(li.quantity)||0);
-    });
-  });
-
-  const cats = {};
-  INV_INSUMOS_BAR.forEach(ins => { if (!cats[ins.cat]) cats[ins.cat] = []; cats[ins.cat].push(ins); });
-
-  barContainer.innerHTML = Object.entries(cats).map(([cat, items]) =>
-    renderTablaBar(cat, items, ventasSemana, comprasSemana, desde, hasta)
-  ).join('');
-}
-
-function getInvBarSemanaDesde(fechaHasta) {
-  const d = new Date(fechaHasta + 'T12:00:00');
-  const dow = d.getDay();
-  const diasDesdeMartes = dow === 0 ? 5 : ((dow - 2 + 7) % 7);
-  const martes = new Date(d);
-  martes.setDate(d.getDate() - diasDesdeMartes);
-  return martes.toISOString().split('T')[0];
-}
-
-async function sincronizarBarLoyverse() {
-  const fechaEl = document.getElementById('inv-bar-fecha');
-  if (!fechaEl || !fechaEl.value) { toast('Selecciona la fecha de cierre'); return; }
-  const hasta = fechaEl.value;
-  const desde = getInvBarSemanaDesde(hasta);
-  const label = document.getElementById('inv-bar-sync-label');
-  if (label) label.textContent = 'Cargando ventas...';
-  try {
-    const resp = await fetch('/api/loyverse?endpoint=summary&date_from='
-      + encodeURIComponent(desde + 'T00:00:00.000Z')
-      + '&date_to=' + encodeURIComponent(hasta + 'T23:59:59.000Z'));
-    const data = await resp.json();
-    DB.invRecibos = data.receipts || [];
-    const hora = new Date().toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
-    if (label) label.textContent = '✓ ' + DB.invRecibos.length + ' ventas · ' + desde + ' → ' + hasta + ' · ' + hora;
-    renderInventario();
-  } catch(e) {
-    if (label) label.textContent = 'Error al conectar con Loyverse';
-    toast('Error: ' + e.message);
-  }
 }
 
 function actualizarConteo(key, value) {
   conteoInventario[key] = value === '' ? undefined : parseFloat(value);
   localStorage.setItem('romatella_conteo_inv', JSON.stringify(conteoInventario));
+  renderInventario();
 }
 
 function guardarConteoInventario() {
   localStorage.setItem('romatella_conteo_inv', JSON.stringify(conteoInventario));
-  toast('✓ Conteo de cocina guardado');
+  toast('✓ Conteo guardado — pendiente migrar a Supabase con recetario');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
