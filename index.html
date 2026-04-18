@@ -4347,7 +4347,7 @@ function filtrarHistorial(filtro, btnEl) {
   const todayStr = hoy.getFullYear() + '-' + pad(hoy.getMonth() + 1) + '-' + pad(hoy.getDate());
 
   let compras = [...DB.compras].sort((a, b) => {
-    if (b.fecha !== a.fecha) return b.fecha > a.fecha ? -1 : 1;
+    if (b.fecha !== a.fecha) return b.fecha > a.fecha ? 1 : -1;
     return new Date(b.created_at||0) - new Date(a.created_at||0);
   });
 
@@ -4467,7 +4467,7 @@ function renderHistorialPorProveedor() {
   const todayStr = hoy.getFullYear() + '-' + pad(hoy.getMonth()+1) + '-' + pad(hoy.getDate());
 
   let compras = [...DB.compras].sort((a, b) => {
-    if (b.fecha !== a.fecha) return b.fecha > a.fecha ? -1 : 1;
+    if (b.fecha !== a.fecha) return b.fecha > a.fecha ? 1 : -1;
     return new Date(b.created_at||0) - new Date(a.created_at||0);
   });
 
