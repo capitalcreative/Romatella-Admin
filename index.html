@@ -115,7 +115,13 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         <span class="ms text-lg">assessment</span>Reportes
       </div>
       <div onclick="showSec('inventario')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-inventario">
-        <span class="ms text-lg">warehouse</span>Inventario
+        <span class="ms text-lg">fact_check</span>Inventario
+      </div>
+      <div onclick="showSec('salidas')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-salidas">
+        <span class="ms text-lg">payments</span>Salidas de Caja
+      </div>
+      <div onclick="showSec('pnl')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-pnl">
+        <span class="ms text-lg">bar_chart</span>P&L Semanal
       </div>
     </nav>
     <button type="button" onclick="doLogout()" class="mx-2 mb-2 text-slate-400 py-2 px-3 rounded-xl text-sm flex items-center gap-2 hover:bg-slate-100 transition-colors">
@@ -180,7 +186,13 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           <span class="ms text-lg">assessment</span>Reportes
         </div>
         <div onclick="mobileNav('inventario')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
-          <span class="ms text-lg">warehouse</span>Inventario
+          <span class="ms text-lg">fact_check</span>Inventario
+        </div>
+        <div onclick="mobileNav('salidas')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
+          <span class="ms text-lg">payments</span>Salidas de Caja
+        </div>
+        <div onclick="mobileNav('pnl')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
+          <span class="ms text-lg">bar_chart</span>P&L Semanal
         </div>
       </nav>
       <button type="button" onclick="doLogout()" class="mx-2 mb-2 text-slate-400 py-2.5 px-3 rounded-xl text-sm flex items-center gap-2 hover:bg-slate-100 transition-colors">
@@ -235,7 +247,10 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
           <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Ventas del Período</p>
           <p class="text-2xl font-bold text-slate-900" id="metric-ventas">—</p>
-          <p class="text-xs text-slate-400 mt-1">Loyverse <span id="dash-sync-icon" class="ms text-xs text-slate-300" style="vertical-align:middle"></span></p>
+          <div class="flex items-center gap-1 mt-1">
+            <span class="ms text-xs text-slate-300" id="dash-sync-icon">sync</span>
+            <p class="text-xs text-slate-400" id="dash-sync-label">cargando...</p>
+          </div>
         </div>
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
           <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Cuentas por Pagar</p>
@@ -1063,141 +1078,113 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
       </div>
     </div>
 
-    <!-- INVENTARIO & STOCKS -->
-    <section id="sec-inventario" class="sec p-5 fade">
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 mb-5">
-        <div>
-          <h2 class="text-2xl font-bold text-slate-900">Inventario & Stocks</h2>
-          <p class="text-sm text-slate-400">Conteo semanal · Semáforo de mínimos/máximos</p>
-        </div>
-        <div class="flex gap-2 items-center flex-wrap">
-          <span class="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl font-medium flex items-center gap-1.5">
-            <span class="ms text-sm">schedule</span>En espera de recetario — cruce automático pendiente
-          </span>
-          <button type="button" onclick="guardarConteoInventario()" class="px-3 py-1.5 rounded-xl bg-primary-container text-white text-xs font-semibold flex items-center gap-1.5">
-            <span class="ms text-sm">save</span>Guardar conteo
-          </button>
-        </div>
-      </div>
-
-      <!-- Leyenda semáforo -->
-      <div class="flex gap-4 mb-5 flex-wrap">
-        <span class="flex items-center gap-1.5 text-xs text-slate-500"><span class="inline-block w-3 h-3 rounded-full bg-green-400"></span>OK — por encima del mínimo</span>
-        <span class="flex items-center gap-1.5 text-xs text-slate-500"><span class="inline-block w-3 h-3 rounded-full bg-amber-400"></span>Alerta — entre 50% y 100% del mínimo</span>
-        <span class="flex items-center gap-1.5 text-xs text-slate-500"><span class="inline-block w-3 h-3 rounded-full bg-red-400"></span>Crítico — por debajo del mínimo · pedir ya</span>
-        <span class="flex items-center gap-1.5 text-xs text-slate-500"><span class="inline-block w-3 h-3 rounded-full bg-slate-300"></span>Sin dato</span>
-      </div>
-
-      <!-- MARISCOS -->
-      <div class="mb-6">
-        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-          <span class="ms text-base">set_meal</span>Mariscos · KRILL
-        </h3>
-        <div class="bg-white rounded-2xl border border-slate-200/80 overflow-hidden overflow-x-auto">
-          <table class="w-full text-sm min-w-[640px]">
-            <thead>
-              <tr class="bg-slate-50 border-b border-slate-200/80">
-                <th class="text-left px-4 py-2.5 font-semibold text-slate-500 text-xs w-44">Insumo</th>
-                <th class="text-right px-3 py-2.5 font-semibold text-slate-500 text-xs">Mín (kg)</th>
-                <th class="text-right px-3 py-2.5 font-semibold text-slate-500 text-xs">Máx (kg)</th>
-                <th class="text-right px-3 py-2.5 font-semibold text-slate-500 text-xs">Pedido base</th>
-                <th class="text-center px-3 py-2.5 font-semibold text-slate-500 text-xs">Conteo físico (kg)</th>
-                <th class="text-center px-3 py-2.5 font-semibold text-slate-500 text-xs w-24">Estado</th>
-                <th class="text-left px-3 py-2.5 font-semibold text-slate-500 text-xs">Nota</th>
-              </tr>
-            </thead>
-            <tbody id="inv-mariscos-body"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- CARNICERÍA -->
-      <div class="mb-6">
-        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-          <span class="ms text-base">restaurant</span>Carnicería · DIANA
-        </h3>
-        <div class="bg-white rounded-2xl border border-slate-200/80 overflow-hidden overflow-x-auto">
-          <table class="w-full text-sm min-w-[640px]">
-            <thead>
-              <tr class="bg-slate-50 border-b border-slate-200/80">
-                <th class="text-left px-4 py-2.5 font-semibold text-slate-500 text-xs w-44">Insumo</th>
-                <th class="text-right px-3 py-2.5 font-semibold text-slate-500 text-xs">Mín (kg)</th>
-                <th class="text-right px-3 py-2.5 font-semibold text-slate-500 text-xs">Máx (kg)</th>
-                <th class="text-right px-3 py-2.5 font-semibold text-slate-500 text-xs">Pedido base</th>
-                <th class="text-center px-3 py-2.5 font-semibold text-slate-500 text-xs">Conteo físico (kg)</th>
-                <th class="text-center px-3 py-2.5 font-semibold text-slate-500 text-xs w-24">Estado</th>
-                <th class="text-left px-3 py-2.5 font-semibold text-slate-500 text-xs">Nota</th>
-              </tr>
-            </thead>
-            <tbody id="inv-carniceria-body"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- LÁCTEOS -->
-      <div class="mb-6">
-        <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-          <span class="ms text-base">egg_alt</span>Lácteos · AYALA
-        </h3>
-        <div class="bg-white rounded-2xl border border-slate-200/80 overflow-hidden overflow-x-auto">
-          <table class="w-full text-sm min-w-[640px]">
-            <thead>
-              <tr class="bg-slate-50 border-b border-slate-200/80">
-                <th class="text-left px-4 py-2.5 font-semibold text-slate-500 text-xs w-44">Insumo</th>
-                <th class="text-right px-3 py-2.5 font-semibold text-slate-500 text-xs">Mín (kg)</th>
-                <th class="text-right px-3 py-2.5 font-semibold text-slate-500 text-xs">Máx (kg)</th>
-                <th class="text-right px-3 py-2.5 font-semibold text-slate-500 text-xs">Pedido base</th>
-                <th class="text-center px-3 py-2.5 font-semibold text-slate-500 text-xs">Conteo físico (kg)</th>
-                <th class="text-center px-3 py-2.5 font-semibold text-slate-500 text-xs w-24">Estado</th>
-                <th class="text-left px-3 py-2.5 font-semibold text-slate-500 text-xs">Nota</th>
-              </tr>
-            </thead>
-            <tbody id="inv-lacteos-body"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Banner recetario pendiente -->
-      <div class="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex gap-3 items-start">
-        <span class="ms text-xl text-blue-400 mt-0.5">info</span>
-        <div>
-          <p class="text-sm font-semibold text-blue-800">Cruce automático con Loyverse pendiente</p>
-          <p class="text-xs text-blue-600 mt-0.5">Cuando llegue el recetario en Excel, los mínimos y máximos se calcularán automáticamente a partir del consumo real por platillo × ventas Loyverse. Los valores actuales son estimados con base en 7 semanas de compras históricas (feb–abr 2026). El conteo se guarda localmente y se migrará a Supabase en Fase 2.</p>
-        </div>
-      </div>
-    </section>
-
     <!-- REPORTES -->
     <section id="sec-reportes" class="sec p-5 fade">
-
-      <!-- Header -->
-      <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+      <div class="flex justify-between items-center mb-5">
         <h2 class="text-2xl font-bold text-slate-900">Reportes</h2>
-        <div class="flex flex-wrap gap-2">
+        <div class="flex gap-2">
           <button type="button" onclick="setPeriodo('semana',this)" id="rep-btn-semana" class="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-medium">Esta semana</button>
           <button type="button" onclick="setPeriodo('mes',this)" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200">Este mes</button>
           <button type="button" onclick="setPeriodo('año',this)" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200">Este año</button>
+          <button type="button" onclick="exportarCSV()" class="px-3 py-1.5 rounded-xl bg-primary-container text-white text-xs font-medium flex items-center gap-1">
+            <span class="ms text-sm">download</span>Exportar CSV
+          </button>
+        </div>
+      </div>
+      <div class="grid grid-cols-3 gap-4 mb-5">
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Gasto Total</p>
+
+      <!-- Exportar -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-5">
+        <h3 class="font-bold text-slate-900 mb-1">Exportar datos</h3>
+        <p class="text-sm text-slate-400 mb-4">Descarga tus registros en Excel para análisis externo</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <!-- Compras -->
+          <div class="border border-slate-100 rounded-xl p-4">
+            <div class="flex items-center gap-3 mb-3">
+              <span class="ms text-2xl text-blue-500">shopping_cart</span>
+              <div><p class="font-semibold text-sm">Compras</p><p class="text-xs text-slate-400">Historial completo con detalle de productos</p></div>
+            </div>
+            <div class="flex gap-2 mb-3">
+              <input type="date" id="exp-compras-desde" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
+              <input type="date" id="exp-compras-hasta" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
+            </div>
+            <button type="button" onclick="exportarCompras()" class="w-full py-2.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-blue-100">
+              <span class="ms text-base">download</span>Descargar Excel
+            </button>
+          </div>
+          <!-- Ventas -->
+          <div class="border border-slate-100 rounded-xl p-4">
+            <div class="flex items-center gap-3 mb-3">
+              <span class="ms text-2xl text-green-500">point_of_sale</span>
+              <div><p class="font-semibold text-sm">Ventas Loyverse</p><p class="text-xs text-slate-400">Recibos con forma de pago y productos</p></div>
+            </div>
+            <div class="flex gap-2 mb-3">
+              <input type="date" id="exp-ventas-desde" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
+              <input type="date" id="exp-ventas-hasta" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
+            </div>
+            <button type="button" onclick="exportarVentas()" class="w-full py-2.5 bg-green-50 text-green-700 border border-green-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-green-100">
+              <span class="ms text-base">download</span>Descargar Excel
+            </button>
+          </div>
+          <!-- Salidas de caja -->
+          <div class="border border-slate-100 rounded-xl p-4">
+            <div class="flex items-center gap-3 mb-3">
+              <span class="ms text-2xl text-orange-500">payments</span>
+              <div><p class="font-semibold text-sm">Salidas de Caja</p><p class="text-xs text-slate-400">Movimientos de efectivo por turno</p></div>
+            </div>
+            <div class="flex gap-2 mb-3">
+              <input type="date" id="exp-caja-desde" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
+              <input type="date" id="exp-caja-hasta" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
+            </div>
+            <button type="button" onclick="exportarCaja()" class="w-full py-2.5 bg-orange-50 text-orange-700 border border-orange-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-orange-100">
+              <span class="ms text-base">download</span>Descargar Excel
+            </button>
+          </div>
+          <!-- Cortes de caja -->
+          <div class="border border-slate-100 rounded-xl p-4">
+            <div class="flex items-center gap-3 mb-3">
+              <span class="ms text-2xl text-purple-500">receipt_long</span>
+              <div><p class="font-semibold text-sm">Cortes de Caja</p><p class="text-xs text-slate-400">Turnos con totales y formas de pago</p></div>
+            </div>
+            <div class="flex gap-2 mb-3">
+              <input type="date" id="exp-cortes-desde" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
+              <input type="date" id="exp-cortes-hasta" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
+            </div>
+            <button type="button" onclick="exportarCortes()" class="w-full py-2.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-purple-100">
+              <span class="ms text-base">download</span>Descargar Excel
+            </button>
+          </div>
+          <!-- Reporte combinado -->
+          <div class="border border-blue-100 bg-blue-50/30 rounded-xl p-4 md:col-span-2">
+            <div class="flex items-center gap-3 mb-3">
+              <span class="ms text-2xl text-primary-container">summarize</span>
+              <div><p class="font-semibold text-sm">Reporte Semanal Completo</p><p class="text-xs text-slate-400">Compras + Ventas + Salidas de caja en un solo archivo (martes a domingo)</p></div>
+            </div>
+            <div class="flex gap-2 mb-3 max-w-sm">
+              <input type="date" id="exp-semana-desde" class="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none"/>
+              <input type="date" id="exp-semana-hasta" class="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none"/>
+            </div>
+            <button type="button" onclick="exportarSemanalCompleto()" class="py-2.5 px-6 bg-primary-container text-white rounded-xl text-xs font-semibold flex items-center gap-2 hover:opacity-90">
+              <span class="ms text-base">download</span>Reporte semanal completo
+            </button>
+          </div>
         </div>
       </div>
 
-      <!-- KPIs -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Gasto Total</p>
-          <p class="text-2xl font-bold text-slate-900" id="rep-total">$0.00</p>
+          <p class="text-2xl font-bold" id="rep-total">$0.00</p>
         </div>
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
           <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Promedio por Compra</p>
-          <p class="text-2xl font-bold text-slate-900" id="rep-promedio">$0.00</p>
+          <p class="text-2xl font-bold" id="rep-promedio">$0.00</p>
         </div>
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
           <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Total Órdenes</p>
-          <p class="text-2xl font-bold text-slate-900" id="rep-ordenes">0</p>
+          <p class="text-2xl font-bold" id="rep-ordenes">0</p>
         </div>
       </div>
-
-      <!-- Categorías y proveedores -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-6">
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
           <h3 class="font-bold text-slate-900 mb-4">Gasto por Categoría</h3>
           <div id="rep-categorias" class="space-y-3">
@@ -1211,101 +1198,210 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           </div>
         </div>
       </div>
+    </section>
 
-      <!-- Exportar datos -->
-      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5">
-        <h3 class="font-bold text-slate-900 mb-1">Exportar datos</h3>
-        <p class="text-sm text-slate-400 mb-4">Descarga tus registros en Excel para análisis externo</p>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <!-- ======= INVENTARIO SEMANAL ======= -->
+    <section id="sec-inventario" class="sec p-5 fade">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <div>
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Fecha de cierre del conteo</p>
+          <input type="date" id="inv-fecha" onchange="invCambiarFecha()" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+          <p class="text-xs text-slate-400 mt-1" id="inv-sync-label">Selecciona la fecha para cargar ventas</p>
+        </div>
+        <button type="button" onclick="guardarInventario()" class="bg-primary-container text-white px-5 py-2.5 rounded-2xl text-sm font-semibold flex items-center gap-2 hover:opacity-90 shadow-sm shadow-blue-200">
+          <span class="ms">save</span>Guardar conteo
+        </button>
+      </div>
 
-          <!-- Compras -->
-          <div class="border border-slate-100 rounded-xl p-4">
-            <div class="flex items-center gap-3 mb-3">
-              <span class="ms text-2xl text-blue-500">shopping_cart</span>
-              <div><p class="font-semibold text-sm">Compras</p><p class="text-xs text-slate-400">Historial completo con detalle de productos</p></div>
-            </div>
-            <div class="flex flex-col gap-2 mb-3">
-              <button type="button" onclick="setExpSemana('compras')" class="w-full py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">↗ Esta semana (mar–dom)</button>
-              <div class="flex gap-2">
-                <input type="date" id="exp-compras-desde" class="flex-1 min-w-0 px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
-                <input type="date" id="exp-compras-hasta" class="flex-1 min-w-0 px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
-              </div>
-            </div>
-            <button type="button" onclick="exportarCompras()" class="w-full py-2.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-blue-100">
-              <span class="ms text-base">download</span>Descargar Excel
-            </button>
+      <!-- KPIs -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Consumo teórico</p>
+          <p class="text-2xl font-bold text-slate-900" id="inv-teorico">—</p>
+          <p class="text-xs text-slate-400 mt-1">según compras</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Consumo real</p>
+          <p class="text-2xl font-bold text-slate-900" id="inv-real">—</p>
+          <p class="text-xs text-slate-400 mt-1">según inventario</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Diferencia</p>
+          <p class="text-2xl font-bold text-slate-300" id="inv-diferencia">—</p>
+          <p class="text-xs text-slate-400 mt-1" id="inv-diferencia-pct">merma / fuga estimada</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Productos en alerta</p>
+          <p class="text-2xl font-bold text-red-600" id="inv-alertas">—</p>
+          <p class="text-xs text-slate-400 mt-1">diferencia &gt; 5%</p>
+        </div>
+      </div>
+
+      <!-- Tabla conteo por categoría -->
+      <div id="inv-categorias" class="space-y-5">
+        <div class="flex flex-col items-center justify-center py-16 text-center">
+          <span class="ms text-5xl text-slate-200 mb-3">fact_check</span>
+          <p class="text-slate-400 text-sm">Selecciona una fecha para iniciar el conteo</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======= SALIDAS DE CAJA ======= -->
+    <section id="sec-salidas" class="sec p-5 fade">
+      <!-- Header con selector de fechas -->
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <div class="flex items-center gap-3">
+          <input type="date" id="sal-desde" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+          <span class="text-slate-400 text-sm">→</span>
+          <input type="date" id="sal-hasta" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+          <button type="button" onclick="cargarSalidas()" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 hover:bg-slate-50">
+            <span class="ms text-base">sync</span>Cargar
+          </button>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-400" id="sal-resumen"></span>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="grid grid-cols-3 gap-4 mb-6">
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Total salidas</p>
+          <p class="text-2xl font-bold text-slate-900" id="sal-total">—</p>
+          <p class="text-xs text-slate-400 mt-1" id="sal-count">del período</p>
+        </div>
+        <div class="bg-amber-50 rounded-2xl p-4 border border-amber-100">
+          <p class="text-xs text-amber-600 uppercase tracking-wider font-semibold mb-1">Pendientes</p>
+          <p class="text-2xl font-bold text-amber-700" id="sal-pendientes">—</p>
+          <p class="text-xs text-amber-500 mt-1">sin clasificar</p>
+        </div>
+        <div class="bg-green-50 rounded-2xl p-4 border border-green-100">
+          <p class="text-xs text-green-600 uppercase tracking-wider font-semibold mb-1">Registradas</p>
+          <p class="text-2xl font-bold text-green-700" id="sal-registradas">—</p>
+          <p class="text-xs text-green-500 mt-1">en compras</p>
+        </div>
+      </div>
+
+      <!-- Lista de salidas -->
+      <div id="sal-lista" class="space-y-3">
+        <div class="flex flex-col items-center justify-center py-16 text-center">
+          <span class="ms text-5xl text-slate-200 mb-3">payments</span>
+          <p class="text-slate-400 text-sm">Selecciona un rango de fechas y presiona Cargar</p>
+        </div>
+      </div>
+
+      <!-- Modal registrar salida como compra -->
+      <div id="modal-salida" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl">
+          <div class="flex items-center justify-between mb-5">
+            <h3 class="font-bold text-slate-900">Registrar como compra</h3>
+            <button type="button" onclick="closeModal('modal-salida')" class="ms text-slate-400 hover:text-slate-600">close</button>
           </div>
-
-          <!-- Ventas -->
-          <div class="border border-slate-100 rounded-xl p-4">
-            <div class="flex items-center gap-3 mb-3">
-              <span class="ms text-2xl text-green-500">point_of_sale</span>
-              <div><p class="font-semibold text-sm">Ventas Loyverse</p><p class="text-xs text-slate-400">Recibos con forma de pago y productos</p></div>
+          <div class="space-y-4">
+            <div class="bg-slate-50 rounded-2xl p-4">
+              <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Salida de caja</p>
+              <p class="font-semibold text-slate-900" id="sal-modal-desc">—</p>
+              <p class="text-2xl font-bold text-slate-900 mt-1" id="sal-modal-monto">$0</p>
+              <p class="text-xs text-slate-400 mt-1" id="sal-modal-fecha">—</p>
             </div>
-            <div class="flex flex-col gap-2 mb-3">
-              <button type="button" onclick="setExpSemana('ventas')" class="w-full py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">↗ Esta semana (mar–dom)</button>
-              <div class="flex gap-2">
-                <input type="date" id="exp-ventas-desde" class="flex-1 min-w-0 px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
-                <input type="date" id="exp-ventas-hasta" class="flex-1 min-w-0 px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
-              </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Proveedor</label>
+              <input type="text" id="sal-modal-proveedor" list="proveedores-list" placeholder="Ej: PANADERIA" class="w-full px-4 py-3 bg-surface-container-low rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20 uppercase"/>
             </div>
-            <button type="button" onclick="exportarVentas()" class="w-full py-2.5 bg-green-50 text-green-700 border border-green-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-green-100">
-              <span class="ms text-base">download</span>Descargar Excel
-            </button>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Categoría</label>
+              <select id="sal-modal-categoria" class="w-full px-4 py-3 bg-surface-container-low rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20">
+                <option>Abarrotes</option><option>Carnicería</option><option>Mariscos</option>
+                <option>Lácteos</option><option>Frutas y Verduras</option><option>Vinos</option>
+                <option>Licores</option><option>Refrescos</option><option>Panadería</option>
+                <option>Limpieza</option><option>Semillas</option><option>Otros insumos</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Notas (opcional)</label>
+              <input type="text" id="sal-modal-notas" placeholder="Detalle adicional..." class="w-full px-4 py-3 bg-surface-container-low rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+            </div>
           </div>
-
-          <!-- Salidas de caja -->
-          <div class="border border-slate-100 rounded-xl p-4">
-            <div class="flex items-center gap-3 mb-3">
-              <span class="ms text-2xl text-orange-500">payments</span>
-              <div><p class="font-semibold text-sm">Salidas de Caja</p><p class="text-xs text-slate-400">Movimientos de efectivo por turno</p></div>
-            </div>
-            <div class="flex flex-col gap-2 mb-3">
-              <button type="button" onclick="setExpSemana('caja')" class="w-full py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">↗ Esta semana (mar–dom)</button>
-              <div class="flex gap-2">
-                <input type="date" id="exp-caja-desde" class="flex-1 min-w-0 px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
-                <input type="date" id="exp-caja-hasta" class="flex-1 min-w-0 px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
-              </div>
-            </div>
-            <button type="button" onclick="exportarCaja()" class="w-full py-2.5 bg-orange-50 text-orange-700 border border-orange-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-orange-100">
-              <span class="ms text-base">download</span>Descargar Excel
-            </button>
+          <div class="flex gap-3 mt-5">
+            <button type="button" onclick="closeModal('modal-salida')" class="flex-1 py-3 border border-slate-200 rounded-2xl text-sm font-semibold text-slate-600 hover:bg-slate-50">Cancelar</button>
+            <button type="button" onclick="confirmarSalida()" class="flex-1 py-3 bg-primary-container text-white rounded-2xl text-sm font-semibold hover:opacity-90">Registrar compra</button>
           </div>
+        </div>
+      </div>
+    </section>
 
-          <!-- Cortes de caja -->
-          <div class="border border-slate-100 rounded-xl p-4">
-            <div class="flex items-center gap-3 mb-3">
-              <span class="ms text-2xl text-purple-500">receipt_long</span>
-              <div><p class="font-semibold text-sm">Cortes de Caja</p><p class="text-xs text-slate-400">Turnos con totales y formas de pago</p></div>
-            </div>
-            <div class="flex flex-col gap-2 mb-3">
-              <button type="button" onclick="setExpSemana('cortes')" class="w-full py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100">↗ Esta semana (mar–dom)</button>
-              <div class="flex gap-2">
-                <input type="date" id="exp-cortes-desde" class="flex-1 min-w-0 px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
-                <input type="date" id="exp-cortes-hasta" class="flex-1 min-w-0 px-2 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs outline-none"/>
-              </div>
-            </div>
-            <button type="button" onclick="exportarCortes()" class="w-full py-2.5 bg-purple-50 text-purple-700 border border-purple-200 rounded-xl text-xs font-semibold flex items-center justify-center gap-2 hover:bg-purple-100">
-              <span class="ms text-base">download</span>Descargar Excel
-            </button>
+    <!-- ======= P&L SEMANAL ======= -->
+    <section id="sec-pnl" class="sec p-5 fade">
+      <!-- Selector de semana -->
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <div class="flex items-center gap-3">
+          <input type="date" id="pnl-desde" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+          <span class="text-slate-400 text-sm">→</span>
+          <input type="date" id="pnl-hasta" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+          <button type="button" onclick="cargarPnL()" class="bg-primary-container text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 hover:opacity-90">
+            <span class="ms text-base">bar_chart</span>Analizar
+          </button>
+        </div>
+      </div>
+
+      <!-- KPIs principales -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Ventas</p>
+          <p class="text-2xl font-bold text-slate-900" id="pnl-ventas">—</p>
+          <p class="text-xs text-slate-400 mt-1">Loyverse</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Costos registrados</p>
+          <p class="text-2xl font-bold text-slate-900" id="pnl-costos">—</p>
+          <p class="text-xs text-slate-400 mt-1" id="pnl-costos-sub">insumos del período</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Food cost %</p>
+          <p class="text-2xl font-bold" id="pnl-fc">—</p>
+          <p class="text-xs text-slate-400 mt-1">meta &lt;35%</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Utilidad bruta</p>
+          <p class="text-2xl font-bold" id="pnl-utilidad">—</p>
+          <p class="text-xs text-slate-400 mt-1" id="pnl-utilidad-pct">vs ventas</p>
+        </div>
+      </div>
+
+      <!-- Alertas de precios -->
+      <div id="pnl-alertas-precios" class="mb-5 space-y-2"></div>
+
+      <!-- Gráficas y tablas -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+        <!-- Gasto por categoría -->
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+          <h3 class="font-bold text-slate-900 text-sm mb-4">Gasto por categoría</h3>
+          <div id="pnl-categorias" class="space-y-3">
+            <p class="text-slate-300 text-sm text-center py-4">Selecciona un período para ver el análisis</p>
           </div>
-
-          <!-- Reporte semanal completo -->
-          <div class="border border-blue-100 bg-blue-50/30 rounded-xl p-4 md:col-span-2">
-            <div class="flex items-center gap-3 mb-3">
-              <span class="ms text-2xl text-primary-container">summarize</span>
-              <div><p class="font-semibold text-sm">Reporte Semanal Completo</p><p class="text-xs text-slate-400">Compras + Ventas + Salidas de caja en un solo archivo (martes a domingo)</p></div>
-            </div>
-            <div class="flex flex-col sm:flex-row gap-2 mb-3">
-              <button type="button" onclick="setExpSemana('semana')" class="sm:w-auto py-2 px-4 bg-white border border-slate-200 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-50">↗ Esta semana (mar–dom)</button>
-              <input type="date" id="exp-semana-desde" class="flex-1 min-w-0 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none"/>
-              <input type="date" id="exp-semana-hasta" class="flex-1 min-w-0 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs outline-none"/>
-            </div>
-            <button type="button" onclick="exportarSemanalCompleto()" class="py-2.5 px-6 bg-primary-container text-white rounded-xl text-xs font-semibold flex items-center gap-2 hover:opacity-90">
-              <span class="ms text-base">download</span>Reporte semanal completo
-            </button>
+        </div>
+        <!-- Top proveedores -->
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+          <h3 class="font-bold text-slate-900 text-sm mb-4">Top proveedores del período</h3>
+          <div id="pnl-proveedores" class="space-y-3">
+            <p class="text-slate-300 text-sm text-center py-4">Selecciona un período para ver el ranking</p>
           </div>
+        </div>
+      </div>
 
+      <!-- Top platillos vendidos -->
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 mb-5">
+        <h3 class="font-bold text-slate-900 text-sm mb-4">Top 10 platillos más vendidos</h3>
+        <div id="pnl-platillos" class="overflow-x-auto">
+          <p class="text-slate-300 text-sm text-center py-4">Sincroniza ventas de Loyverse en el Dashboard primero</p>
+        </div>
+      </div>
+
+      <!-- Detalle de compras del período -->
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+        <h3 class="font-bold text-slate-900 text-sm mb-4">Compras del período</h3>
+        <div id="pnl-compras-detalle" class="space-y-2">
+          <p class="text-slate-300 text-sm text-center py-4">Selecciona un período para ver el detalle</p>
         </div>
       </div>
     </section>
@@ -1627,6 +1723,882 @@ const DB = {
 };
 
 // ============================================================
+// INVENTARIO SEMANAL
+// ============================================================
+const INV_INSUMOS = [
+  // CARNICERÍA — sin cruce Loyverse hasta recetario
+  { cat:'Carnicería', nombre:'Carne molida premium', unidad:'kg',  precio_ref:245, loyverse:[] },
+  { cat:'Carnicería', nombre:'Tocino',               unidad:'kg',  precio_ref:223, loyverse:[] },
+  { cat:'Carnicería', nombre:'Pechuga sin hueso',    unidad:'kg',  precio_ref:160, loyverse:[] },
+  { cat:'Carnicería', nombre:'Bistec de pechuga',    unidad:'kg',  precio_ref:180, loyverse:[] },
+  { cat:'Carnicería', nombre:'Caña de filete',       unidad:'kg',  precio_ref:370, loyverse:[] },
+  // MARISCOS — sin cruce Loyverse hasta recetario
+  { cat:'Mariscos',   nombre:'Camarón 21/25',        unidad:'kg',  precio_ref:215, loyverse:[] },
+  { cat:'Mariscos',   nombre:'Camarón 31/35',        unidad:'kg',  precio_ref:205, loyverse:[] },
+  { cat:'Mariscos',   nombre:'Salmón',               unidad:'kg',  precio_ref:220, loyverse:[] },
+  { cat:'Mariscos',   nombre:'Aros de calamar',      unidad:'kg',  precio_ref:180, loyverse:[] },
+  { cat:'Mariscos',   nombre:'Calamar americano',    unidad:'kg',  precio_ref:160, loyverse:[] },
+  { cat:'Mariscos',   nombre:'Pulpo',                unidad:'kg',  precio_ref:180, loyverse:[] },
+  // LÁCTEOS — sin cruce Loyverse hasta recetario
+  { cat:'Lácteos',    nombre:'Queso parmesano',      unidad:'kg',  precio_ref:315, loyverse:[] },
+  { cat:'Lácteos',    nombre:'Queso mozzarella',     unidad:'kg',  precio_ref:195, loyverse:[] },
+  { cat:'Lácteos',    nombre:'Queso chihuahua',      unidad:'kg',  precio_ref:180, loyverse:[] },
+  { cat:'Lácteos',    nombre:'Queso gouda',          unidad:'kg',  precio_ref:220, loyverse:[] },
+  { cat:'Lácteos',    nombre:'Queso ricotta',        unidad:'kg',  precio_ref:140, loyverse:[] },
+  { cat:'Lácteos',    nombre:'Mantequilla Desy',     unidad:'pza', precio_ref:135, loyverse:[] },
+  { cat:'Lácteos',    nombre:'Crema Corona',         unidad:'lt',  precio_ref:95,  loyverse:[] },
+  { cat:'Lácteos',    nombre:'Jamón serrano',        unidad:'pza', precio_ref:664, loyverse:[] },
+  // VINOS — cruce con Loyverse: { item: nombre en Loyverse, copas: unidades por botella }
+  // copas=5 → 1 botella rinde 5 copas  |  copas=1 → se vende por botella completa
+  { cat:'Vinos', nombre:'Cal y Canto',           unidad:'bot', precio_ref:164, loyverse:[
+      { item:'CAL & CANTO COPA',    copas:5 },
+      { item:'CAL & CANTO BOTELLA', copas:1 },
+  ]},
+  { cat:'Vinos', nombre:'Rincones Rosé',         unidad:'bot', precio_ref:160, loyverse:[
+      { item:'COPA Rincones ROSADO', copas:5 },
+  ]},
+  { cat:'Vinos', nombre:"Nero d'Avola IGT",      unidad:'bot', precio_ref:253, loyverse:[
+      { item:'Nero D\'Avola Copa',      copas:5 },
+      { item:'Botella NERO DAVOLA IGT', copas:1 },
+  ]},
+  { cat:'Vinos', nombre:'Soave DOC',             unidad:'bot', precio_ref:235, loyverse:[
+      { item:'SOAVE BLANCO COPA', copas:5 },
+  ]},
+  { cat:'Vinos', nombre:'Alvarinho Desvario',    unidad:'bot', precio_ref:290, loyverse:[
+      { item:'Botella Alvarinho', copas:1 },
+  ]},
+  { cat:'Vinos', nombre:'Prosecco Villa Sandi',  unidad:'bot', precio_ref:209, loyverse:[
+      { item:'Prosecco DOC Copa', copas:5 },
+  ]},
+  { cat:'Vinos', nombre:'Gran Passione Merlot',  unidad:'bot', precio_ref:310, loyverse:[
+      { item:'GRAN PASSIONE, MERLOT BOTELLA', copas:1 },
+  ]},
+  { cat:'Vinos', nombre:'Chauvenet 5L (blanco cocina)', unidad:'pza', precio_ref:476, loyverse:[
+      { item:'COPA CLERICOT',      copas:0.2  }, // 1 garrafa 5L = 25 copas → 1 copa = 0.04 pza → invertido: 5 copas = 1 garrafa × 1/5
+      { item:'JARRA DE CLERICOT',  copas:1    }, // 1 jarra ≈ 1 garrafa
+      { item:'TINTO DE VERANO',    copas:0.2  },
+  ]},
+  { cat:'Vinos', nombre:'Vino tinto Clericot',   unidad:'pza', precio_ref:280, loyverse:[] },
+  { cat:'Vinos', nombre:'Bacardi Blanco 1.75L',  unidad:'bot', precio_ref:464, loyverse:[
+      { item:'BACARDI BLANCO', copas:29 }, // 1.75L / 60ml por copa ≈ 29 copas
+  ]},
+  { cat:'Vinos', nombre:'Tanqueray 750ml',       unidad:'bot', precio_ref:549, loyverse:[
+      { item:'TANQUERAY', copas:15 }, // 750ml / 50ml por copa ≈ 15 copas
+  ]},
+  { cat:'Vinos', nombre:'Campari 750ml',         unidad:'bot', precio_ref:450, loyverse:[
+      { item:'SPRITZ', copas:8 }, // Campari en Spritz ~90ml → 750ml / 90ml ≈ 8
+  ]},
+  // REFRESCOS Y CERVEZAS — precios reales de facturas Walmart/Costco
+  { cat:'Refrescos y Cervezas', nombre:'Coca Cola',       unidad:'pza', precio_ref:20.35, loyverse:[{ item:'COCA COLA',       copas:1 }] },
+
+  { cat:'Refrescos y Cervezas', nombre:'Coca Cola Zero',  unidad:'pza', precio_ref:22.00, loyverse:[{ item:'COCA COLA ZERO',  copas:1 }] },
+  { cat:'Refrescos y Cervezas', nombre:'Topo Chico',      unidad:'pza', precio_ref:20.31, loyverse:[{ item:'TOPO CHICO',      copas:1 }] },
+  { cat:'Refrescos y Cervezas', nombre:'Modelo Especial', unidad:'pza', precio_ref:23.32, loyverse:[{ item:'MODELO ESPECIAL', copas:1 }] },
+  { cat:'Refrescos y Cervezas', nombre:'Negra Modelo',    unidad:'pza', precio_ref:24.38, loyverse:[{ item:'NEGRA MODELO',    copas:1 }] },
+  { cat:'Refrescos y Cervezas', nombre:'Corona',          unidad:'pza', precio_ref:23.32, loyverse:[{ item:'CORONA',          copas:1 }] },
+  { cat:'Refrescos y Cervezas', nombre:'Stella Artois',   unidad:'pza', precio_ref:24.38, loyverse:[{ item:'STELLA ARTOIS',   copas:1 }] },
+  { cat:'Refrescos y Cervezas', nombre:'Victoria',        unidad:'pza', precio_ref:16.96, loyverse:[{ item:'VICTORIA',        copas:1 }] },
+];
+
+let INV_STATE = {}; // { 'PRODUCTO': { ini: 0, fin: 0 } }
+
+function getInvSemanaDesde(fechaHasta) {
+  const d = new Date(fechaHasta + 'T12:00:00');
+  const dow = d.getDay(); // 0=dom
+  const diasDesdeMartes = dow === 0 ? 5 : ((dow - 2 + 7) % 7);
+  const martes = new Date(d);
+  martes.setDate(d.getDate() - diasDesdeMartes);
+  return martes.toISOString().split('T')[0];
+}
+
+function renderInventario() {
+  const fechaEl = document.getElementById('inv-fecha');
+  if (!fechaEl) return;
+
+  // Fecha por defecto: domingo de esta semana
+  if (!fechaEl.value) {
+    const hoy = new Date();
+    const dow = hoy.getDay();
+    const diasHastaDom = dow === 0 ? 0 : (7 - dow);
+    const dom = new Date(hoy);
+    dom.setDate(hoy.getDate() + diasHastaDom);
+    fechaEl.value = dom.toISOString().split('T')[0];
+  }
+
+  const fecha    = fechaEl.value;
+  const semDesde = getInvSemanaDesde(fecha);
+
+  // ── Compras de la semana por producto ────────────────────
+  const comprasSemana = {};
+  DB.compras.filter(c => c.fecha >= semDesde && c.fecha <= fecha).forEach(c => {
+    (c.items||[]).forEach(item => {
+      const key = (item.nombre||'').toUpperCase().trim();
+      if (!key) return;
+      comprasSemana[key] = (comprasSemana[key]||0) + (parseFloat(item.cantidad)||0);
+    });
+  });
+
+  // ── Ventas Loyverse de la semana por producto ─────────────
+  // DB.dashVentas ya tiene los recibos; necesitamos line_items
+  const ventasSemana = {}; // { 'NOMBRE LOYVERSE': unidades_vendidas }
+  const recibos = DB.invRecibos || [];
+  recibos.filter(r => {
+    const d = (r.created_at||'').substring(0,10);
+    return d >= semDesde && d <= fecha;
+  }).forEach(r => {
+    (r.line_items||[]).forEach(li => {
+      const key = (li.item_name||'').toUpperCase().trim();
+      ventasSemana[key] = (ventasSemana[key]||0) + (parseFloat(li.quantity)||0);
+    });
+  });
+
+  const catColors = {
+    'Carnicería':           { badge:'text-red-700 bg-red-50',     icon:'grocery'   },
+    'Mariscos':             { badge:'text-teal-700 bg-teal-50',   icon:'set_meal'  },
+    'Lácteos':              { badge:'text-amber-700 bg-amber-50', icon:'egg'       },
+    'Vinos':                { badge:'text-purple-700 bg-purple-50',icon:'wine_bar' },
+    'Refrescos y Cervezas': { badge:'text-cyan-700 bg-cyan-50',   icon:'local_bar' },
+  };
+
+  const cats = {};
+  INV_INSUMOS.forEach(ins => {
+    if (!cats[ins.cat]) cats[ins.cat] = [];
+    cats[ins.cat].push(ins);
+  });
+
+  let html = '';
+  Object.entries(cats).forEach(([cat, items]) => {
+    const cc      = catColors[cat] || { badge:'text-slate-600 bg-slate-50', icon:'inventory_2' };
+    const tieneLP = items.some(i => i.loyverse && i.loyverse.length > 0);
+
+    html += `<div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-5">
+      <div class="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100">
+        <span class="ms ${cc.badge.split(' ')[0]}">${cc.icon}</span>
+        <span class="font-semibold text-slate-900 text-sm">${cat}</span>
+        ${tieneLP ? '<span class="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-lg font-medium">✓ Cruce Loyverse activo</span>' : '<span class="text-xs bg-slate-50 text-slate-400 px-2 py-0.5 rounded-lg">Pendiente recetario</span>'}
+        <span class="text-xs text-slate-400 ml-auto">${items.length} productos · ${semDesde} → ${fecha}</span>
+      </div>
+      <div class="overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead class="bg-slate-50/60">
+          <tr>
+            <th class="text-left px-4 py-2.5 text-xs text-slate-500 font-semibold min-w-36">Producto</th>
+            <th class="text-center px-2 py-2.5 text-xs text-slate-500 font-semibold">Unidad</th>
+            <th class="text-center px-2 py-2.5 text-xs text-slate-500 font-semibold">Inv. inicial</th>
+            <th class="text-center px-2 py-2.5 text-xs text-slate-500 font-semibold">+ Compras</th>
+            <th class="text-center px-2 py-2.5 text-xs text-slate-400 font-semibold bg-green-50/50">Vendido Loyverse</th>
+            <th class="text-center px-2 py-2.5 text-xs font-semibold bg-blue-50/60" style="color:#0059b5">Debería haber</th>
+            <th class="text-center px-2 py-2.5 text-xs text-slate-500 font-semibold bg-amber-50/40">Existencia real</th>
+            <th class="text-center px-2 py-2.5 text-xs text-slate-500 font-semibold">Diferencia</th>
+            <th class="text-center px-2 py-2.5 text-xs text-slate-500 font-semibold">Estado</th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+    items.forEach(ins => {
+      const key     = ins.nombre.toUpperCase().trim();
+      const st      = INV_STATE[key] || { ini: '', fin: '' };
+      const compras = comprasSemana[key] || 0;
+      const ini     = parseFloat(st.ini) || 0;
+      const fin     = parseFloat(st.fin) || 0; // existencia real capturada
+
+      // ── Calcular consumo según Loyverse ──────────────────
+      let consumoLoyverse = 0;
+      let tieneVentas     = false;
+      if (ins.loyverse && ins.loyverse.length > 0) {
+        ins.loyverse.forEach(lv => {
+          const vendidas = ventasSemana[lv.item.toUpperCase().trim()] || 0;
+          if (vendidas > 0) tieneVentas = true;
+          // copas = cuántas unidades vendidas equivalen a 1 unidad del insumo
+          // Ej: Cal y Canto copa: copas=5 → 5 copas = 1 botella → consumo = vendidas/5
+          consumoLoyverse += vendidas / lv.copas;
+        });
+      }
+
+      // Debería haber = ini + compras - consumo_loyverse
+      const deberiaHaber = (ins.loyverse && ins.loyverse.length > 0)
+        ? Math.max(0, ini + compras - consumoLoyverse)
+        : null; // sin recetario no se puede calcular
+
+      // Diferencia = existencia_real - deberia_haber
+      const tenemos_fin = st.fin !== '' && st.fin !== null;
+      const diferencia  = (deberiaHaber !== null && tenemos_fin)
+        ? fin - deberiaHaber
+        : null;
+
+      // ── Estado ───────────────────────────────────────────
+      let estadoHtml = '<span class="text-xs text-slate-200">—</span>';
+      if (diferencia !== null) {
+        if (Math.abs(diferencia) < 0.1) {
+          estadoHtml = '<span class="text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-lg">✓ OK</span>';
+        } else if (diferencia < -0.1) {
+          const pct = deberiaHaber > 0 ? Math.abs(diferencia/deberiaHaber*100) : 0;
+          estadoHtml = `<span class="text-xs font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded-lg">⚠ falta ${Math.abs(diferencia).toFixed(2)} (${pct.toFixed(0)}%)</span>`;
+        } else {
+          estadoHtml = `<span class="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg">+${diferencia.toFixed(2)} stock extra</span>`;
+        }
+      } else if (!ins.loyverse || ins.loyverse.length === 0) {
+        estadoHtml = '<span class="text-xs text-slate-300">sin recetario</span>';
+      } else if (!tenemos_fin) {
+        estadoHtml = '<span class="text-xs text-slate-300">captura existencia</span>';
+      }
+
+      const fmtNum = n => n !== null ? n.toFixed(2) : '—';
+
+      html += `<tr class="border-t border-slate-50 hover:bg-slate-50/40 transition-colors">
+        <td class="px-4 py-3 font-medium text-slate-800 text-xs">${ins.nombre}</td>
+        <td class="px-2 py-3 text-center text-slate-400 text-xs">${ins.unidad}</td>
+        <td class="px-2 py-3 text-center">
+          <input type="number" step="0.01" min="0" value="${st.ini}"
+            placeholder="0" oninput="invUpdate('${key}','ini',this.value)"
+            class="w-20 text-center bg-slate-50 border border-slate-200 rounded-xl px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-primary/20"/>
+        </td>
+        <td class="px-2 py-3 text-center text-slate-500 text-xs font-medium">${compras > 0 ? '+'+compras.toFixed(2) : '<span class="text-slate-200">—</span>'}</td>
+        <td class="px-2 py-3 text-center text-xs bg-green-50/30 ${tieneVentas ? 'text-green-700 font-semibold' : 'text-slate-300'}">
+          ${(ins.loyverse && ins.loyverse.length > 0) ? (tieneVentas ? consumoLoyverse.toFixed(2) : '0') : '<span class="text-slate-200">—</span>'}
+        </td>
+        <td class="px-2 py-3 text-center text-xs font-bold bg-blue-50/40" style="color:#0059b5">
+          ${deberiaHaber !== null ? deberiaHaber.toFixed(2) : '<span class="text-slate-200">—</span>'}
+        </td>
+        <td class="px-2 py-3 text-center bg-amber-50/30">
+          <input type="number" step="0.01" min="0" value="${tenemos_fin ? st.fin : ''}"
+            placeholder="contar" oninput="invUpdate('${key}','fin',this.value)"
+            class="w-20 text-center bg-white border ${tenemos_fin ? 'border-amber-300' : 'border-amber-200'} rounded-xl px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-amber-200"/>
+        </td>
+        <td class="px-2 py-3 text-center text-xs font-semibold ${diferencia === null ? 'text-slate-200' : diferencia < -0.1 ? 'text-red-600' : diferencia > 0.1 ? 'text-blue-600' : 'text-green-700'}">
+          ${diferencia !== null ? (diferencia >= 0 ? '+' : '') + diferencia.toFixed(2) : '—'}
+        </td>
+        <td class="px-2 py-3 text-center">${estadoHtml}</td>
+      </tr>`;
+    });
+
+    html += `</tbody></table></div></div>`;
+  });
+
+  document.getElementById('inv-categorias').innerHTML = html;
+  recalcInvTotales();
+}
+
+function invUpdate(key, campo, valor) {
+  if (!INV_STATE[key]) INV_STATE[key] = { ini: '', fin: '' };
+  INV_STATE[key][campo] = valor;
+  recalcInvTotales();
+}
+
+function recalcInvTotales() {
+  const fecha = document.getElementById('inv-fecha')?.value;
+  if (!fecha) return;
+  const semDesde = getInvSemanaDesde(fecha);
+
+  const comprasSemana = {};
+  DB.compras.filter(c => c.fecha >= semDesde && c.fecha <= fecha).forEach(c => {
+    (c.items||[]).forEach(item => {
+      const key = (item.nombre||'').toUpperCase().trim();
+      if (!key) return;
+      comprasSemana[key] = (comprasSemana[key]||0) + (parseFloat(item.cantidad)||0);
+    });
+  });
+
+  let totalTeorico = 0, totalReal = 0, alertas = 0, conteos = 0;
+  INV_INSUMOS.forEach(ins => {
+    const key = ins.nombre.toUpperCase().trim();
+    const st = INV_STATE[key] || { ini: '', fin: '' };
+    if (st.ini === '' && st.fin === '') return;
+    conteos++;
+    const ini = parseFloat(st.ini) || 0;
+    const fin = parseFloat(st.fin) || 0;
+    const compras = comprasSemana[key] || 0;
+    const consumoReal   = Math.max(0, ini + compras - fin);
+    const consumoTeorico = compras;
+    totalReal    += consumoReal * ins.precio_ref;
+    totalTeorico += consumoTeorico * ins.precio_ref;
+    if (consumoTeorico > 0 && consumoReal > consumoTeorico * 1.05) alertas++;
+  });
+
+  const diff = totalReal - totalTeorico;
+  const diffPct = totalTeorico > 0 ? (diff / totalTeorico * 100) : 0;
+
+  const s = (id, val) => { const e = document.getElementById(id); if(e) e.textContent = val; };
+  s('inv-teorico', totalTeorico > 0 ? fmt(totalTeorico) : '—');
+  s('inv-real',    totalReal    > 0 ? fmt(totalReal)    : '—');
+  s('inv-alertas', alertas > 0 ? alertas : conteos > 0 ? '0' : '—');
+
+  const difEl    = document.getElementById('inv-diferencia');
+  const difPctEl = document.getElementById('inv-diferencia-pct');
+  if (difEl) {
+    if (totalReal > 0 || totalTeorico > 0) {
+      difEl.textContent = (diff >= 0 ? '+' : '') + fmt(diff);
+      difEl.className   = 'text-2xl font-bold ' + (diff > 100 ? 'text-red-600' : diff < -100 ? 'text-green-700' : 'text-slate-900');
+      if (difPctEl) difPctEl.textContent = (diffPct >= 0 ? '+' : '') + diffPct.toFixed(1) + '% vs teórico · ' + conteos + ' productos contados';
+    } else {
+      difEl.textContent  = '—';
+      difEl.className    = 'text-2xl font-bold text-slate-300';
+      if (difPctEl) difPctEl.textContent = 'merma / fuga estimada';
+    }
+  }
+}
+
+async function guardarInventario() {
+  const fecha = document.getElementById('inv-fecha')?.value;
+  if (!fecha) { toast('Selecciona la fecha del conteo'); return; }
+  const conConteo = Object.entries(INV_STATE).filter(([,v]) => 
+    (v.ini !== '' && v.ini !== null) || (v.fin !== '' && v.fin !== null)
+  );
+  if (!conConteo.length) { toast('Captura al menos un conteo antes de guardar'); return; }
+
+  toast('Guardando...');
+  let guardados = 0;
+  try {
+    for (const [producto, vals] of conConteo) {
+      await fetch('/api/supabase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          table: 'inventario_conteos',
+          action: 'upsert',
+          data: {
+            fecha,
+            producto_nombre: producto,
+            inventario_inicial: parseFloat(vals.ini) || 0,
+            inventario_final:   parseFloat(vals.fin) || 0,
+            created_at: new Date().toISOString()
+          }
+        })
+      });
+      guardados++;
+    }
+    toast('✓ ' + guardados + ' productos guardados');
+  } catch(e) {
+    toast('Error: ' + e.message);
+  }
+}
+
+async function cargarUltimoInventario() {
+  try {
+    const resp = await fetch('/api/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table: 'inventario_conteos', action: 'select' })
+    });
+    const data = await resp.json();
+    if (!Array.isArray(data) || !data.length) return;
+    // Tomar el conteo más reciente por producto
+    const byProd = {};
+    data.forEach(row => {
+      const k = (row.producto_nombre||'').toUpperCase().trim();
+      if (!byProd[k] || row.fecha > byProd[k].fecha) byProd[k] = row;
+    });
+    Object.entries(byProd).forEach(([key, row]) => {
+      INV_STATE[key] = {
+        ini: row.inventario_inicial ?? '',
+        fin: row.inventario_final  ?? ''
+      };
+    });
+    // Cargar la fecha del último conteo en el input
+    const ultimaFecha = data.reduce((max, r) => r.fecha > max ? r.fecha : max, '');
+    const fechaEl = document.getElementById('inv-fecha');
+    if (fechaEl && ultimaFecha && !fechaEl.value) fechaEl.value = ultimaFecha;
+  } catch(e) {}
+}
+
+function getSemanaActual() {
+  // Devuelve { desde, hasta } de la semana operativa actual (mar→dom)
+  const hoy = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const toStr = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const dow = hoy.getDay();
+  const diasDesdeMartes = (dow + 5) % 7;
+  const martes = new Date(hoy); martes.setDate(hoy.getDate() - diasDesdeMartes);
+  const domingo = new Date(martes); domingo.setDate(martes.getDate() + 6);
+  return { desde: toStr(martes), hasta: toStr(domingo) };
+}
+
+function initSalidas() {
+  const { desde, hasta } = getSemanaActual();
+  const desdeEl = document.getElementById('sal-desde');
+  const hastaEl = document.getElementById('sal-hasta');
+  if (desdeEl && !desdeEl.value) desdeEl.value = desde;
+  if (hastaEl && !hastaEl.value) hastaEl.value = hasta;
+  cargarSalidas();
+}
+
+function initPnL() {
+  const { desde, hasta } = getSemanaActual();
+  const desdeEl = document.getElementById('pnl-desde');
+  const hastaEl = document.getElementById('pnl-hasta');
+  if (desdeEl && !desdeEl.value) desdeEl.value = desde;
+  if (hastaEl && !hastaEl.value) hastaEl.value = hasta;
+  cargarPnL();
+}
+
+async function invCambiarFecha() {
+  const label = document.getElementById('inv-sync-label');
+  if (label) label.textContent = 'Cargando ventas de Loyverse...';
+  await sincronizarInventarioLoyverse(null);
+}
+
+async function sincronizarInventarioLoyverse(btn) {
+  const fecha = document.getElementById('inv-fecha')?.value;
+  if (!fecha) return;
+  const semDesde = getInvSemanaDesde(fecha);
+  const label    = document.getElementById('inv-sync-label');
+
+  try {
+    const resp = await fetch('/api/loyverse?endpoint=summary&date_from='
+      + encodeURIComponent(semDesde + 'T00:00:00.000Z')
+      + '&date_to=' + encodeURIComponent(fecha + 'T23:59:59.000Z'));
+    const data = await resp.json();
+    DB.invRecibos = data.receipts || [];
+    const hora = new Date().toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
+    if (label) label.textContent = '✓ ' + DB.invRecibos.length + ' ventas · ' + semDesde + ' → ' + fecha + ' · ' + hora;
+    renderInventario();
+  } catch(e) {
+    if (label) label.textContent = 'Error al conectar con Loyverse';
+    toast('Error: ' + e.message);
+  }
+}
+
+// ============================================================
+// SALIDAS DE CAJA
+// ============================================================
+let SAL_DATA = []; // salidas cargadas de Loyverse
+let SAL_REGISTRADAS = new Set(); // IDs ya registrados como compra
+
+async function cargarSalidas() {
+  const desde = document.getElementById('sal-desde')?.value;
+  const hasta  = document.getElementById('sal-hasta')?.value;
+  if (!desde || !hasta) { toast('Selecciona rango de fechas'); return; }
+
+  document.getElementById('sal-lista').innerHTML = `
+    <div class="flex items-center justify-center py-12 gap-3 text-slate-400">
+      <span class="ms" style="animation:spin 1s linear infinite;display:inline-block">sync</span>
+      <span class="text-sm">Cargando salidas de Loyverse...</span>
+    </div>`;
+
+  try {
+    const resp = await fetch('/api/loyverse?endpoint=shifts&date_from='
+      + encodeURIComponent(desde + 'T00:00:00.000Z')
+      + '&date_to=' + encodeURIComponent(hasta + 'T23:59:59.000Z'));
+    const data = await resp.json();
+    const shifts = data.shifts || [];
+
+    // Extraer todos los PAY_OUT del período
+    SAL_DATA = [];
+    shifts.forEach(s => {
+      (s.cash_movements||[]).forEach(m => {
+        if (m.type !== 'PAY_OUT') return;
+        const fecha = (m.created_at || s.opened_at || '').substring(0,10);
+        if (fecha < desde || fecha > hasta) return;
+        SAL_DATA.push({
+          id:          m.id || (s.id + '_' + m.created_at),
+          fecha,
+          hora:        new Date(m.created_at || s.opened_at).toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'}),
+          descripcion: m.comment || 'Sin descripción',
+          monto:       Math.abs(m.money_amount || 0),
+        });
+      });
+    });
+
+    // Ordenar por fecha desc
+    SAL_DATA.sort((a,b) => b.fecha > a.fecha ? 1 : -1);
+    renderSalidas();
+  } catch(e) {
+    document.getElementById('sal-lista').innerHTML = `<div class="text-center py-8 text-red-400 text-sm">Error: ${e.message}</div>`;
+  }
+}
+
+function renderSalidas() {
+  const lista    = document.getElementById('sal-lista');
+  const total    = SAL_DATA.reduce((a,s) => a + s.monto, 0);
+  const pendientes  = SAL_DATA.filter(s => !SAL_REGISTRADAS.has(s.id));
+  const registradas = SAL_DATA.filter(s =>  SAL_REGISTRADAS.has(s.id));
+
+  // KPIs
+  const s = (id, val) => { const e = document.getElementById(id); if(e) e.textContent = val; };
+  s('sal-total',       fmt(total));
+  s('sal-count',       SAL_DATA.length + ' salidas');
+  s('sal-pendientes',  pendientes.length);
+  s('sal-registradas', registradas.length);
+  s('sal-resumen',     SAL_DATA.length + ' salidas · $' + fmt(total));
+
+  if (!SAL_DATA.length) {
+    lista.innerHTML = '<div class="text-center py-8 text-slate-300 text-sm">No hay salidas de caja en este período</div>';
+    return;
+  }
+
+  let html = '';
+
+  // Pendientes primero
+  if (pendientes.length) {
+    html += `<div class="flex items-center gap-2 mb-3">
+      <span class="text-xs font-semibold text-amber-600 uppercase tracking-wider">Pendientes de clasificar</span>
+      <span class="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full">${pendientes.length}</span>
+    </div>`;
+    pendientes.forEach(sal => {
+      html += `<div class="bg-white rounded-2xl border border-amber-100 p-4 flex items-center gap-4 mb-2 shadow-sm">
+        <div class="w-10 h-10 rounded-xl bg-amber-50 flex items-center justify-center flex-shrink-0">
+          <span class="ms text-amber-500">payments</span>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="font-semibold text-slate-900 text-sm">${sal.descripcion}</p>
+          <p class="text-xs text-slate-400 mt-0.5">${sal.fecha} · ${sal.hora}</p>
+        </div>
+        <div class="text-right flex-shrink-0">
+          <p class="font-bold text-slate-900">$${fmt(sal.monto)}</p>
+          <button type="button" onclick="abrirModalSalida('${sal.id}')"
+            class="mt-1 text-xs font-semibold text-primary-container border border-primary-container/30 px-3 py-1 rounded-lg hover:bg-blue-50">
+            Registrar
+          </button>
+        </div>
+      </div>`;
+    });
+  }
+
+  // Ya registradas
+  if (registradas.length) {
+    html += `<div class="flex items-center gap-2 mb-3 mt-5">
+      <span class="text-xs font-semibold text-green-600 uppercase tracking-wider">Ya registradas</span>
+      <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">${registradas.length}</span>
+    </div>`;
+    registradas.forEach(sal => {
+      html += `<div class="bg-white rounded-2xl border border-green-100 p-4 flex items-center gap-4 mb-2 opacity-60">
+        <div class="w-10 h-10 rounded-xl bg-green-50 flex items-center justify-center flex-shrink-0">
+          <span class="ms text-green-500">check_circle</span>
+        </div>
+        <div class="flex-1"><p class="font-medium text-slate-700 text-sm">${sal.descripcion}</p>
+          <p class="text-xs text-slate-400">${sal.fecha} · ${sal.hora}</p></div>
+        <p class="font-bold text-slate-600">$${fmt(sal.monto)}</p>
+      </div>`;
+    });
+  }
+
+  lista.innerHTML = html;
+}
+
+function abrirModalSalida(id) {
+  const sal = SAL_DATA.find(s => s.id === id);
+  if (!sal) return;
+  document.getElementById('sal-modal-desc').textContent   = sal.descripcion;
+  document.getElementById('sal-modal-monto').textContent  = '$' + fmt(sal.monto);
+  document.getElementById('sal-modal-fecha').textContent  = sal.fecha + ' · ' + sal.hora;
+  document.getElementById('sal-modal-proveedor').value    = sal.descripcion.toUpperCase();
+  document.getElementById('sal-modal-notas').value        = '';
+  document.getElementById('modal-salida').dataset.salId   = id;
+  // Auto-detectar categoría por descripción
+  const desc = sal.descripcion.toLowerCase();
+  const cat  = desc.includes('pan') || desc.includes('baguet') ? 'Panadería'
+             : desc.includes('carn') || desc.includes('pollo') ? 'Carnicería'
+             : desc.includes('mar') || desc.includes('calam') ? 'Mariscos'
+             : desc.includes('vino') || desc.includes('licor') ? 'Vinos'
+             : desc.includes('hielo') || desc.includes('coca') || desc.includes('refresc') ? 'Refrescos'
+             : desc.includes('limpieza') || desc.includes('deterg') ? 'Limpieza'
+             : desc.includes('flor') ? 'Otros insumos'
+             : 'Otros insumos';
+  document.getElementById('sal-modal-categoria').value = cat;
+  document.getElementById('modal-salida').classList.remove('hidden');
+}
+
+async function confirmarSalida() {
+  const id         = document.getElementById('modal-salida').dataset.salId;
+  const sal        = SAL_DATA.find(s => s.id === id);
+  const proveedor  = document.getElementById('sal-modal-proveedor').value.trim().toUpperCase();
+  const categoria  = document.getElementById('sal-modal-categoria').value;
+  const notas      = document.getElementById('sal-modal-notas').value.trim();
+
+  if (!proveedor) { toast('Ingresa el proveedor'); return; }
+  if (!sal) return;
+
+  try {
+    const resp = await fetch('/api/supabase', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        table: 'compras', action: 'insert',
+        data: {
+          fecha:           sal.fecha,
+          proveedor_nombre: proveedor,
+          folio:           'CAJA',
+          categoria,
+          forma_pago:      'Efectivo',
+          estatus_pago:    'Pagado',
+          total:           sal.monto,
+          vencimiento:     null,
+          notas:           notas || sal.descripcion
+        }
+      })
+    });
+    const saved = await resp.json();
+    const compraId = Array.isArray(saved) ? saved[0]?.id : saved?.id;
+
+    // Agregar al DB local
+    const compra = { id: compraId || Date.now(), fecha: sal.fecha, proveedor,
+      folio:'CAJA', categoria, forma_pago:'Efectivo', estatus:'Pagado',
+      total: sal.monto, vencimiento: null, items: [] };
+    if (!DB.compras.find(x => String(x.id) === String(compra.id))) DB.compras.push(compra);
+
+    // Marcar como registrada
+    SAL_REGISTRADAS.add(id);
+    closeModal('modal-salida');
+    renderSalidas();
+    toast('✓ Registrado: ' + proveedor + ' $' + fmt(sal.monto));
+  } catch(e) {
+    toast('Error: ' + e.message);
+  }
+}
+
+// ============================================================
+// P&L SEMANAL + ALERTAS DE PRECIOS
+// ============================================================
+async function cargarPnL() {
+  const desde = document.getElementById('pnl-desde')?.value;
+  const hasta  = document.getElementById('pnl-hasta')?.value;
+  if (!desde || !hasta) { toast('Selecciona rango de fechas'); return; }
+
+  // ── Compras del período ───────────────────────────────────
+  const compras = DB.compras.filter(c => c.fecha >= desde && c.fecha <= hasta);
+  const totalCostos = compras.reduce((a,c) => a+(c.total||0), 0);
+
+  // ── Ventas de Loyverse ────────────────────────────────────
+  let totalVentas = 0;
+  let receipts    = [];
+  try {
+    const resp = await fetch('/api/loyverse?endpoint=summary&date_from='
+      + encodeURIComponent(desde + 'T00:00:00.000Z')
+      + '&date_to=' + encodeURIComponent(hasta + 'T23:59:59.000Z'));
+    const data = await resp.json();
+    receipts    = data.receipts || [];
+    totalVentas = receipts.reduce((a,r) => a+(r.total_money||0), 0);
+    DB.invRecibos = receipts;
+  } catch(e) {}
+
+  // ── KPIs ──────────────────────────────────────────────────
+  const utilidad   = totalVentas - totalCostos;
+  const fc         = totalVentas > 0 ? (totalCostos / totalVentas * 100) : 0;
+  const utilPct    = totalVentas > 0 ? (utilidad / totalVentas * 100) : 0;
+
+  const s = (id, val) => { const e = document.getElementById(id); if(e) e.textContent = val; };
+  s('pnl-ventas',  fmt(totalVentas));
+  s('pnl-costos',  fmt(totalCostos));
+  s('pnl-costos-sub', compras.length + ' compras registradas');
+
+  const fcEl = document.getElementById('pnl-fc');
+  if (fcEl) {
+    fcEl.textContent = fc.toFixed(1) + '%';
+    fcEl.className   = 'text-2xl font-bold ' + (fc > 40 ? 'text-red-600' : fc > 35 ? 'text-amber-600' : 'text-green-700');
+  }
+  const utEl = document.getElementById('pnl-utilidad');
+  if (utEl) {
+    utEl.textContent = fmt(utilidad);
+    utEl.className   = 'text-2xl font-bold ' + (utilidad >= 0 ? 'text-green-700' : 'text-red-600');
+  }
+  s('pnl-utilidad-pct', utilPct.toFixed(1) + '% sobre ventas');
+
+  // ── Alertas de precios ────────────────────────────────────
+  renderAlertasPrecios(desde, hasta);
+
+  // ── Gasto por categoría ───────────────────────────────────
+  const porCat = {};
+  compras.forEach(c => {
+    const cat = c.categoria || 'Otros';
+    porCat[cat] = (porCat[cat]||0) + (c.total||0);
+  });
+  const catSorted = Object.entries(porCat).sort((a,b) => b[1]-a[1]);
+  const maxCat    = catSorted[0]?.[1] || 1;
+  const catColors = { 'Vinos':'bg-purple-400','Carnicería':'bg-red-400','Mariscos':'bg-teal-400',
+    'Lácteos':'bg-amber-400','Frutas y Verduras':'bg-green-400','Abarrotes':'bg-blue-400',
+    'Licores':'bg-indigo-400','Refrescos':'bg-cyan-400','Panadería':'bg-orange-400' };
+
+  document.getElementById('pnl-categorias').innerHTML = catSorted.map(([cat, total]) => {
+    const pct  = (total / totalCostos * 100).toFixed(1);
+    const pBar = (total / maxCat * 100).toFixed(0);
+    const col  = catColors[cat] || 'bg-slate-400';
+    return `<div>
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs font-medium text-slate-700">${cat}</span>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-400">${pct}%</span>
+          <span class="text-xs font-semibold text-slate-900">$${fmt(total)}</span>
+        </div>
+      </div>
+      <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+        <div class="h-full ${col} rounded-full" style="width:${pBar}%"></div>
+      </div>
+    </div>`;
+  }).join('') || '<p class="text-slate-300 text-sm text-center py-4">Sin datos</p>';
+
+  // ── Top proveedores ───────────────────────────────────────
+  const porProv = {};
+  compras.forEach(c => { porProv[c.proveedor] = (porProv[c.proveedor]||0) + (c.total||0); });
+  const provSorted = Object.entries(porProv).sort((a,b) => b[1]-a[1]).slice(0,8);
+  const maxProv    = provSorted[0]?.[1] || 1;
+
+  document.getElementById('pnl-proveedores').innerHTML = provSorted.map(([prov, total], i) => {
+    const pct  = (total / totalCostos * 100).toFixed(1);
+    const pBar = (total / maxProv * 100).toFixed(0);
+    return `<div>
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-xs font-medium text-slate-700">${i+1}. ${prov}</span>
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-slate-400">${pct}%</span>
+          <span class="text-xs font-semibold text-slate-900">$${fmt(total)}</span>
+        </div>
+      </div>
+      <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+        <div class="h-full bg-primary-container rounded-full" style="width:${pBar}%"></div>
+      </div>
+    </div>`;
+  }).join('') || '<p class="text-slate-300 text-sm text-center py-4">Sin datos</p>';
+
+  // ── Top platillos Loyverse ────────────────────────────────
+  const porPlatillo = {};
+  receipts.forEach(r => {
+    (r.line_items||[]).forEach(li => {
+      const nom = li.item_name || 'Sin nombre';
+      if (!porPlatillo[nom]) porPlatillo[nom] = { uds:0, venta:0 };
+      porPlatillo[nom].uds   += li.quantity || 0;
+      porPlatillo[nom].venta += (li.price || 0) * (li.quantity || 0);
+    });
+  });
+  const platSorted = Object.entries(porPlatillo).sort((a,b) => b[1].venta - a[1].venta).slice(0,10);
+
+  if (platSorted.length) {
+    document.getElementById('pnl-platillos').innerHTML = `
+      <table class="w-full text-sm">
+        <thead><tr class="border-b border-slate-100">
+          <th class="text-left py-2 text-xs text-slate-500 font-semibold">#</th>
+          <th class="text-left py-2 text-xs text-slate-500 font-semibold">Platillo</th>
+          <th class="text-right py-2 text-xs text-slate-500 font-semibold">Uds</th>
+          <th class="text-right py-2 text-xs text-slate-500 font-semibold">Venta total</th>
+          <th class="text-right py-2 text-xs text-slate-500 font-semibold">% del total</th>
+        </tr></thead>
+        <tbody>${platSorted.map(([nom, d], i) => `
+          <tr class="border-b border-slate-50 hover:bg-slate-50/50">
+            <td class="py-2.5 text-slate-400 text-xs">${i+1}</td>
+            <td class="py-2.5 font-medium text-slate-800 text-xs">${nom}</td>
+            <td class="py-2.5 text-right text-slate-600 text-xs">${d.uds}</td>
+            <td class="py-2.5 text-right font-semibold text-slate-900 text-xs">$${fmt(d.venta)}</td>
+            <td class="py-2.5 text-right text-slate-400 text-xs">${totalVentas > 0 ? (d.venta/totalVentas*100).toFixed(1) : 0}%</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>`;
+  } else {
+    document.getElementById('pnl-platillos').innerHTML = '<p class="text-slate-300 text-sm text-center py-4">Sincroniza ventas de Loyverse en el Dashboard primero</p>';
+  }
+
+  // ── Detalle compras ───────────────────────────────────────
+  const detHtml = compras.sort((a,b) => b.fecha > a.fecha ? 1 : -1).map(c => `
+    <div class="flex items-center justify-between py-2.5 border-b border-slate-50 last:border-0">
+      <div class="flex items-center gap-3">
+        <div class="w-2 h-2 rounded-full ${c.estatus==='Pagado' ? 'bg-green-400' : 'bg-amber-400'} flex-shrink-0"></div>
+        <div>
+          <p class="text-sm font-medium text-slate-800">${c.proveedor}</p>
+          <p class="text-xs text-slate-400">${c.fecha} · ${c.categoria}</p>
+        </div>
+      </div>
+      <span class="font-semibold text-slate-900 text-sm">$${fmt(c.total)}</span>
+    </div>`).join('');
+  document.getElementById('pnl-compras-detalle').innerHTML = detHtml ||
+    '<p class="text-slate-300 text-sm text-center py-4">Sin compras en el período</p>';
+}
+
+function renderAlertasPrecios(desde, hasta) {
+  const alertasEl = document.getElementById('pnl-alertas-precios');
+  if (!alertasEl || !DB.historialPrecios?.length) return;
+
+  // Agrupar historial por producto
+  const porProducto = {};
+  DB.historialPrecios.forEach(h => {
+    const key = (h.producto_nombre||'').toUpperCase().trim();
+    if (!porProducto[key]) porProducto[key] = [];
+    porProducto[key].push({ fecha: h.fecha, precio: parseFloat(h.costo_unitario)||0, proveedor: h.proveedor_nombre });
+  });
+
+  const alertas = [];
+  Object.entries(porProducto).forEach(([prod, registros]) => {
+    if (registros.length < 2) return;
+    registros.sort((a,b) => a.fecha > b.fecha ? -1 : 1);
+
+    const ultimos   = registros.slice(0, 3);  // últimos 3 registros
+    const historico = registros.slice(3);      // registros anteriores
+    if (!historico.length) return;
+
+    const precioActual  = ultimos[0].precio;
+    const precioHistAvg = historico.reduce((a,r) => a+r.precio, 0) / historico.length;
+    if (precioHistAvg === 0) return;
+
+    const variacion = ((precioActual - precioHistAvg) / precioHistAvg * 100);
+    if (Math.abs(variacion) < 5) return; // solo alertas relevantes > 5%
+
+    alertas.push({
+      producto:   prod,
+      proveedor:  ultimos[0].proveedor,
+      actual:     precioActual,
+      historico:  precioHistAvg,
+      variacion,
+      fecha:      ultimos[0].fecha,
+    });
+  });
+
+  if (!alertas.length) {
+    alertasEl.innerHTML = '';
+    return;
+  }
+
+  // Ordenar: primero las subidas más grandes, luego las bajas
+  alertas.sort((a,b) => Math.abs(b.variacion) - Math.abs(a.variacion));
+
+  const suben = alertas.filter(a => a.variacion >  5);
+  const bajan = alertas.filter(a => a.variacion < -5);
+
+  let html = '';
+  if (suben.length) {
+    html += `<div class="bg-red-50 border border-red-100 rounded-2xl p-4 mb-3">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="ms text-red-500">trending_up</span>
+        <span class="text-sm font-semibold text-red-700">Precios subieron vs histórico</span>
+        <span class="bg-red-100 text-red-700 text-xs font-bold px-2 py-0.5 rounded-full">${suben.length}</span>
+      </div>
+      <div class="space-y-2">${suben.map(a => `
+        <div class="flex items-center justify-between bg-white rounded-xl px-4 py-2.5 border border-red-100">
+          <div>
+            <p class="text-sm font-medium text-slate-800">${a.producto}</p>
+            <p class="text-xs text-slate-400">${a.proveedor} · último: ${a.fecha}</p>
+          </div>
+          <div class="text-right">
+            <p class="text-sm font-bold text-red-600">+${a.variacion.toFixed(1)}%</p>
+            <p class="text-xs text-slate-400">$${a.actual.toFixed(2)} vs avg $${a.historico.toFixed(2)}</p>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  if (bajan.length) {
+    html += `<div class="bg-green-50 border border-green-100 rounded-2xl p-4 mb-3">
+      <div class="flex items-center gap-2 mb-3">
+        <span class="ms text-green-500">trending_down</span>
+        <span class="text-sm font-semibold text-green-700">Precios bajaron vs histórico</span>
+        <span class="bg-green-100 text-green-700 text-xs font-bold px-2 py-0.5 rounded-full">${bajan.length}</span>
+      </div>
+      <div class="space-y-2">${bajan.map(a => `
+        <div class="flex items-center justify-between bg-white rounded-xl px-4 py-2.5 border border-green-100">
+          <div>
+            <p class="text-sm font-medium text-slate-800">${a.producto}</p>
+            <p class="text-xs text-slate-400">${a.proveedor} · último: ${a.fecha}</p>
+          </div>
+          <div class="text-right">
+            <p class="text-sm font-bold text-green-600">${a.variacion.toFixed(1)}%</p>
+            <p class="text-xs text-slate-400">$${a.actual.toFixed(2)} vs avg $${a.historico.toFixed(2)}</p>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  }
+
+  alertasEl.innerHTML = html;
+}
+
+// ============================================================
 // NAVIGATION
 // ============================================================
 function doLogin() {
@@ -1747,7 +2719,7 @@ function showSec(name) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const nav = document.getElementById('nav-'+name);
   if (nav) nav.classList.add('active');
-  const titles = {home:'Dashboard',compras:'Nueva Compra',historial:'Historial de Compras',productos:'Productos',proveedores:'Proveedores',cuentas:'Cuentas por Pagar',requisiciones:'Requisiciones',ventas:'Ventas Loyverse',reportes:'Reportes & Exportar',inventario:'Inventario & Stocks'};
+  const titles = {home:'Dashboard',compras:'Nueva Compra',historial:'Historial de Compras',productos:'Productos',proveedores:'Proveedores',cuentas:'Cuentas por Pagar',requisiciones:'Requisiciones',ventas:'Ventas Loyverse',reportes:'Reportes & Exportar',inventario:'Inventario Semanal',salidas:'Salidas de Caja',pnl:'P&L Semanal'};
   document.getElementById('sec-title').textContent = titles[name] || name;
   // Render section data
   if (name === 'home') renderDashboard();
@@ -1758,9 +2730,11 @@ function showSec(name) {
   if (name === 'cuentas') renderCuentasNuevo();
   if (name === 'proveedores') renderProveedores();
   if (name === 'reportes') renderReportes();
+  if (name === 'inventario') { cargarUltimoInventario().then(() => invCambiarFecha()); }
+  if (name === 'salidas') { initSalidas(); }
+  if (name === 'pnl')     { initPnL(); }
   if (name === 'requisiciones') renderRequisiciones('pendientes');
   if (name === 'productos') renderProductos();
-  if (name === 'inventario') renderInventario();
 }
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 function toast(msg) {
@@ -1801,7 +2775,7 @@ function porVencer(vencimiento) {
 // ============================================================
 // DASHBOARD
 // ============================================================
-function setDashPeriodo(periodo, btnEl) {
+async function setDashPeriodo(periodo, btnEl) {
   DB.dashPeriodo = periodo;
   if (btnEl) {
     document.querySelectorAll('[onclick^="setDashPeriodo"]').forEach(b => {
@@ -1810,7 +2784,8 @@ function setDashPeriodo(periodo, btnEl) {
     btnEl.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold';
   }
   renderDashboard();
-  sincronizarVentasDashboard(null); // Auto-sync Loyverse al cambiar período
+  // Sincronizar ventas automáticamente al cambiar período
+  await sincronizarVentasDashboard(null);
 }
 
 function getDashCompras() {
@@ -2898,11 +3873,12 @@ function poblarProveedoresDatalist() {
 // SINCRONIZACIÓN VENTAS → DASHBOARD
 // ============================================================
 async function sincronizarVentasDashboard(btn) {
-  const icon = document.getElementById('dash-sync-icon');
-  if (icon) { icon.style.animation = 'spin 1s linear infinite'; icon.textContent = 'sync'; }
-  if (btn)  btn.disabled = true;
+  const icon  = document.getElementById('dash-sync-icon');
+  const label = document.getElementById('dash-sync-label');
+  if (icon)  { icon.style.animation = 'spin 1s linear infinite'; icon.textContent = 'sync'; }
+  if (label) label.textContent = 'actualizando...';
+  if (btn)   btn.disabled = true;
 
-  // Obtener el rango exacto del dashboard
   const periodo = DB.dashPeriodo || 'semana';
   let desde, hasta;
   const hoy = new Date();
@@ -2924,7 +3900,6 @@ async function sincronizarVentasDashboard(btn) {
     desde = document.getElementById('dash-desde')?.value || todayStr;
     hasta = document.getElementById('dash-hasta')?.value || todayStr;
   } else {
-    // 'todo' — usamos el año actual como límite razonable
     desde = hoy.getFullYear() + '-01-01';
     hasta = todayStr;
   }
@@ -2939,33 +3914,36 @@ async function sincronizarVentasDashboard(btn) {
 
     if (data.error) throw new Error(data.error);
 
-    const receipts = data.receipts || [];
+    const receipts   = data.receipts || [];
     const totalVentas = receipts.reduce((a, r) => a + (r.total_money || 0), 0);
 
-    // Guardar desagregado por período para que renderDashboard use el correcto
     if (!DB.ventasPorPeriodo) DB.ventasPorPeriodo = {};
     DB.ventasPorPeriodo[periodo + '_' + desde + '_' + hasta] = totalVentas;
-    DB.dashVentas = totalVentas;
-    DB.dashVentasDesde = desde;
-    DB.dashVentasHasta = hasta;
+    DB.dashVentas        = totalVentas;
+    DB.dashVentasDesde   = desde;
+    DB.dashVentasHasta   = hasta;
     DB.dashVentasPeriodo = periodo;
+    // Guardar recibos completos para módulo de inventario
+    DB.invRecibos = receipts;
 
     if (metricVentas) {
       metricVentas.textContent = fmt(totalVentas);
-      metricVentas.className = 'text-2xl font-bold text-slate-900';
+      metricVentas.className   = 'text-2xl font-bold text-slate-900';
     }
+    const hora = new Date().toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
+    if (label) label.textContent = 'Loyverse · ' + receipts.length + ' tickets · ' + hora;
 
     renderDashboard();
-    toast('✓ Ventas sincronizadas: ' + fmt(totalVentas) + ' (' + receipts.length + ' tickets)');
   } catch(e) {
     if (metricVentas) {
       metricVentas.textContent = 'Error';
-      metricVentas.className = 'text-2xl font-bold text-red-400';
+      metricVentas.className   = 'text-2xl font-bold text-red-400';
     }
+    if (label) label.textContent = 'Error al conectar con Loyverse';
     toast('⚠ ' + (e.message || 'Error al conectar con Loyverse'));
   } finally {
-    if (icon) { icon.style.animation = ''; icon.textContent = 'sync'; }
-    if (btn)  btn.disabled = false;
+    if (icon)  { icon.style.animation = ''; }
+    if (btn)   btn.disabled = false;
   }
 }
 
@@ -3662,30 +4640,6 @@ function csvDownload(filename, rows) {
   URL.revokeObjectURL(url);
 }
 
-function setExpSemana(tipo) {
-  // Calcula martes a hoy (o domingo si la semana ya cerró)
-  const hoy = new Date();
-  const pad = n => String(n).padStart(2, '0');
-  const toStr = d => d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
-  const dow = hoy.getDay();
-  const diasDesdeMartes = (dow + 5) % 7;
-  const martes = new Date(hoy); martes.setDate(hoy.getDate() - diasDesdeMartes);
-  const domingo = new Date(martes); domingo.setDate(martes.getDate() + 6);
-  const desde = toStr(martes);
-  const hasta = toStr(domingo) < toStr(hoy) ? toStr(domingo) : toStr(hoy);
-
-  // Si es el reporte completo, sincroniza TODOS los exportadores a la vez
-  const tipos = tipo === 'semana' ? ['compras','ventas','caja','cortes','semana'] : [tipo];
-  tipos.forEach(t => {
-    const dEl = document.getElementById('exp-' + t + '-desde');
-    const hEl = document.getElementById('exp-' + t + '-hasta');
-    if (dEl) dEl.value = desde;
-    if (hEl) hEl.value = hasta;
-  });
-
-  if (tipo === 'semana') toast('↗ Semana ' + desde + ' → ' + hasta + ' aplicada a todos los reportes');
-}
-
 function getExpDates(prefix) {
   return {
     desde: document.getElementById('exp-' + prefix + '-desde')?.value || '',
@@ -4346,10 +5300,7 @@ function filtrarHistorial(filtro, btnEl) {
   const pad = n => String(n).padStart(2, '0');
   const todayStr = hoy.getFullYear() + '-' + pad(hoy.getMonth() + 1) + '-' + pad(hoy.getDate());
 
-  let compras = [...DB.compras].sort((a, b) => {
-    if (b.fecha !== a.fecha) return b.fecha > a.fecha ? 1 : -1;
-    return new Date(b.created_at||0) - new Date(a.created_at||0);
-  });
+  let compras = [...DB.compras].sort((a, b) => b.fecha > a.fecha ? 1 : -1);
 
   if (filtro === 'hoy') {
     compras = compras.filter(c => c.fecha === todayStr);
@@ -4466,10 +5417,7 @@ function renderHistorialPorProveedor() {
   const pad = n => String(n).padStart(2, '0');
   const todayStr = hoy.getFullYear() + '-' + pad(hoy.getMonth()+1) + '-' + pad(hoy.getDate());
 
-  let compras = [...DB.compras].sort((a, b) => {
-    if (b.fecha !== a.fecha) return b.fecha > a.fecha ? 1 : -1;
-    return new Date(b.created_at||0) - new Date(a.created_at||0);
-  });
+  let compras = [...DB.compras].sort((a, b) => b.fecha > a.fecha ? 1 : -1);
 
   if (filtro === 'hoy') {
     compras = compras.filter(c => c.fecha === todayStr);
@@ -5220,107 +6168,6 @@ function initCondicionFechas() {
   if (lunesFechaEl) lunesFechaEl.textContent = fmtShort(lunes);
   if (d8El)  d8El.textContent  = fmtShort(el8);
   if (d15El) d15El.textContent = fmtShort(el15);
-}
-
-// ============================================================
-// INVENTARIO & STOCKS — Mínimos / Máximos
-// Basado en 7 semanas de registro histórico (feb–abr 2026)
-// PENDIENTE: recalcular con recetario Excel cuando sea entregado
-// ============================================================
-
-const STOCKS = {
-  mariscos: [
-    { nombre:'Camarón 31/35',     min:3.0, max:5.5, pedidoBase:3.0, cv:31, nota:'Pedir si quedan < 1 kg en cocina' },
-    { nombre:'Camarón 21/25',     min:3.0, max:5.0, pedidoBase:3.0, cv:27, nota:'Pedir si quedan < 1 kg en cocina' },
-    { nombre:'Salmón lonja',      min:2.5, max:4.5, pedidoBase:2.5, cv:40, nota:'Confirmar con chef antes de pedir' },
-    { nombre:'Calamar americano', min:1.0, max:2.5, pedidoBase:1.0, cv:0,  nota:'Pedido fijo semanal' },
-  ],
-  carniceria: [
-    { nombre:'Carne molida',  min:3.5, max:6.0, pedidoBase:3.5, cv:24, nota:'Consumo bajó sem 4–7, revisar menú' },
-    { nombre:'Pollo porción', min:3.0, max:5.5, pedidoBase:3.0, cv:20, nota:'Pedir si quedan < 1 kg' },
-    { nombre:'Milanesa',      min:1.0, max:3.0, pedidoBase:1.5, cv:41, nota:'Bajo demanda confirmada' },
-    { nombre:'Tocino',        min:2.0, max:3.0, pedidoBase:2.0, cv:33, nota:'Pedido quincenal, patrón alterno' },
-  ],
-  lacteos: [
-    { nombre:'Queso Parmesano', min:4.0, max:7.0, pedidoBase:4.0, cv:53, nota:'Alta variabilidad — confirmar recetas de la semana' },
-  ],
-};
-
-let conteoInventario = JSON.parse(localStorage.getItem('romatella_conteo_inv') || '{}');
-
-function renderTablaStock(tbody, items, categoria) {
-  tbody.innerHTML = '';
-  items.forEach((item, idx) => {
-    const key = categoria + '_' + idx;
-    const conteo = conteoInventario[key];
-    const tieneConteo = conteo !== undefined && conteo !== '';
-    const val = parseFloat(conteo);
-
-    let dot = '<span class="inline-block w-3 h-3 rounded-full bg-slate-300"></span>';
-    let rowBg = '';
-    let estadoTexto = '—';
-    let estadoColor = 'text-slate-400';
-
-    if (tieneConteo && !isNaN(val)) {
-      if (val >= item.min) {
-        dot = '<span class="inline-block w-3 h-3 rounded-full bg-green-400"></span>';
-        estadoTexto = 'OK'; estadoColor = 'text-green-700';
-      } else if (val >= item.min * 0.5) {
-        dot = '<span class="inline-block w-3 h-3 rounded-full bg-amber-400"></span>';
-        estadoTexto = 'Alerta'; estadoColor = 'text-amber-700'; rowBg = 'background:rgba(251,191,36,0.06)';
-      } else {
-        dot = '<span class="inline-block w-3 h-3 rounded-full bg-red-400" style="animation:pulse 1s infinite"></span>';
-        estadoTexto = 'Crítico'; estadoColor = 'text-red-700'; rowBg = 'background:rgba(239,68,68,0.05)';
-      }
-    }
-
-    let cvBadge = '';
-    if (item.cv >= 40) cvBadge = `<span class="ml-1.5 text-xs text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full">CV ${item.cv}%</span>`;
-    else if (item.cv >= 25) cvBadge = `<span class="ml-1.5 text-xs text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full">CV ${item.cv}%</span>`;
-
-    const tr = document.createElement('tr');
-    tr.setAttribute('style', (rowBg || '') + ';border-bottom:1px solid #f1f5f9');
-    tr.innerHTML = `
-      <td class="px-4 py-3 font-medium text-slate-800 text-sm">${item.nombre}${cvBadge}</td>
-      <td class="px-3 py-3 text-right text-slate-600 font-mono text-xs">${item.min}</td>
-      <td class="px-3 py-3 text-right text-slate-600 font-mono text-xs">${item.max}</td>
-      <td class="px-3 py-3 text-right text-slate-500 font-mono text-xs">${item.pedidoBase}</td>
-      <td class="px-3 py-3 text-center">
-        <input type="number" min="0" step="0.1"
-          value="${tieneConteo && !isNaN(val) ? val : ''}"
-          placeholder="—"
-          oninput="actualizarConteo('${key}', this.value)"
-          class="w-20 text-center border border-slate-200 rounded-lg px-2 py-1 text-sm font-mono focus:outline-none focus:border-primary bg-white"/>
-      </td>
-      <td class="px-3 py-3 text-center">
-        <span class="flex items-center justify-center gap-1.5 text-xs font-semibold ${estadoColor}">
-          ${dot} ${estadoTexto}
-        </span>
-      </td>
-      <td class="px-3 py-3 text-xs text-slate-400 italic">${item.nota}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function renderInventario() {
-  const bM = document.getElementById('inv-mariscos-body');
-  const bC = document.getElementById('inv-carniceria-body');
-  const bL = document.getElementById('inv-lacteos-body');
-  if (bM) renderTablaStock(bM, STOCKS.mariscos, 'mariscos');
-  if (bC) renderTablaStock(bC, STOCKS.carniceria, 'carniceria');
-  if (bL) renderTablaStock(bL, STOCKS.lacteos, 'lacteos');
-}
-
-function actualizarConteo(key, value) {
-  conteoInventario[key] = value === '' ? undefined : parseFloat(value);
-  localStorage.setItem('romatella_conteo_inv', JSON.stringify(conteoInventario));
-  renderInventario();
-}
-
-function guardarConteoInventario() {
-  localStorage.setItem('romatella_conteo_inv', JSON.stringify(conteoInventario));
-  toast('✓ Conteo guardado — pendiente migrar a Supabase con recetario');
 }
 
 document.addEventListener('DOMContentLoaded', () => {
