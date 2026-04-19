@@ -247,6 +247,9 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
           <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Ventas del Período</p>
           <p class="text-2xl font-bold text-slate-900" id="metric-ventas">—</p>
+          <div id="metric-adicionales-badge" class="hidden mt-1">
+            <span class="text-xs bg-amber-50 text-amber-700 border border-amber-100 px-2 py-0.5 rounded-lg font-medium" id="metric-adicionales-txt"></span>
+          </div>
           <div class="flex items-center gap-1 mt-1">
             <span class="ms text-xs text-slate-300" id="dash-sync-icon">sync</span>
             <p class="text-xs text-slate-400" id="dash-sync-label">cargando...</p>
@@ -1208,9 +1211,41 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           <input type="date" id="inv-fecha" onchange="invCambiarFecha()" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
           <p class="text-xs text-slate-400 mt-1" id="inv-sync-label">Selecciona la fecha para cargar ventas</p>
         </div>
-        <button type="button" onclick="guardarInventario()" class="bg-primary-container text-white px-5 py-2.5 rounded-2xl text-sm font-semibold flex items-center gap-2 hover:opacity-90 shadow-sm shadow-blue-200">
-          <span class="ms">save</span>Guardar conteo
-        </button>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="diagnosticarModificadores()" title="Ver nombres reales de adicionales en Loyverse"
+            class="bg-amber-50 border border-amber-200 text-amber-700 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 hover:bg-amber-100">
+            <span class="ms text-base">biotech</span>Diagnosticar adicionales
+          </button>
+          <button type="button" onclick="guardarInventario()" class="bg-primary-container text-white px-5 py-2.5 rounded-2xl text-sm font-semibold flex items-center gap-2 hover:opacity-90 shadow-sm shadow-blue-200">
+            <span class="ms">save</span>Guardar conteo
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal diagnóstico de modificadores -->
+      <div id="modal-diagnostico" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
+            <div>
+              <h3 class="font-bold text-slate-900">Diagnóstico de adicionales Loyverse</h3>
+              <p class="text-xs text-slate-400 mt-0.5" id="diag-meta">Analizando recibos del período...</p>
+            </div>
+            <button type="button" onclick="closeModal('modal-diagnostico')" class="ms text-slate-400 hover:text-slate-600 text-xl">close</button>
+          </div>
+          <div id="diag-body" class="overflow-y-auto flex-1 p-6">
+            <div class="flex items-center justify-center py-12 gap-3 text-slate-400">
+              <span class="ms" style="animation:spin 1s linear infinite;display:inline-block">sync</span>
+              <span class="text-sm">Consultando Loyverse...</span>
+            </div>
+          </div>
+          <div class="px-6 py-4 border-t border-slate-100 flex-shrink-0 bg-amber-50/50 rounded-b-3xl">
+            <p class="text-xs text-amber-700">
+              <span class="font-semibold">¿Cómo usar esto?</span> Copia los nombres exactos de "option_name" 
+              y compáralos con las entradas <code class="bg-amber-100 px-1 rounded">MOD:NOMBRE</code> en el recetario. 
+              Si difieren, avísale al desarrollador para actualizar el mapeo.
+            </p>
+          </div>
+        </div>
       </div>
 
       <!-- KPIs -->
@@ -1218,22 +1253,25 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
           <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Consumo teórico</p>
           <p class="text-2xl font-bold text-slate-900" id="inv-teorico">—</p>
-          <p class="text-xs text-slate-400 mt-1">según compras</p>
+          <p class="text-xs text-slate-400 mt-1">valor compras semana</p>
         </div>
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Consumo real</p>
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Consumo real $</p>
           <p class="text-2xl font-bold text-slate-900" id="inv-real">—</p>
-          <p class="text-xs text-slate-400 mt-1">según inventario</p>
+          <p class="text-xs text-slate-400 mt-1">ini + compras − fin × precio</p>
         </div>
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Diferencia</p>
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Food Cost Insumos</p>
+          <p class="text-2xl font-bold text-slate-300" id="inv-fc-insumos">—</p>
+          <p class="text-xs text-slate-400 mt-1" id="inv-fc-sub">consumo real / ventas</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <div class="flex items-center justify-between mb-1">
+            <p class="text-xs text-slate-400 uppercase tracking-wider">Diferencia</p>
+            <p class="text-xs text-red-400 font-semibold" id="inv-alertas-badge"></p>
+          </div>
           <p class="text-2xl font-bold text-slate-300" id="inv-diferencia">—</p>
           <p class="text-xs text-slate-400 mt-1" id="inv-diferencia-pct">merma / fuga estimada</p>
-        </div>
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Productos en alerta</p>
-          <p class="text-2xl font-bold text-red-600" id="inv-alertas">—</p>
-          <p class="text-xs text-slate-400 mt-1">diferencia &gt; 5%</p>
         </div>
       </div>
 
@@ -1258,8 +1296,13 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
             <span class="ms text-base">sync</span>Cargar
           </button>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
           <span class="text-xs text-slate-400" id="sal-resumen"></span>
+          <button type="button" onclick="limpiarSalidasClasificadas()"
+            class="text-xs text-slate-400 hover:text-red-500 border border-slate-200 px-2 py-1 rounded-lg flex items-center gap-1"
+            title="Reiniciar estado de clasificadas (útil si quieres re-clasificar)">
+            <span class="ms text-sm">restart_alt</span>Reiniciar estado
+          </button>
         </div>
       </div>
 
@@ -1279,6 +1322,31 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           <p class="text-xs text-green-600 uppercase tracking-wider font-semibold mb-1">Registradas</p>
           <p class="text-2xl font-bold text-green-700" id="sal-registradas">—</p>
           <p class="text-xs text-green-500 mt-1">en compras</p>
+        </div>
+      </div>
+
+      <!-- Panel de Adicionales/Modificadores -->
+      <div id="inv-adicionales" class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mt-2 hidden">
+        <div class="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100">
+          <span class="ms text-amber-500">add_shopping_cart</span>
+          <span class="font-semibold text-slate-900 text-sm">Adicionales pedidos esta semana</span>
+          <span class="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded-lg font-medium">Modificadores Loyverse</span>
+          <span class="text-xs text-slate-400 ml-auto" id="inv-adicionales-sub">—</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50/60">
+              <tr>
+                <th class="text-left px-4 py-2.5 text-xs text-slate-500 font-semibold">Adicional</th>
+                <th class="text-center px-3 py-2.5 text-xs text-slate-500 font-semibold">Porciones</th>
+                <th class="text-center px-3 py-2.5 text-xs text-slate-500 font-semibold">Ingreso extra</th>
+                <th class="text-left px-3 py-2.5 text-xs text-slate-500 font-semibold">Platillos base</th>
+              </tr>
+            </thead>
+            <tbody id="inv-adicionales-body">
+              <tr><td colspan="4" class="text-center py-6 text-slate-300 text-xs">Sin datos — sincroniza Loyverse primero</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -1311,10 +1379,11 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
             <div>
               <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Categoría</label>
               <select id="sal-modal-categoria" class="w-full px-4 py-3 bg-surface-container-low rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20">
-                <option>Abarrotes</option><option>Carnicería</option><option>Mariscos</option>
-                <option>Lácteos</option><option>Frutas y Verduras</option><option>Vinos</option>
+                <option>Carnicería</option><option>Mariscos</option><option>Lácteos</option>
+                <option>Frutas y Verduras</option><option>Abarrotes</option><option>Vinos</option>
                 <option>Licores</option><option>Refrescos</option><option>Panadería</option>
-                <option>Limpieza</option><option>Semillas</option><option>Otros insumos</option>
+                <option>Limpieza</option><option>Nómina</option><option>Servicios</option>
+                <option>Semillas</option><option>Otros insumos</option>
               </select>
             </div>
             <div>
@@ -1344,17 +1413,17 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         </div>
       </div>
 
-      <!-- KPIs principales -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <!-- KPIs principales fila 1 -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-3">
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
           <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Ventas</p>
           <p class="text-2xl font-bold text-slate-900" id="pnl-ventas">—</p>
-          <p class="text-xs text-slate-400 mt-1">Loyverse</p>
+          <p class="text-xs text-slate-400 mt-1">Loyverse neto</p>
         </div>
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Costos registrados</p>
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Costo insumos</p>
           <p class="text-2xl font-bold text-slate-900" id="pnl-costos">—</p>
-          <p class="text-xs text-slate-400 mt-1" id="pnl-costos-sub">insumos del período</p>
+          <p class="text-xs text-slate-400 mt-1" id="pnl-costos-sub">compras del período</p>
         </div>
         <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
           <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Food cost %</p>
@@ -1368,8 +1437,94 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         </div>
       </div>
 
+      <!-- Gastos fijos + P&L neto -->
+      <div class="bg-slate-900 rounded-2xl p-5 mb-5">
+        <div class="flex items-center justify-between mb-4">
+          <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Estado de Resultados</p>
+          <button type="button" onclick="togglePnLDetalle()" class="text-xs text-slate-400 hover:text-white flex items-center gap-1" id="pnl-detalle-btn">
+            <span class="ms text-sm">expand_more</span> ver detalle
+          </button>
+        </div>
+        <div class="space-y-2.5">
+          <div class="flex justify-between items-center">
+            <span class="text-slate-300 text-sm">🍽 Ventas netas</span>
+            <span class="text-white font-bold" id="pnl-r-ventas">—</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-slate-400 text-sm">— Costo insumos</span>
+            <span class="text-red-400 font-semibold" id="pnl-r-insumos">—</span>
+          </div>
+          <div class="flex justify-between items-center border-t border-slate-700 pt-2.5">
+            <span class="text-slate-300 text-sm font-semibold">= Utilidad bruta</span>
+            <span class="font-bold" id="pnl-r-bruta">—</span>
+          </div>
+          <!-- Gastos fijos editables -->
+          <div id="pnl-gastos-fijos-detalle" class="hidden">
+            <div class="flex justify-between items-center mt-1">
+              <span class="text-slate-400 text-sm">— Nómina semanal</span>
+              <div class="flex items-center gap-1">
+                <span class="text-slate-400 text-xs">$</span>
+                <input type="number" id="pnl-nomina" value="12000" step="100"
+                  class="w-24 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-sm text-white text-right outline-none focus:border-primary"/>
+              </div>
+            </div>
+            <div class="flex justify-between items-center mt-1">
+              <span class="text-slate-400 text-sm">— Renta / servicios</span>
+              <div class="flex items-center gap-1">
+                <span class="text-slate-400 text-xs">$</span>
+                <input type="number" id="pnl-renta" value="0" step="100"
+                  class="w-24 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-sm text-white text-right outline-none focus:border-primary"/>
+              </div>
+            </div>
+            <div class="flex justify-between items-center mt-1">
+              <span class="text-slate-400 text-sm">— Música / eventos</span>
+              <div class="flex items-center gap-1">
+                <span class="text-slate-400 text-xs">$</span>
+                <input type="number" id="pnl-musica" value="0" step="100"
+                  class="w-24 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-sm text-white text-right outline-none focus:border-primary"/>
+              </div>
+            </div>
+            <div class="flex justify-between items-center mt-1">
+              <span class="text-slate-400 text-sm">— Otros gastos fijos</span>
+              <div class="flex items-center gap-1">
+                <span class="text-slate-400 text-xs">$</span>
+                <input type="number" id="pnl-otros-gastos" value="0" step="100"
+                  class="w-24 bg-slate-800 border border-slate-600 rounded-lg px-2 py-1 text-sm text-white text-right outline-none focus:border-primary"/>
+              </div>
+            </div>
+            <button type="button" onclick="recalcPnLNeto()"
+              class="w-full mt-2 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-xl text-xs text-slate-300 font-semibold transition-colors">
+              Recalcular ↵
+            </button>
+          </div>
+          <div class="flex justify-between items-center border-t border-slate-600 pt-2.5">
+            <span class="text-slate-300 text-sm">— Gastos fijos</span>
+            <span class="text-red-400 font-semibold" id="pnl-r-fijos">—</span>
+          </div>
+          <div class="flex justify-between items-center border-t border-slate-500 pt-2.5">
+            <span class="text-white font-bold text-base">= Utilidad neta estimada</span>
+            <span class="font-bold text-lg" id="pnl-r-neta">—</span>
+          </div>
+          <div class="flex justify-between items-center">
+            <span class="text-slate-400 text-xs">Margen neto</span>
+            <span class="text-xs font-semibold" id="pnl-r-margen">—</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Alertas de precios -->
       <div id="pnl-alertas-precios" class="mb-5 space-y-2"></div>
+
+      <!-- Food cost por categoría -->
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 mb-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-bold text-slate-900 text-sm">Food cost por categoría</h3>
+          <span class="text-xs text-slate-400">costo / ventas totales</span>
+        </div>
+        <div id="pnl-fc-categoria" class="space-y-2.5">
+          <p class="text-slate-300 text-sm text-center py-4">Selecciona un período</p>
+        </div>
+      </div>
 
       <!-- Gráficas y tablas -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
@@ -1725,29 +1880,131 @@ const DB = {
 // ============================================================
 // INVENTARIO SEMANAL
 // ============================================================
+// MODOS DE CRUCE LOYVERSE:
+//   loyverse: [{ item, copas }]   → vinos/bebidas: consumo = vendidas / copas
+//   receta:   [{ item, kg }]      → insumos cocina: consumo = vendidas × kg  (kg por porción)
+// Si ambos vacíos → sin cruce (muestra "—")
 const INV_INSUMOS = [
-  // CARNICERÍA — sin cruce Loyverse hasta recetario
-  { cat:'Carnicería', nombre:'Carne molida premium', unidad:'kg',  precio_ref:245, loyverse:[] },
-  { cat:'Carnicería', nombre:'Tocino',               unidad:'kg',  precio_ref:223, loyverse:[] },
-  { cat:'Carnicería', nombre:'Pechuga sin hueso',    unidad:'kg',  precio_ref:160, loyverse:[] },
-  { cat:'Carnicería', nombre:'Bistec de pechuga',    unidad:'kg',  precio_ref:180, loyverse:[] },
-  { cat:'Carnicería', nombre:'Caña de filete',       unidad:'kg',  precio_ref:370, loyverse:[] },
-  // MARISCOS — sin cruce Loyverse hasta recetario
-  { cat:'Mariscos',   nombre:'Camarón 21/25',        unidad:'kg',  precio_ref:215, loyverse:[] },
-  { cat:'Mariscos',   nombre:'Camarón 31/35',        unidad:'kg',  precio_ref:205, loyverse:[] },
-  { cat:'Mariscos',   nombre:'Salmón',               unidad:'kg',  precio_ref:220, loyverse:[] },
-  { cat:'Mariscos',   nombre:'Aros de calamar',      unidad:'kg',  precio_ref:180, loyverse:[] },
-  { cat:'Mariscos',   nombre:'Calamar americano',    unidad:'kg',  precio_ref:160, loyverse:[] },
-  { cat:'Mariscos',   nombre:'Pulpo',                unidad:'kg',  precio_ref:180, loyverse:[] },
-  // LÁCTEOS — sin cruce Loyverse hasta recetario
-  { cat:'Lácteos',    nombre:'Queso parmesano',      unidad:'kg',  precio_ref:315, loyverse:[] },
-  { cat:'Lácteos',    nombre:'Queso mozzarella',     unidad:'kg',  precio_ref:195, loyverse:[] },
-  { cat:'Lácteos',    nombre:'Queso chihuahua',      unidad:'kg',  precio_ref:180, loyverse:[] },
-  { cat:'Lácteos',    nombre:'Queso gouda',          unidad:'kg',  precio_ref:220, loyverse:[] },
-  { cat:'Lácteos',    nombre:'Queso ricotta',        unidad:'kg',  precio_ref:140, loyverse:[] },
-  { cat:'Lácteos',    nombre:'Mantequilla Desy',     unidad:'pza', precio_ref:135, loyverse:[] },
-  { cat:'Lácteos',    nombre:'Crema Corona',         unidad:'lt',  precio_ref:95,  loyverse:[] },
-  { cat:'Lácteos',    nombre:'Jamón serrano',        unidad:'pza', precio_ref:664, loyverse:[] },
+  // ── CARNICERÍA — cruce por recetario ────────────────────────
+  { cat:'Carnicería', nombre:'Carne molida premium', unidad:'kg', precio_ref:245, loyverse:[], receta:[
+    { item:'CARPACCIO DI MANZO',    kg:0.15   },
+    { item:'BOLOGNESE',             kg:0.10   }, // 0.2L salsa × 5kg carne/10L
+    { item:'BOLOGNESA BAMBINI',     kg:0.05   }, // 0.1L salsa × 0.5
+    { item:'LASAGNA',               kg:0.1875 }, // 0.375kg salsa × 0.5
+  ]},
+  { cat:'Carnicería', nombre:'Tocino', unidad:'kg', precio_ref:223, loyverse:[], receta:[
+    { item:'CARBONARA',                    kg:0.06 },
+    { item:'AL FORNO',                     kg:0.06 },
+    { item:'PENNE ALLA VODKA',             kg:0.06 },
+    { item:'CREMOSA DI PARMIGIANO',        kg:0.06 },
+    { item:'CREMOSA DI PARMIGIANO ROJA',   kg:0.06 },
+    // Adicionales (modificadores Loyverse)
+    { item:'MOD:TOCINO',                   kg:0.06 },
+  ]},
+  { cat:'Carnicería', nombre:'Pechuga sin hueso', unidad:'kg', precio_ref:160, loyverse:[], receta:[
+    { item:'PANINI DELICATO', kg:0.12 },
+    // Adicionales (modificadores Loyverse)
+    { item:'MOD:POLLO',       kg:0.12 },
+    { item:'MOD:CHICKEN',     kg:0.12 },
+  ]},
+  { cat:'Carnicería', nombre:'Bistec de pechuga', unidad:'kg', precio_ref:180, loyverse:[], receta:[
+    { item:'SCALOPINE AL VINO BLANCO',  kg:0.20 },
+    { item:'SCALOPINE MEDITERRANEO',    kg:0.20 },
+    // Adicionales Scalopine por variante
+    { item:'MOD:MILANESA',              kg:0.20 },
+  ]},
+  { cat:'Carnicería', nombre:'Caña de filete', unidad:'kg', precio_ref:370, loyverse:[], receta:[] },
+
+  // ── MARISCOS — cruce por recetario ──────────────────────────
+  { cat:'Mariscos', nombre:'Camarón 21/25', unidad:'kg', precio_ref:215, loyverse:[], receta:[
+    { item:'SPAGUETTI DI MARE', kg:0.13 },
+    { item:'GAMBERI AL LIMON',  kg:0.20 },
+    { item:'GAMBERI CREMOSI',   kg:0.20 },
+    // Adicionales (modificadores Loyverse) — camarón agregado a cualquier pasta
+    { item:'MOD:CAMARON',       kg:0.13 },
+    { item:'MOD:CAMARÓN',       kg:0.13 },
+    { item:'MOD:SHRIMP',        kg:0.13 },
+  ]},
+  { cat:'Mariscos', nombre:'Camarón 31/35', unidad:'kg', precio_ref:205, loyverse:[], receta:[
+    { item:'CESTINO DI MARE', kg:0.10 },
+  ]},
+  { cat:'Mariscos', nombre:'Salmón', unidad:'kg', precio_ref:220, loyverse:[], receta:[
+    { item:'SALMONE AL NOCI', kg:0.20 },
+    // Adicionales
+    { item:'MOD:SALMON',      kg:0.20 },
+    { item:'MOD:SALMÓN',      kg:0.20 },
+  ]},
+  { cat:'Mariscos', nombre:'Aros de calamar', unidad:'kg', precio_ref:180, loyverse:[], receta:[
+    { item:'SPAGUETTI DI MARE', kg:0.05 },
+  ]},
+  { cat:'Mariscos', nombre:'Calamar americano', unidad:'kg', precio_ref:160, loyverse:[], receta:[
+    { item:'CALAMARI FRITTI', kg:0.18 },
+  ]},
+  { cat:'Mariscos', nombre:'Pulpo', unidad:'kg', precio_ref:180, loyverse:[], receta:[
+    { item:'CESTINO DI MARE', kg:0.04 },
+    // Adicionales
+    { item:'MOD:PULPO',       kg:0.04 },
+  ]},
+
+  // ── LÁCTEOS — cruce por recetario ───────────────────────────
+  { cat:'Lácteos', nombre:'Queso parmesano', unidad:'kg', precio_ref:315, loyverse:[], receta:[
+    { item:'FUNGHI AL AJILLO',         kg:0.060 },
+    { item:'CESTINO DI MARE',          kg:0.060 },
+    { item:'PANINI PROSCUITTO',        kg:0.020 },
+    { item:'INSALATA CESAR',           kg:0.030 },
+    { item:'SPAGUETTI DI MARE',        kg:0.030 },
+    { item:'GAMBERI AL LIMON',         kg:0.025 },
+    { item:'CARBONARA',                kg:0.050 },
+    { item:'BOLOGNESE',                kg:0.050 },
+    { item:'ALFREDO PRIMAVERA',        kg:0.025 },
+    { item:'SEMPLICE',                 kg:0.050 },
+    { item:'BOLOGNESA BAMBINI',        kg:0.025 },
+    { item:'AL FORNO',                 kg:0.025 },
+    { item:'PASTA AL PESTO',           kg:0.030 },
+    { item:'QUATTRO FORMAGI',          kg:0.050 },
+    { item:'PENNE ALLA VODKA',         kg:0.050 },
+    { item:'CREMOSA DI PARMIGIANO',    kg:0.055 },
+    { item:'GAMBERI CREMOSI',          kg:0.025 },
+    { item:'CARPACCIO DI MANZO',       kg:0.020 },
+    { item:'RISOTTO',                  kg:0.040 },
+  ]},
+  { cat:'Lácteos', nombre:'Queso mozzarella', unidad:'kg', precio_ref:195, loyverse:[], receta:[
+    { item:'LASAGNA',                  kg:0.031 },
+    { item:'MOZZARELLA IN CARROZZA',   kg:0.030 },
+  ]},
+  { cat:'Lácteos', nombre:'Queso chihuahua', unidad:'kg', precio_ref:180, loyverse:[], receta:[
+    { item:'QUATTRO FORMAGI',          kg:0.020 },
+  ]},
+  { cat:'Lácteos', nombre:'Queso gouda', unidad:'kg', precio_ref:220, loyverse:[], receta:[
+    { item:'MOZZARELLA IN CARROZZA',   kg:0.015 },
+    { item:'CROSTINI MISTI',           kg:0.040 },
+    { item:'PANINI PIZZOLO',           kg:0.040 },
+    { item:'AL FORNO',                 kg:0.040 },
+    { item:'QUATTRO FORMAGI',          kg:0.020 },
+    { item:'LASAGNA',                  kg:0.031 },
+  ]},
+  { cat:'Lácteos', nombre:'Queso ricotta',    unidad:'kg',  precio_ref:140, loyverse:[], receta:[] },
+  { cat:'Lácteos', nombre:'Mantequilla Desy', unidad:'kg',  precio_ref:135, loyverse:[], receta:[
+    { item:'PANINI DELICATO',           kg:0.020 },
+    { item:'GAMBERI AL LIMON',          kg:0.040 },
+    { item:'ALFREDO PRIMAVERA',         kg:0.015 },
+    { item:'SEMPLICE',                  kg:0.030 },
+    { item:'SCALOPINE AL VINO BLANCO',  kg:0.030 },
+    { item:'SCALOPINE MEDITERRANEO',    kg:0.030 },
+    { item:'GAMBERI CREMOSI',           kg:0.040 },
+    { item:'RISOTTO',                   kg:0.030 },
+  ]},
+  { cat:'Lácteos', nombre:'Crema Corona', unidad:'lt', precio_ref:95, loyverse:[], receta:[
+    { item:'ALFREDO PRIMAVERA', kg:0.080 },
+    { item:'QUATTRO FORMAGI',   kg:0.090 },
+    { item:'PENNE ALLA VODKA',  kg:0.045 },
+  ]},
+  { cat:'Lácteos', nombre:'Jamón serrano', unidad:'kg', precio_ref:664, loyverse:[], receta:[
+    { item:'MOZZARELLA IN CARROZZA', kg:0.030 },
+    { item:'CROSTINI MISTI',         kg:0.030 },
+    { item:'CROSTINI IBERICO',       kg:0.100 },
+    { item:'PANINI PROSCUITTO',      kg:0.060 },
+  ]},
   // VINOS — cruce con Loyverse: { item: nombre en Loyverse, copas: unidades por botella }
   // copas=5 → 1 botella rinde 5 copas  |  copas=1 → se vende por botella completa
   { cat:'Vinos', nombre:'Cal y Canto',           unidad:'bot', precio_ref:164, loyverse:[
@@ -1839,18 +2096,44 @@ function renderInventario() {
   });
 
   // ── Ventas Loyverse de la semana por producto ─────────────
-  // DB.dashVentas ya tiene los recibos; necesitamos line_items
-  const ventasSemana = {}; // { 'NOMBRE LOYVERSE': unidades_vendidas }
+  // ventasSemana incluye TANTO platillos base COMO modificadores/adicionales
+  // Los modificadores se registran con la clave: "MOD:" + option_name (en mayúsculas)
+  // para distinguirlos de platillos base y poder mapearlos al recetario.
+  const ventasSemana = {}; // { 'NOMBRE': unidades }
+  const modifSemana  = {}; // { 'CAMARON': { uds, monto, platillos:{} } } — para reportes
   const recibos = DB.invRecibos || [];
   recibos.filter(r => {
     const d = (r.created_at||'').substring(0,10);
     return d >= semDesde && d <= fecha;
   }).forEach(r => {
     (r.line_items||[]).forEach(li => {
-      const key = (li.item_name||'').toUpperCase().trim();
-      ventasSemana[key] = (ventasSemana[key]||0) + (parseFloat(li.quantity)||0);
+      const baseKey = (li.item_name||'').toUpperCase().trim();
+      const baseQty = parseFloat(li.quantity) || 0;
+      if (!baseKey) return;
+
+      // Contar platillo base
+      ventasSemana[baseKey] = (ventasSemana[baseKey]||0) + baseQty;
+
+      // Contar modificadores/adicionales
+      (li.modifiers||[]).forEach(mod => {
+        const optName = (mod.option_name || mod.modifier_name || '').toUpperCase().trim();
+        if (!optName) return;
+        const modQty  = parseFloat(mod.quantity) || baseQty; // si modifier no tiene qty usa la del platillo
+        const modKey  = 'MOD:' + optName;
+
+        // Para el cruce de inventario (mismo namespace con prefijo)
+        ventasSemana[modKey] = (ventasSemana[modKey]||0) + modQty;
+
+        // Para el reporte de adicionales
+        if (!modifSemana[optName]) modifSemana[optName] = { uds:0, monto:0, platillos:{} };
+        modifSemana[optName].uds   += modQty;
+        modifSemana[optName].monto += (mod.price||0) * modQty;
+        modifSemana[optName].platillos[baseKey] = (modifSemana[optName].platillos[baseKey]||0) + modQty;
+      });
     });
   });
+  // Guardar para acceso global (tooltip y reportes)
+  DB._modifSemana = modifSemana;
 
   const catColors = {
     'Carnicería':           { badge:'text-red-700 bg-red-50',     icon:'grocery'   },
@@ -1869,13 +2152,19 @@ function renderInventario() {
   let html = '';
   Object.entries(cats).forEach(([cat, items]) => {
     const cc      = catColors[cat] || { badge:'text-slate-600 bg-slate-50', icon:'inventory_2' };
-    const tieneLP = items.some(i => i.loyverse && i.loyverse.length > 0);
+    const tieneLP     = items.some(i => i.loyverse && i.loyverse.length > 0);
+    const tieneReceta = items.some(i => i.receta   && i.receta.length  > 0);
+    const badgeCruce  = tieneLP
+      ? '<span class="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-lg font-medium">✓ Cruce Loyverse activo</span>'
+      : tieneReceta
+        ? '<span class="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-lg font-medium">✓ Cruce por recetario</span>'
+        : '<span class="text-xs bg-slate-50 text-slate-400 px-2 py-0.5 rounded-lg">Sin cruce</span>';
 
     html += `<div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-5">
       <div class="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100">
         <span class="ms ${cc.badge.split(' ')[0]}">${cc.icon}</span>
         <span class="font-semibold text-slate-900 text-sm">${cat}</span>
-        ${tieneLP ? '<span class="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-lg font-medium">✓ Cruce Loyverse activo</span>' : '<span class="text-xs bg-slate-50 text-slate-400 px-2 py-0.5 rounded-lg">Pendiente recetario</span>'}
+        ${badgeCruce}
         <span class="text-xs text-slate-400 ml-auto">${items.length} productos · ${semDesde} → ${fecha}</span>
       </div>
       <div class="overflow-x-auto">
@@ -1903,22 +2192,34 @@ function renderInventario() {
       const fin     = parseFloat(st.fin) || 0; // existencia real capturada
 
       // ── Calcular consumo según Loyverse ──────────────────
+      // Modo A — Vinos/bebidas: loyverse[].copas → consumo = vendidas / copas
+      // Modo B — Insumos cocina: receta[].kg     → consumo = vendidas × kg (kg por porción)
       let consumoLoyverse = 0;
       let tieneVentas     = false;
-      if (ins.loyverse && ins.loyverse.length > 0) {
+      const tieneLP     = ins.loyverse && ins.loyverse.length > 0;
+      const tieneReceta = ins.receta   && ins.receta.length  > 0;
+
+      if (tieneLP) {
+        // MODO A: copas (vinos, bebidas)
         ins.loyverse.forEach(lv => {
           const vendidas = ventasSemana[lv.item.toUpperCase().trim()] || 0;
           if (vendidas > 0) tieneVentas = true;
-          // copas = cuántas unidades vendidas equivalen a 1 unidad del insumo
-          // Ej: Cal y Canto copa: copas=5 → 5 copas = 1 botella → consumo = vendidas/5
           consumoLoyverse += vendidas / lv.copas;
+        });
+      } else if (tieneReceta) {
+        // MODO B: recetario (kg consumido = porciones_vendidas × kg_por_porcion)
+        ins.receta.forEach(rv => {
+          const vendidas = ventasSemana[rv.item.toUpperCase().trim()] || 0;
+          if (vendidas > 0) tieneVentas = true;
+          consumoLoyverse += vendidas * rv.kg;
         });
       }
 
       // Debería haber = ini + compras - consumo_loyverse
-      const deberiaHaber = (ins.loyverse && ins.loyverse.length > 0)
+      const tieneCruce  = tieneLP || tieneReceta;
+      const deberiaHaber = tieneCruce
         ? Math.max(0, ini + compras - consumoLoyverse)
-        : null; // sin recetario no se puede calcular
+        : null; // sin cruce no se puede calcular
 
       // Diferencia = existencia_real - deberia_haber
       const tenemos_fin = st.fin !== '' && st.fin !== null;
@@ -1954,8 +2255,26 @@ function renderInventario() {
             class="w-20 text-center bg-slate-50 border border-slate-200 rounded-xl px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-primary/20"/>
         </td>
         <td class="px-2 py-3 text-center text-slate-500 text-xs font-medium">${compras > 0 ? '+'+compras.toFixed(2) : '<span class="text-slate-200">—</span>'}</td>
-        <td class="px-2 py-3 text-center text-xs bg-green-50/30 ${tieneVentas ? 'text-green-700 font-semibold' : 'text-slate-300'}">
-          ${(ins.loyverse && ins.loyverse.length > 0) ? (tieneVentas ? consumoLoyverse.toFixed(2) : '0') : '<span class="text-slate-200">—</span>'}
+        <td class="px-2 py-3 text-center text-xs bg-green-50/30 ${tieneVentas ? 'text-green-700 font-semibold' : 'text-slate-300'} relative group">
+          ${tieneCruce ? (() => {
+            // Build breakdown tooltip
+            const lineas = [];
+            if (tieneLP) {
+              ins.loyverse.forEach(lv => {
+                const v = ventasSemana[lv.item.toUpperCase().trim()] || 0;
+                if (v > 0) lineas.push(lv.item + ': ' + (v/lv.copas).toFixed(2));
+              });
+            } else if (tieneReceta) {
+              ins.receta.forEach(rv => {
+                const v = ventasSemana[rv.item.toUpperCase().trim()] || 0;
+                if (v > 0) lineas.push(rv.item + ': ' + v + ' platos × ' + rv.kg + 'kg');
+              });
+            }
+            const tooltip = lineas.length
+              ? `<div class="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-slate-900 text-white text-xs rounded-xl p-3 shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity text-left space-y-1">${lineas.map(l=>`<div class="text-slate-300">${l}</div>`).join('')}<div class="text-slate-500 border-t border-slate-700 mt-1 pt-1">Total: ${consumoLoyverse.toFixed(2)} ${ins.unidad}</div></div>`
+              : '';
+            return `<span class="cursor-help">${tieneVentas ? consumoLoyverse.toFixed(2) : '0'}</span>${tooltip}`;
+          })() : '<span class="text-slate-200">—</span>'}
         </td>
         <td class="px-2 py-3 text-center text-xs font-bold bg-blue-50/40" style="color:#0059b5">
           ${deberiaHaber !== null ? deberiaHaber.toFixed(2) : '<span class="text-slate-200">—</span>'}
@@ -1977,6 +2296,45 @@ function renderInventario() {
 
   document.getElementById('inv-categorias').innerHTML = html;
   recalcInvTotales();
+  renderAdicionalesInventario(modifSemana);
+}
+
+function renderAdicionalesInventario(modifSemana) {
+  const panel = document.getElementById('inv-adicionales');
+  const tbody  = document.getElementById('inv-adicionales-body');
+  const sub    = document.getElementById('inv-adicionales-sub');
+  if (!panel || !tbody) return;
+
+  const entradas = Object.entries(modifSemana || {})
+    .filter(([,d]) => d.uds > 0)
+    .sort((a,b) => b[1].uds - a[1].uds);
+
+  if (!entradas.length) {
+    panel.classList.add('hidden');
+    return;
+  }
+
+  panel.classList.remove('hidden');
+  const totalMods  = entradas.reduce((a,[,d]) => a + d.uds, 0);
+  const totalMonto = entradas.reduce((a,[,d]) => a + d.monto, 0);
+  if (sub) sub.textContent = totalMods + ' adicionales · $' + fmt(totalMonto) + ' ingreso extra';
+
+  tbody.innerHTML = entradas.map(([nombre, d]) => {
+    const platillos = Object.entries(d.platillos)
+      .sort((a,b) => b[1]-a[1])
+      .map(([p, qty]) => `<span class="inline-block bg-slate-100 text-slate-600 rounded-lg px-2 py-0.5 text-xs mr-1 mb-0.5">${p} ×${qty}</span>`)
+      .join('');
+    const montoStr = d.monto > 0 ? '<span class="text-green-700 font-semibold text-xs">+$' + fmt(d.monto) + '</span>' : '<span class="text-slate-300 text-xs">—</span>';
+    return `<tr class="border-t border-slate-50 hover:bg-slate-50/40">
+      <td class="px-4 py-3 font-semibold text-slate-800 text-sm">${nombre}</td>
+      <td class="px-3 py-3 text-center">
+        <span class="text-lg font-bold text-amber-600">${d.uds}</span>
+        <span class="text-xs text-slate-400 ml-1">porciones</span>
+      </td>
+      <td class="px-3 py-3 text-center">${montoStr}</td>
+      <td class="px-3 py-3 text-xs text-slate-500 leading-relaxed">${platillos || '<span class="text-slate-300">—</span>'}</td>
+    </tr>`;
+  }).join('');
 }
 
 function invUpdate(key, campo, valor) {
@@ -2000,6 +2358,7 @@ function recalcInvTotales() {
   });
 
   let totalTeorico = 0, totalReal = 0, alertas = 0, conteos = 0;
+  let costoTeorico = 0, costoReal = 0; // en pesos para food cost interno
   INV_INSUMOS.forEach(ins => {
     const key = ins.nombre.toUpperCase().trim();
     const st = INV_STATE[key] || { ini: '', fin: '' };
@@ -2021,7 +2380,33 @@ function recalcInvTotales() {
   const s = (id, val) => { const e = document.getElementById(id); if(e) e.textContent = val; };
   s('inv-teorico', totalTeorico > 0 ? fmt(totalTeorico) : '—');
   s('inv-real',    totalReal    > 0 ? fmt(totalReal)    : '—');
-  s('inv-alertas', alertas > 0 ? alertas : conteos > 0 ? '0' : '—');
+  s('inv-diferencia', '—'); // se actualiza abajo
+  const alertasBadge = document.getElementById('inv-alertas-badge');
+  if (alertasBadge) {
+    alertasBadge.textContent = alertas > 0 ? alertas + ' alertas' : '';
+    alertasBadge.className = 'text-xs font-semibold ' + (alertas > 0 ? 'text-red-500' : 'text-green-600');
+  }
+
+  // Food cost interno basado en consumo real de insumos vs ventas del período
+  const ventasPeriodo = DB.dashVentas || 0;
+  const fcInvEl  = document.getElementById('inv-fc-insumos');
+  const fcInvSub = document.getElementById('inv-fc-sub');
+  if (fcInvEl) {
+    if (totalReal > 0 && ventasPeriodo > 0) {
+      const fcInv = (totalReal / ventasPeriodo * 100);
+      fcInvEl.textContent = fcInv.toFixed(1) + '%';
+      fcInvEl.className   = 'text-2xl font-bold ' + (fcInv > 40 ? 'text-red-600' : fcInv > 30 ? 'text-amber-600' : 'text-green-700');
+      if (fcInvSub) fcInvSub.textContent = 'consumo real / ventas · ' + conteos + ' insumos';
+    } else if (totalReal > 0) {
+      fcInvEl.textContent = fmt(totalReal);
+      fcInvEl.className   = 'text-2xl font-bold text-slate-900';
+      if (fcInvSub) fcInvSub.textContent = 'sincroniza ventas para food cost %';
+    } else {
+      fcInvEl.textContent = '—';
+      fcInvEl.className   = 'text-2xl font-bold text-slate-300';
+      if (fcInvSub) fcInvSub.textContent = 'captura existencias primero';
+    }
+  }
 
   const difEl    = document.getElementById('inv-diferencia');
   const difPctEl = document.getElementById('inv-diferencia-pct');
@@ -2159,10 +2544,126 @@ async function sincronizarInventarioLoyverse(btn) {
 }
 
 // ============================================================
+// DIAGNÓSTICO DE MODIFICADORES LOYVERSE
+// ============================================================
+async function diagnosticarModificadores() {
+  const fecha   = document.getElementById('inv-fecha')?.value;
+  if (!fecha) { toast('Selecciona primero la fecha del inventario'); return; }
+  const semDesde = getInvSemanaDesde(fecha);
+
+  document.getElementById('modal-diagnostico').classList.remove('hidden');
+  const body = document.getElementById('diag-body');
+  const meta = document.getElementById('diag-meta');
+  body.innerHTML = `<div class="flex items-center justify-center py-12 gap-3 text-slate-400">
+    <span class="ms" style="animation:spin 1s linear infinite;display:inline-block">sync</span>
+    <span class="text-sm">Descargando y analizando recibos de ${semDesde} → ${fecha}...</span>
+  </div>`;
+
+  try {
+    const resp = await fetch('/api/loyverse?endpoint=diagnostico'
+      + '&date_from=' + encodeURIComponent(semDesde + 'T00:00:00.000Z')
+      + '&date_to='   + encodeURIComponent(fecha    + 'T23:59:59.000Z'));
+    const data = await resp.json();
+
+    if (data.error) throw new Error(data.error);
+
+    meta.textContent = data.total_recibos + ' recibos · '
+      + data.recibos_con_mods + ' con adicionales · '
+      + (data.modificadores?.length || 0) + ' tipos de adicional encontrados';
+
+    if (!data.modificadores?.length) {
+      body.innerHTML = `<div class="text-center py-10">
+        <span class="ms text-5xl text-slate-200">search_off</span>
+        <p class="text-slate-500 mt-3 font-medium">No se encontraron modificadores en este período</p>
+        <p class="text-xs text-slate-400 mt-1">Puede que los adicionales no se hayan configurado en Loyverse aún,<br>o que el período seleccionado no tenga pedidos con adicionales.</p>
+      </div>`;
+      return;
+    }
+
+    // Categorizar: ¿están ya mapeados en el recetario?
+    const mapeados = new Set();
+    INV_INSUMOS.forEach(ins => {
+      (ins.receta||[]).forEach(rv => {
+        if (rv.item.startsWith('MOD:')) mapeados.add(rv.item.replace('MOD:','').toUpperCase().trim());
+      });
+    });
+
+    const filas = data.modificadores.map(m => {
+      const yaMapeado = mapeados.has(m.option_name.toUpperCase().trim());
+      const platStr   = Object.entries(m.en_platillos)
+        .sort((a,b) => b[1]-a[1])
+        .slice(0, 4)
+        .map(([p,c]) => `<span class="inline-block bg-slate-100 text-slate-600 rounded px-1.5 py-0.5 text-xs mr-1">${p} ×${c}</span>`)
+        .join('');
+      return `<tr class="border-b border-slate-50 hover:bg-slate-50/50">
+        <td class="py-3 px-3 font-bold text-slate-900 text-sm">${m.option_name}</td>
+        <td class="py-3 px-3 text-slate-500 text-xs">${m.modifier_group || '—'}</td>
+        <td class="py-3 px-3 text-center">
+          <span class="text-lg font-bold ${m.count > 10 ? 'text-amber-600' : 'text-slate-700'}">${m.count}</span>
+        </td>
+        <td class="py-3 px-3 text-right text-xs text-slate-500">${m.price > 0 ? '+$'+fmt(m.price) : '—'}</td>
+        <td class="py-3 px-3">
+          ${yaMapeado
+            ? '<span class="text-xs bg-green-50 text-green-700 font-semibold px-2 py-0.5 rounded-lg">✓ Mapeado</span>'
+            : '<span class="text-xs bg-red-50 text-red-600 font-semibold px-2 py-0.5 rounded-lg">⚠ Sin mapear</span>'}
+        </td>
+        <td class="py-3 px-3 text-xs">${platStr}</td>
+      </tr>`;
+    }).join('');
+
+    const sinMapear = data.modificadores.filter(m => !mapeados.has(m.option_name.toUpperCase().trim()));
+
+    body.innerHTML = `
+      ${sinMapear.length ? `<div class="bg-red-50 border border-red-100 rounded-2xl p-4 mb-5">
+        <p class="text-sm font-semibold text-red-700 mb-1">⚠ ${sinMapear.length} adicionales sin mapear en el recetario</p>
+        <p class="text-xs text-red-500">Los siguientes adicionales no están cruzando con ningún insumo. El consumo de esos ingredientes <strong>no se está contando</strong> en el inventario:</p>
+        <div class="flex flex-wrap gap-2 mt-2">
+          ${sinMapear.map(m => `<code class="bg-white border border-red-200 text-red-700 text-xs px-2 py-1 rounded-lg">MOD:${m.option_name.toUpperCase()}</code>`).join('')}
+        </div>
+      </div>` : '<div class="bg-green-50 border border-green-100 rounded-2xl p-4 mb-5"><p class="text-sm font-semibold text-green-700">✓ Todos los adicionales están mapeados correctamente</p></div>'}
+      <table class="w-full text-sm">
+        <thead class="bg-slate-50">
+          <tr>
+            <th class="text-left py-2.5 px-3 text-xs text-slate-500 font-semibold">Adicional (option_name)</th>
+            <th class="text-left py-2.5 px-3 text-xs text-slate-500 font-semibold">Grupo</th>
+            <th class="text-center py-2.5 px-3 text-xs text-slate-500 font-semibold">Veces pedido</th>
+            <th class="text-right py-2.5 px-3 text-xs text-slate-500 font-semibold">Precio extra</th>
+            <th class="text-center py-2.5 px-3 text-xs text-slate-500 font-semibold">Estado</th>
+            <th class="text-left py-2.5 px-3 text-xs text-slate-500 font-semibold">En platillos</th>
+          </tr>
+        </thead>
+        <tbody>${filas}</tbody>
+      </table>
+      <div class="mt-5 border-t border-slate-100 pt-4">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Top 10 platillos del período</p>
+        <div class="flex flex-wrap gap-2">
+          ${(data.top_platillos||[]).slice(0,10).map(p =>
+            `<div class="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs">
+              <span class="font-semibold text-slate-700">${p.count}×</span>
+              <span class="text-slate-500 ml-1">${p.name}</span>
+            </div>`).join('')}
+        </div>
+      </div>`;
+
+  } catch(e) {
+    body.innerHTML = `<div class="text-center py-8 text-red-400 text-sm">Error: ${e.message}</div>`;
+  }
+}
+
+// ============================================================
 // SALIDAS DE CAJA
 // ============================================================
 let SAL_DATA = []; // salidas cargadas de Loyverse
-let SAL_REGISTRADAS = new Set(); // IDs ya registrados como compra
+
+// SAL_REGISTRADAS persiste en localStorage para no perder el estado entre recargas
+const SAL_LS_KEY = 'romatella_sal_registradas';
+let SAL_REGISTRADAS = new Set(
+  JSON.parse(localStorage.getItem(SAL_LS_KEY) || '[]')
+);
+function salRegistradasAdd(id) {
+  SAL_REGISTRADAS.add(id);
+  localStorage.setItem(SAL_LS_KEY, JSON.stringify([...SAL_REGISTRADAS]));
+}
 
 async function cargarSalidas() {
   const desde = document.getElementById('sal-desde')?.value;
@@ -2205,6 +2706,14 @@ async function cargarSalidas() {
   } catch(e) {
     document.getElementById('sal-lista').innerHTML = `<div class="text-center py-8 text-red-400 text-sm">Error: ${e.message}</div>`;
   }
+}
+
+function limpiarSalidasClasificadas() {
+  if (!confirm('¿Reiniciar el estado de salidas clasificadas? Las salidas seguirán en Loyverse, solo se borrará el registro local de cuáles ya registraste como compra.')) return;
+  SAL_REGISTRADAS.clear();
+  localStorage.removeItem(SAL_LS_KEY);
+  renderSalidas();
+  toast('✓ Estado reiniciado');
 }
 
 function renderSalidas() {
@@ -2286,13 +2795,20 @@ function abrirModalSalida(id) {
   document.getElementById('modal-salida').dataset.salId   = id;
   // Auto-detectar categoría por descripción
   const desc = sal.descripcion.toLowerCase();
-  const cat  = desc.includes('pan') || desc.includes('baguet') ? 'Panadería'
-             : desc.includes('carn') || desc.includes('pollo') ? 'Carnicería'
-             : desc.includes('mar') || desc.includes('calam') ? 'Mariscos'
-             : desc.includes('vino') || desc.includes('licor') ? 'Vinos'
-             : desc.includes('hielo') || desc.includes('coca') || desc.includes('refresc') ? 'Refrescos'
-             : desc.includes('limpieza') || desc.includes('deterg') ? 'Limpieza'
-             : desc.includes('flor') ? 'Otros insumos'
+  // Auto-detectar categoría por palabras clave
+  const cat  = desc.includes('pan') || desc.includes('baguet') || desc.includes('tortilla') ? 'Panadería'
+             : desc.includes('carne') || desc.includes('pollo') || desc.includes('res') || desc.includes('tocino') || desc.includes('chorizo') ? 'Carnicería'
+             : desc.includes('camaron') || desc.includes('camarón') || desc.includes('pulpo') || desc.includes('salmon') || desc.includes('salmón') || desc.includes('pescado') || desc.includes('calamar') ? 'Mariscos'
+             : desc.includes('vino') || desc.includes('prosecco') || desc.includes('campari') || desc.includes('bacardi') || desc.includes('tanqueray') ? 'Vinos'
+             : desc.includes('licor') || desc.includes('mezcal') || desc.includes('tequila') || desc.includes('ron') ? 'Licores'
+             : desc.includes('hielo') || desc.includes('coca') || desc.includes('refresc') || desc.includes('agua') || desc.includes('cerveza') || desc.includes('modelo') || desc.includes('corona') ? 'Refrescos'
+             : desc.includes('queso') || desc.includes('crema') || desc.includes('leche') || desc.includes('mantequilla') || desc.includes('jamon') || desc.includes('jamón') ? 'Lácteos'
+             : desc.includes('jitomate') || desc.includes('lechuga') || desc.includes('verdura') || desc.includes('fruta') || desc.includes('limón') || desc.includes('limon') ? 'Frutas y Verduras'
+             : desc.includes('aceite') || desc.includes('harina') || desc.includes('azucar') || desc.includes('pasta') || desc.includes('arroz') ? 'Abarrotes'
+             : desc.includes('limpieza') || desc.includes('deterg') || desc.includes('cloro') || desc.includes('jabón') || desc.includes('jabon') ? 'Limpieza'
+             : desc.includes('flor') || desc.includes('decoraci') ? 'Otros insumos'
+             : desc.includes('nomina') || desc.includes('nómina') || desc.includes('sueldo') || desc.includes('salario') ? 'Nómina'
+             : desc.includes('gas') || desc.includes('luz') || desc.includes('agua potable') ? 'Servicios'
              : 'Otros insumos';
   document.getElementById('sal-modal-categoria').value = cat;
   document.getElementById('modal-salida').classList.remove('hidden');
@@ -2336,8 +2852,8 @@ async function confirmarSalida() {
       total: sal.monto, vencimiento: null, items: [] };
     if (!DB.compras.find(x => String(x.id) === String(compra.id))) DB.compras.push(compra);
 
-    // Marcar como registrada
-    SAL_REGISTRADAS.add(id);
+    // Marcar como registrada (persiste en localStorage)
+    salRegistradasAdd(id);
     closeModal('modal-salida');
     renderSalidas();
     toast('✓ Registrado: ' + proveedor + ' $' + fmt(sal.monto));
@@ -2372,14 +2888,41 @@ async function cargarPnL() {
   } catch(e) {}
 
   // ── KPIs ──────────────────────────────────────────────────
+  // Food Cost real = (Inv.ini + Compras - Inv.fin) / Ventas
+  // Si no hay conteo de inventario, usamos fórmula simple: Compras / Ventas
+  const invData = INV_INSUMOS.map(ins => {
+    const key = ins.nombre.toUpperCase().trim();
+    const st  = INV_STATE[key] || {};
+    const ini = parseFloat(st.ini) || 0;
+    const fin = parseFloat(st.fin) || 0;
+    return { nombre: ins.nombre, precio_ref: ins.precio_ref || 0, ini, fin, tieneFin: st.fin !== '' && st.fin !== null };
+  });
+  const hayConteo = invData.some(d => d.tieneFin);
+  let costoInvAjustado = totalCostos; // fallback: fórmula simple
+  if (hayConteo) {
+    // Costo ajustado = Compras + valor de lo que se consumió de inv.ini que no se compró
+    // Simplificación: sumamos el valor de la diferencia (ini - fin) × precio_ref por insumo contado
+    let ajuste = 0;
+    invData.forEach(d => {
+      if (d.tieneFin && d.precio_ref > 0) {
+        ajuste += (d.ini - d.fin) * d.precio_ref;
+      }
+    });
+    costoInvAjustado = Math.max(0, totalCostos + ajuste);
+  }
+
   const utilidad   = totalVentas - totalCostos;
-  const fc         = totalVentas > 0 ? (totalCostos / totalVentas * 100) : 0;
+  const fc         = totalVentas > 0 ? (costoInvAjustado / totalVentas * 100) : 0;
+  const fcSimple   = totalVentas > 0 ? (totalCostos / totalVentas * 100) : 0;
   const utilPct    = totalVentas > 0 ? (utilidad / totalVentas * 100) : 0;
 
   const s = (id, val) => { const e = document.getElementById(id); if(e) e.textContent = val; };
-  s('pnl-ventas',  fmt(totalVentas));
-  s('pnl-costos',  fmt(totalCostos));
+  s('pnl-ventas',  '$' + fmt(totalVentas));
+  s('pnl-costos',  '$' + fmt(totalCostos));
   s('pnl-costos-sub', compras.length + ' compras registradas');
+  // Actualizar subtítulo food cost para indicar método
+  const fcSubEl = document.querySelector('#pnl-fc ~ p');
+  if (fcSubEl) fcSubEl.textContent = hayConteo ? 'ajustado con inventario' : 'meta <35% (sin conteo)';
 
   const fcEl = document.getElementById('pnl-fc');
   if (fcEl) {
@@ -2388,10 +2931,15 @@ async function cargarPnL() {
   }
   const utEl = document.getElementById('pnl-utilidad');
   if (utEl) {
-    utEl.textContent = fmt(utilidad);
+    utEl.textContent = '$' + fmt(utilidad);
     utEl.className   = 'text-2xl font-bold ' + (utilidad >= 0 ? 'text-green-700' : 'text-red-600');
   }
   s('pnl-utilidad-pct', utilPct.toFixed(1) + '% sobre ventas');
+
+  // ── Estado de Resultados (P&L neto) ──────────────────────
+  PNL_VENTAS_ACTUAL  = totalVentas;
+  PNL_INSUMOS_ACTUAL = totalCostos;
+  recalcPnLNeto();
 
   // ── Alertas de precios ────────────────────────────────────
   renderAlertasPrecios(desde, hasta);
@@ -2426,6 +2974,27 @@ async function cargarPnL() {
     </div>`;
   }).join('') || '<p class="text-slate-300 text-sm text-center py-4">Sin datos</p>';
 
+  // ── Food cost por categoría ─────────────────────────────
+  const FC_CATS = ['Carnicería','Mariscos','Lácteos','Vinos','Abarrotes','Frutas y Verduras','Panadería','Refrescos','Licores'];
+  const fcCatHtml = FC_CATS.map(cat => {
+    const gastoCat = compras.filter(c => c.categoria === cat).reduce((a,c) => a+(c.total||0), 0);
+    if (gastoCat === 0) return '';
+    const fcCat    = totalVentas > 0 ? (gastoCat / totalVentas * 100) : 0;
+    const pBar     = Math.min(fcCat * 2, 100); // escala: 50% = barra llena
+    const color    = fcCat > 20 ? 'bg-red-400' : fcCat > 12 ? 'bg-amber-400' : 'bg-green-400';
+    const textCol  = fcCat > 20 ? 'text-red-600' : fcCat > 12 ? 'text-amber-600' : 'text-green-700';
+    return `<div class="flex items-center gap-3">
+      <span class="text-xs font-medium text-slate-700 w-32 flex-shrink-0">${cat}</span>
+      <div class="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden">
+        <div class="h-full ${color} rounded-full transition-all" style="width:${pBar}%"></div>
+      </div>
+      <span class="text-xs font-semibold ${textCol} w-10 text-right">${fcCat.toFixed(1)}%</span>
+      <span class="text-xs text-slate-400 w-16 text-right">$${fmt(gastoCat)}</span>
+    </div>`;
+  }).filter(Boolean).join('');
+  document.getElementById('pnl-fc-categoria').innerHTML = fcCatHtml ||
+    '<p class="text-slate-300 text-sm text-center py-4">Sin datos</p>';
+
   // ── Top proveedores ───────────────────────────────────────
   const porProv = {};
   compras.forEach(c => { porProv[c.proveedor] = (porProv[c.proveedor]||0) + (c.total||0); });
@@ -2449,38 +3018,92 @@ async function cargarPnL() {
     </div>`;
   }).join('') || '<p class="text-slate-300 text-sm text-center py-4">Sin datos</p>';
 
-  // ── Top platillos Loyverse ────────────────────────────────
+  // ── Top platillos Loyverse (con adicionales/modificadores) ──
   const porPlatillo = {};
+  const porModif    = {}; // { 'CAMARON': { uds, venta, platillos:{} } }
+  let   totalModifVenta = 0;
+
   receipts.forEach(r => {
     (r.line_items||[]).forEach(li => {
-      const nom = li.item_name || 'Sin nombre';
-      if (!porPlatillo[nom]) porPlatillo[nom] = { uds:0, venta:0 };
-      porPlatillo[nom].uds   += li.quantity || 0;
-      porPlatillo[nom].venta += (li.price || 0) * (li.quantity || 0);
+      const nom    = li.item_name || 'Sin nombre';
+      const qty    = li.quantity  || 0;
+      // Precio base del platillo (sin modificadores)
+      const precio = li.price     || 0;
+      if (!porPlatillo[nom]) porPlatillo[nom] = { uds:0, venta:0, modifs:{} };
+      porPlatillo[nom].uds   += qty;
+      porPlatillo[nom].venta += precio * qty;
+
+      // Procesar modificadores
+      (li.modifiers||[]).forEach(mod => {
+        const optNom = (mod.option_name || mod.modifier_name || '').trim();
+        if (!optNom) return;
+        const modQty   = parseFloat(mod.quantity) || qty;
+        const modPrecio= mod.price || 0;
+        const modMonto = modPrecio * modQty;
+
+        // Agregar al platillo base como sub-item
+        if (!porPlatillo[nom].modifs[optNom]) porPlatillo[nom].modifs[optNom] = { uds:0, extra:0 };
+        porPlatillo[nom].modifs[optNom].uds   += modQty;
+        porPlatillo[nom].modifs[optNom].extra += modMonto;
+
+        // Totales de modificadores globales
+        if (!porModif[optNom]) porModif[optNom] = { uds:0, venta:0 };
+        porModif[optNom].uds   += modQty;
+        porModif[optNom].venta += modMonto;
+        totalModifVenta        += modMonto;
+      });
     });
   });
-  const platSorted = Object.entries(porPlatillo).sort((a,b) => b[1].venta - a[1].venta).slice(0,10);
+
+  const platSorted  = Object.entries(porPlatillo).sort((a,b) => b[1].venta - a[1].venta).slice(0,10);
+  const modifSorted = Object.entries(porModif).sort((a,b) => b[1].uds - a[1].uds);
 
   if (platSorted.length) {
     document.getElementById('pnl-platillos').innerHTML = `
       <table class="w-full text-sm">
         <thead><tr class="border-b border-slate-100">
           <th class="text-left py-2 text-xs text-slate-500 font-semibold">#</th>
-          <th class="text-left py-2 text-xs text-slate-500 font-semibold">Platillo</th>
+          <th class="text-left py-2 text-xs text-slate-500 font-semibold">Platillo / Adicional</th>
           <th class="text-right py-2 text-xs text-slate-500 font-semibold">Uds</th>
-          <th class="text-right py-2 text-xs text-slate-500 font-semibold">Venta total</th>
-          <th class="text-right py-2 text-xs text-slate-500 font-semibold">% del total</th>
+          <th class="text-right py-2 text-xs text-slate-500 font-semibold">Venta</th>
+          <th class="text-right py-2 text-xs text-slate-500 font-semibold">% total</th>
         </tr></thead>
-        <tbody>${platSorted.map(([nom, d], i) => `
-          <tr class="border-b border-slate-50 hover:bg-slate-50/50">
+        <tbody>${platSorted.map(([nom, d], i) => {
+          const modifsHtml = Object.entries(d.modifs||{}).sort((a,b)=>b[1].uds-a[1].uds).map(([mNom, md]) =>
+            `<tr class="bg-amber-50/40">
+              <td class="py-1.5 text-slate-300 text-xs pl-4">↳</td>
+              <td class="py-1.5 text-amber-700 text-xs pl-2 italic">${mNom}
+                <span class="text-amber-500 text-xs ml-1">(adicional)</span>
+              </td>
+              <td class="py-1.5 text-right text-amber-600 text-xs">${md.uds}</td>
+              <td class="py-1.5 text-right text-amber-700 text-xs font-medium">${md.extra > 0 ? '+$'+fmt(md.extra) : '—'}</td>
+              <td class="py-1.5 text-right text-slate-300 text-xs">—</td>
+            </tr>`
+          ).join('');
+          return `<tr class="border-b border-slate-50 hover:bg-slate-50/50">
             <td class="py-2.5 text-slate-400 text-xs">${i+1}</td>
             <td class="py-2.5 font-medium text-slate-800 text-xs">${nom}</td>
             <td class="py-2.5 text-right text-slate-600 text-xs">${d.uds}</td>
             <td class="py-2.5 text-right font-semibold text-slate-900 text-xs">$${fmt(d.venta)}</td>
             <td class="py-2.5 text-right text-slate-400 text-xs">${totalVentas > 0 ? (d.venta/totalVentas*100).toFixed(1) : 0}%</td>
-          </tr>`).join('')}
+          </tr>${modifsHtml}`;
+        }).join('')}
         </tbody>
-      </table>`;
+      </table>
+      ${modifSorted.length ? `
+      <div class="mt-5 border-t border-slate-100 pt-4">
+        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-3">
+          Resumen de adicionales — $${fmt(totalModifVenta)} ingreso extra total
+        </p>
+        <div class="flex flex-wrap gap-2">
+          ${modifSorted.map(([nom, d]) =>
+            `<div class="bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+              <span class="text-sm font-bold text-amber-700">${d.uds}×</span>
+              <span class="text-sm text-slate-700 ml-1">${nom}</span>
+              ${d.venta > 0 ? `<span class="text-xs text-amber-500 ml-1">+$${fmt(d.venta)}</span>` : ''}
+            </div>`).join('')}
+        </div>
+      </div>` : ''}`;
   } else {
     document.getElementById('pnl-platillos').innerHTML = '<p class="text-slate-300 text-sm text-center py-4">Sincroniza ventas de Loyverse en el Dashboard primero</p>';
   }
@@ -2596,6 +3219,57 @@ function renderAlertasPrecios(desde, hasta) {
   }
 
   alertasEl.innerHTML = html;
+}
+
+// ============================================================
+// P&L NETO — Gastos fijos y margen
+// ============================================================
+let PNL_VENTAS_ACTUAL   = 0;
+let PNL_INSUMOS_ACTUAL  = 0;
+
+function togglePnLDetalle() {
+  const el  = document.getElementById('pnl-gastos-fijos-detalle');
+  const btn = document.getElementById('pnl-detalle-btn');
+  if (!el) return;
+  const hidden = el.classList.contains('hidden');
+  el.classList.toggle('hidden', !hidden);
+  btn.innerHTML = hidden
+    ? '<span class="ms text-sm">expand_less</span> ocultar detalle'
+    : '<span class="ms text-sm">expand_more</span> ver detalle';
+  if (hidden) recalcPnLNeto();
+}
+
+function recalcPnLNeto() {
+  const nomina  = parseFloat(document.getElementById('pnl-nomina')?.value)  || 0;
+  const renta   = parseFloat(document.getElementById('pnl-renta')?.value)   || 0;
+  const musica  = parseFloat(document.getElementById('pnl-musica')?.value)  || 0;
+  const otros   = parseFloat(document.getElementById('pnl-otros-gastos')?.value) || 0;
+  const totalFijos = nomina + renta + musica + otros;
+
+  const bruta   = PNL_VENTAS_ACTUAL - PNL_INSUMOS_ACTUAL;
+  const neta    = bruta - totalFijos;
+  const margen  = PNL_VENTAS_ACTUAL > 0 ? (neta / PNL_VENTAS_ACTUAL * 100) : 0;
+
+  const s = (id, val) => { const e = document.getElementById(id); if(e) e.textContent = val; };
+  s('pnl-r-ventas',  '$' + fmt(PNL_VENTAS_ACTUAL));
+  s('pnl-r-insumos', '-$' + fmt(PNL_INSUMOS_ACTUAL));
+  s('pnl-r-bruta',   '$' + fmt(bruta));
+  s('pnl-r-fijos',   '-$' + fmt(totalFijos));
+
+  const netaEl = document.getElementById('pnl-r-neta');
+  if (netaEl) {
+    netaEl.textContent = (neta >= 0 ? '$' : '-$') + fmt(Math.abs(neta));
+    netaEl.className   = 'font-bold text-lg ' + (neta >= 0 ? 'text-green-400' : 'text-red-400');
+  }
+  const margenEl = document.getElementById('pnl-r-margen');
+  if (margenEl) {
+    margenEl.textContent = margen.toFixed(1) + '%';
+    margenEl.className   = 'text-xs font-semibold ' + (margen >= 10 ? 'text-green-400' : margen >= 5 ? 'text-amber-400' : 'text-red-400');
+  }
+
+  // Bruta color
+  const brutaEl = document.getElementById('pnl-r-bruta');
+  if (brutaEl) brutaEl.className = 'font-bold ' + (bruta >= 0 ? 'text-green-400' : 'text-red-400');
 }
 
 // ============================================================
@@ -2864,6 +3538,17 @@ function renderDashboard() {
   set('metric-vencidas-sub', vencidasList.length + ' factura' + (vencidasList.length !== 1 ? 's' : ''));
   set('metric-por-vencer',   fmt(porVencerMonto));
   set('metric-por-vencer-sub', porVencerList.length + ' factura' + (porVencerList.length !== 1 ? 's' : ''));
+
+  // Badge adicionales en ventas KPI
+  const adBadge = document.getElementById('metric-adicionales-badge');
+  const adTxt   = document.getElementById('metric-adicionales-txt');
+  if (adBadge && adTxt && DB.dashAdicionales > 0) {
+    adBadge.classList.remove('hidden');
+    adTxt.textContent = '+ ' + fmt(DB.dashAdicionales) + ' en adicionales ('
+      + (DB.dashAdicionalesCount||0) + ' porciones)';
+  } else if (adBadge) {
+    adBadge.classList.add('hidden');
+  }
 
   // Food Cost % — si hay ventas en DB
   // Ventas: solo usar si corresponden al mismo período y rango de fechas
@@ -3917,6 +4602,21 @@ async function sincronizarVentasDashboard(btn) {
     const receipts   = data.receipts || [];
     const totalVentas = receipts.reduce((a, r) => a + (r.total_money || 0), 0);
 
+    // Calcular ingreso de adicionales/modificadores
+    let totalAdicionales = 0;
+    let countAdicionales = 0;
+    receipts.forEach(r => {
+      (r.line_items||[]).forEach(li => {
+        (li.modifiers||[]).forEach(mod => {
+          const qty = parseFloat(mod.quantity) || parseFloat(li.quantity) || 1;
+          totalAdicionales += (mod.price || 0) * qty;
+          if ((mod.price||0) > 0) countAdicionales += qty;
+        });
+      });
+    });
+    DB.dashAdicionales = totalAdicionales;
+    DB.dashAdicionalesCount = countAdicionales;
+
     if (!DB.ventasPorPeriodo) DB.ventasPorPeriodo = {};
     DB.ventasPorPeriodo[periodo + '_' + desde + '_' + hasta] = totalVentas;
     DB.dashVentas        = totalVentas;
@@ -3931,7 +4631,8 @@ async function sincronizarVentasDashboard(btn) {
       metricVentas.className   = 'text-2xl font-bold text-slate-900';
     }
     const hora = new Date().toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
-    if (label) label.textContent = 'Loyverse · ' + receipts.length + ' tickets · ' + hora;
+    const adStr = totalAdicionales > 0 ? ' · adicionales ' + fmt(totalAdicionales) : '';
+    if (label) label.textContent = 'Loyverse · ' + receipts.length + ' tickets' + adStr + ' · ' + hora;
 
     renderDashboard();
   } catch(e) {
@@ -4024,14 +4725,27 @@ async function renderVentas() {
           </div>
         </div>`).join('') || '<p class="text-slate-300 text-sm">Sin datos de pagos</p>';
 
-    // Productos vendidos
+    // Productos vendidos (incluye adicionales/modificadores como entradas separadas)
     const prodMap = {};
+    let totalModifExtra = 0;
     receipts.forEach(r => {
       (r.line_items || []).forEach(item => {
         const nombre = item.item_name || 'Desconocido';
-        if (!prodMap[nombre]) prodMap[nombre] = { qty: 0, total: 0 };
-        prodMap[nombre].qty += (item.quantity || 0);
-        prodMap[nombre].total += (item.total_money || 0);
+        if (!prodMap[nombre]) prodMap[nombre] = { qty: 0, total: 0, modifs:[] };
+        prodMap[nombre].qty   += (item.quantity || 0);
+        prodMap[nombre].total += (item.total_money || item.price * item.quantity || 0);
+        // Sumar ingreso de modificadores al platillo base
+        (item.modifiers||[]).forEach(mod => {
+          const monto = (mod.price||0) * (mod.quantity||item.quantity||1);
+          prodMap[nombre].total += monto;
+          totalModifExtra       += monto;
+          const opt = mod.option_name || mod.modifier_name || '';
+          if (opt) {
+            const existing = prodMap[nombre].modifs.find(m => m.nom === opt);
+            if (existing) existing.qty += (mod.quantity||item.quantity||1);
+            else prodMap[nombre].modifs.push({ nom:opt, qty: mod.quantity||item.quantity||1 });
+          }
+        });
       });
     });
     const topProds = Object.entries(prodMap).sort((a,b) => b[1].total - a[1].total).slice(0, 10);
@@ -4672,17 +5386,27 @@ async function exportarVentas() {
     const data = await resp.json();
     const receipts = data.receipts || [];
     const ptMap = DB.paymentTypes || {};
-    const rows = [['Fecha','Hora','Folio','Total','Forma de Pago','Descuento','Productos']];
+    const rows = [['Fecha','Hora','Folio','Total','Forma de Pago','Descuento','Platillos base','Adicionales / Modificadores']];
     receipts.forEach(r => {
       const fecha = new Date(r.created_at);
-      const pago = (r.payments||[]).map(p => (p.name || ptMap[p.payment_type_id] || 'Otro') + ' $' + (p.money_amount||0)).join(' | ');
-      const prods = (r.line_items||[]).map(i => i.item_name + ' x' + i.quantity).join(' | ');
+      const pago  = (r.payments||[]).map(p => (p.name || ptMap[p.payment_type_id] || 'Otro') + ' $' + (p.money_amount||0)).join(' | ');
+      const prods = (r.line_items||[]).map(i => i.item_name + ' ×' + i.quantity).join(' | ');
+      // Extraer todos los modificadores del ticket
+      const mods = [];
+      (r.line_items||[]).forEach(li => {
+        (li.modifiers||[]).forEach(mod => {
+          const opt = mod.option_name || mod.modifier_name || '';
+          if (opt) mods.push(li.item_name + '→' + opt + (mod.price ? ' +$'+mod.price : ''));
+        });
+      });
       rows.push([
         fecha.toLocaleDateString('es-MX'),
         fecha.toLocaleTimeString('es-MX',{hour:'2-digit',minute:'2-digit'}),
         r.receipt_number || '',
         r.total_money || 0,
-        pago, r.total_discount || 0, prods
+        pago, r.total_discount || 0,
+        prods,
+        mods.join(' | ') || ''
       ]);
     });
     csvDownload('romatella-ventas-' + desde + '-' + hasta + '.csv', rows);
@@ -4826,8 +5550,62 @@ async function exportarSemanalCompleto() {
       });
     });
 
+    // ── Adicionales del período ─────────────────────────────
+    const modifResumen = {};
+    receipts.forEach(r => {
+      (r.line_items||[]).forEach(li => {
+        (li.modifiers||[]).forEach(mod => {
+          const opt = (mod.option_name || mod.modifier_name || '').trim();
+          if (!opt) return;
+          if (!modifResumen[opt]) modifResumen[opt] = { uds: 0, monto: 0 };
+          const qty = parseFloat(mod.quantity) || parseFloat(li.quantity) || 1;
+          modifResumen[opt].uds   += qty;
+          modifResumen[opt].monto += (mod.price || 0) * qty;
+        });
+      });
+    });
+    const modifEntries = Object.entries(modifResumen).sort((a,b)=>b[1].uds-a[1].uds);
+
+    if (modifEntries.length) {
+      rows.push([]);
+      rows.push(['=== ADICIONALES / MODIFICADORES ===']);
+      rows.push(['Adicional','Porciones pedidas','Ingreso extra generado']);
+      modifEntries.forEach(([nom, d]) => {
+        rows.push([nom, d.uds, d.monto]);
+      });
+      rows.push([]);
+      rows.push(['Total ingreso adicionales','', modifEntries.reduce((a,[,d])=>a+d.monto,0)]);
+      rows.push([]);
+    }
+
+    // ── Estado de Resultados (P&L) ───────────────────────────
+    const totalComprasSem = DB.compras
+      .filter(c => c.fecha >= desde && c.fecha <= hasta)
+      .reduce((a,c) => a+(c.total||0), 0);
+    const nomina  = parseFloat(document.getElementById('pnl-nomina')?.value)  || 0;
+    const renta   = parseFloat(document.getElementById('pnl-renta')?.value)   || 0;
+    const musica  = parseFloat(document.getElementById('pnl-musica')?.value)  || 0;
+    const otros   = parseFloat(document.getElementById('pnl-otros-gastos')?.value) || 0;
+    const totalFijos = nomina + renta + musica + otros;
+    const utilBruta  = totalVentas - totalComprasSem;
+    const utilNeta   = utilBruta - totalFijos;
+    const fcPct      = totalVentas > 0 ? (totalComprasSem / totalVentas * 100).toFixed(1) : 0;
+
+    rows.push(['=== P&L SEMANAL ===']);
+    rows.push(['Concepto','Monto','%']);
+    rows.push(['Ventas netas', totalVentas, '100%']);
+    rows.push(['(-) Costo insumos', -totalComprasSem, fcPct + '%']);
+    rows.push(['(=) Utilidad bruta', utilBruta, totalVentas>0?(utilBruta/totalVentas*100).toFixed(1)+'%':'']);
+    if (totalFijos > 0) {
+      rows.push(['(-) Nómina', -nomina, '']);
+      rows.push(['(-) Renta / servicios', -renta, '']);
+      rows.push(['(-) Música / eventos', -musica, '']);
+      rows.push(['(-) Otros gastos fijos', -otros, '']);
+      rows.push(['(=) Utilidad neta estimada', utilNeta, totalVentas>0?(utilNeta/totalVentas*100).toFixed(1)+'%':'']);
+    }
+
     csvDownload('romatella-semana-' + desde + '-' + hasta + '.csv', rows);
-    toast('✓ Reporte semanal listo');
+    toast('✓ Reporte semanal completo listo (' + rows.length + ' filas)');
   } catch(e) { toast('Error: ' + e.message); }
 }
 
