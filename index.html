@@ -1211,20 +1211,103 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
 
     <!-- ======= INVENTARIO SEMANAL ======= -->
     <section id="sec-inventario" class="sec p-5 fade">
+
+      <!-- Header -->
       <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div>
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Fecha de cierre del conteo</p>
-          <input type="date" id="inv-fecha" onchange="invCambiarFecha()" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
-          <p class="text-xs text-slate-400 mt-1" id="inv-sync-label">Selecciona la fecha para cargar ventas</p>
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Semana que termina el</p>
+          <input type="date" id="inv-fecha" onchange="invCambiarFecha()"
+            class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"/>
+          <p class="text-xs text-slate-400 mt-1.5 flex items-center gap-1" id="inv-sync-label">
+            <span class="ms text-sm">cloud_sync</span>Selecciona la fecha para cargar ventas
+          </p>
         </div>
         <div class="flex items-center gap-2">
-          <button type="button" onclick="diagnosticarModificadores()" title="Ver nombres reales de adicionales en Loyverse"
-            class="bg-amber-50 border border-amber-200 text-amber-700 px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 hover:bg-amber-100">
-            <span class="ms text-base">biotech</span>Diagnosticar adicionales
+          <button type="button" onclick="diagnosticarModificadores()"
+            class="border border-slate-200 text-slate-500 px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 hover:bg-slate-50">
+            <span class="ms text-sm">troubleshoot</span>Verificar adicionales
           </button>
-          <button type="button" onclick="guardarInventario()" class="bg-primary-container text-white px-5 py-2.5 rounded-2xl text-sm font-semibold flex items-center gap-2 hover:opacity-90 shadow-sm shadow-blue-200">
-            <span class="ms">save</span>Guardar conteo
+          <button type="button" onclick="guardarInventario()"
+            class="bg-primary-container text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 hover:opacity-90">
+            <span class="ms text-base">save</span>Guardar
           </button>
+        </div>
+      </div>
+
+      <!-- Resumen de semana: 4 números clave, lenguaje claro -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+        <div class="bg-white rounded-2xl p-4 border border-slate-100">
+          <p class="text-xs text-slate-400 mb-1">Consumo calculado</p>
+          <p class="text-2xl font-bold text-slate-900" id="inv-teorico">—</p>
+          <p class="text-xs text-slate-400 mt-0.5">según ventas + receta</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-slate-100">
+          <p class="text-xs text-slate-400 mb-1">Consumo real</p>
+          <p class="text-2xl font-bold text-slate-900" id="inv-real">—</p>
+          <p class="text-xs text-slate-400 mt-0.5">según tu conteo físico</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-slate-100">
+          <p class="text-xs text-slate-400 mb-1">Food cost</p>
+          <p class="text-2xl font-bold text-slate-300" id="inv-fc-insumos">—</p>
+          <p class="text-xs text-slate-400 mt-0.5" id="inv-fc-sub">consumo / ventas</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 border border-slate-100">
+          <div class="flex items-center justify-between">
+            <p class="text-xs text-slate-400 mb-1">Alertas</p>
+            <p class="text-xs font-bold text-red-500" id="inv-alertas-badge"></p>
+          </div>
+          <p class="text-2xl font-bold text-slate-300" id="inv-diferencia">—</p>
+          <p class="text-xs text-slate-400 mt-0.5" id="inv-diferencia-pct">diferencia total</p>
+        </div>
+      </div>
+
+      <!-- Filtro de categoría -->
+      <div class="flex items-center gap-2 mb-4 flex-wrap">
+        <button onclick="invFiltrarCat('todos',this)" id="inv-cat-todos"
+          class="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold">Todos</button>
+        <button onclick="invFiltrarCat('Carnicería',this)"
+          class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">🥩 Carnicería</button>
+        <button onclick="invFiltrarCat('Mariscos',this)"
+          class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">🦐 Mariscos</button>
+        <button onclick="invFiltrarCat('Lácteos',this)"
+          class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">🧀 Lácteos</button>
+        <button onclick="invFiltrarCat('Vinos',this)"
+          class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">🍷 Vinos</button>
+        <button onclick="invFiltrarCat('Refrescos y Cervezas',this)"
+          class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">🍺 Refrescos</button>
+        <button onclick="invFiltrarCat('alertas',this)"
+          class="px-3 py-1.5 rounded-xl bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 border border-red-100">⚠ Solo alertas</button>
+      </div>
+
+      <!-- Tarjetas de ingredientes -->
+      <div id="inv-categorias" class="space-y-3">
+        <div class="flex flex-col items-center justify-center py-16 text-center">
+          <span class="ms text-5xl text-slate-200 mb-3">fact_check</span>
+          <p class="text-slate-400 text-sm">Selecciona la fecha para cargar el conteo</p>
+        </div>
+      </div>
+
+      <!-- Panel adicionales (debajo de las tarjetas) -->
+      <div id="inv-adicionales" class="hidden mt-4 bg-white rounded-2xl border border-slate-100 overflow-hidden">
+        <div class="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100">
+          <span class="ms text-amber-500">add_shopping_cart</span>
+          <span class="font-semibold text-slate-900 text-sm">Adicionales pedidos esta semana</span>
+          <span class="text-xs text-slate-400 ml-auto" id="inv-adicionales-sub">—</span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50/60">
+              <tr>
+                <th class="text-left px-4 py-2.5 text-xs text-slate-500 font-semibold">Adicional</th>
+                <th class="text-center px-3 py-2.5 text-xs text-slate-500 font-semibold">Porciones</th>
+                <th class="text-center px-3 py-2.5 text-xs text-slate-500 font-semibold">Ingreso extra</th>
+                <th class="text-left px-3 py-2.5 text-xs text-slate-500 font-semibold">Platillos base</th>
+              </tr>
+            </thead>
+            <tbody id="inv-adicionales-body">
+              <tr><td colspan="4" class="text-center py-6 text-slate-300 text-xs">Sin datos</td></tr>
+            </tbody>
+          </table>
         </div>
       </div>
 
@@ -1233,7 +1316,7 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
           <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
             <div>
-              <h3 class="font-bold text-slate-900">Diagnóstico de adicionales Loyverse</h3>
+              <h3 class="font-bold text-slate-900">Verificación de adicionales Loyverse</h3>
               <p class="text-xs text-slate-400 mt-0.5" id="diag-meta">Analizando recibos del período...</p>
             </div>
             <button type="button" onclick="closeModal('modal-diagnostico')" class="ms text-slate-400 hover:text-slate-600 text-xl">close</button>
@@ -1244,48 +1327,6 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
               <span class="text-sm">Consultando Loyverse...</span>
             </div>
           </div>
-          <div class="px-6 py-4 border-t border-slate-100 flex-shrink-0 bg-amber-50/50 rounded-b-3xl">
-            <p class="text-xs text-amber-700">
-              <span class="font-semibold">¿Cómo usar esto?</span> Copia los nombres exactos de "option_name" 
-              y compáralos con las entradas <code class="bg-amber-100 px-1 rounded">MOD:NOMBRE</code> en el recetario. 
-              Si difieren, avísale al desarrollador para actualizar el mapeo.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <!-- KPIs -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Consumo teórico</p>
-          <p class="text-2xl font-bold text-slate-900" id="inv-teorico">—</p>
-          <p class="text-xs text-slate-400 mt-1">valor compras semana</p>
-        </div>
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Consumo real $</p>
-          <p class="text-2xl font-bold text-slate-900" id="inv-real">—</p>
-          <p class="text-xs text-slate-400 mt-1">ini + compras − fin × precio</p>
-        </div>
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Food Cost Insumos</p>
-          <p class="text-2xl font-bold text-slate-300" id="inv-fc-insumos">—</p>
-          <p class="text-xs text-slate-400 mt-1" id="inv-fc-sub">consumo real / ventas</p>
-        </div>
-        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
-          <div class="flex items-center justify-between mb-1">
-            <p class="text-xs text-slate-400 uppercase tracking-wider">Diferencia</p>
-            <p class="text-xs text-red-400 font-semibold" id="inv-alertas-badge"></p>
-          </div>
-          <p class="text-2xl font-bold text-slate-300" id="inv-diferencia">—</p>
-          <p class="text-xs text-slate-400 mt-1" id="inv-diferencia-pct">merma / fuga estimada</p>
-        </div>
-      </div>
-
-      <!-- Tabla conteo por categoría -->
-      <div id="inv-categorias" class="space-y-5">
-        <div class="flex flex-col items-center justify-center py-16 text-center">
-          <span class="ms text-5xl text-slate-200 mb-3">fact_check</span>
-          <p class="text-slate-400 text-sm">Selecciona una fecha para iniciar el conteo</p>
         </div>
       </div>
     </section>
@@ -2227,6 +2268,21 @@ function getInvSemanaDesde(fechaHasta) {
   return martes.toISOString().split('T')[0];
 }
 
+let INV_CAT_FILTRO = 'todos';
+
+function invFiltrarCat(cat, btn) {
+  INV_CAT_FILTRO = cat;
+  document.querySelectorAll('[onclick^="invFiltrarCat"]').forEach(b => {
+    b.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200';
+  });
+  if (btn) {
+    btn.className = cat === 'alertas'
+      ? 'px-3 py-1.5 rounded-xl bg-red-500 text-white text-xs font-semibold border border-red-500'
+      : 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold';
+  }
+  renderInventario();
+}
+
 function renderInventario() {
   const fechaEl = document.getElementById('inv-fecha');
   if (!fechaEl) return;
@@ -2254,12 +2310,9 @@ function renderInventario() {
     });
   });
 
-  // ── Ventas Loyverse de la semana por producto ─────────────
-  // ventasSemana incluye TANTO platillos base COMO modificadores/adicionales
-  // Los modificadores se registran con la clave: "MOD:" + option_name (en mayúsculas)
-  // para distinguirlos de platillos base y poder mapearlos al recetario.
-  const ventasSemana = {}; // { 'NOMBRE': unidades }
-  const modifSemana  = {}; // { 'CAMARON': { uds, monto, platillos:{} } } — para reportes
+  // ── Ventas Loyverse (platillos + modificadores) ───────────
+  const ventasSemana = {};
+  const modifSemana  = {};
   const recibos = DB.invRecibos || [];
   recibos.filter(r => {
     const d = (r.created_at||'').substring(0,10);
@@ -2269,21 +2322,12 @@ function renderInventario() {
       const baseKey = (li.item_name||'').toUpperCase().trim();
       const baseQty = parseFloat(li.quantity) || 0;
       if (!baseKey) return;
-
-      // Contar platillo base
       ventasSemana[baseKey] = (ventasSemana[baseKey]||0) + baseQty;
-
-      // Contar modificadores/adicionales
       (li.modifiers||[]).forEach(mod => {
         const optName = (mod.option_name || mod.modifier_name || '').toUpperCase().trim();
         if (!optName) return;
-        const modQty  = parseFloat(mod.quantity) || baseQty; // si modifier no tiene qty usa la del platillo
-        const modKey  = 'MOD:' + optName;
-
-        // Para el cruce de inventario (mismo namespace con prefijo)
-        ventasSemana[modKey] = (ventasSemana[modKey]||0) + modQty;
-
-        // Para el reporte de adicionales
+        const modQty = parseFloat(mod.quantity) || baseQty;
+        ventasSemana['MOD:' + optName] = (ventasSemana['MOD:' + optName]||0) + modQty;
         if (!modifSemana[optName]) modifSemana[optName] = { uds:0, monto:0, platillos:{} };
         modifSemana[optName].uds   += modQty;
         modifSemana[optName].monto += (mod.price||0) * modQty;
@@ -2291,166 +2335,208 @@ function renderInventario() {
       });
     });
   });
-  // Guardar para acceso global (tooltip y reportes)
   DB._modifSemana = modifSemana;
 
-  const catColors = {
-    'Carnicería':           { badge:'text-red-700 bg-red-50',     icon:'grocery'   },
-    'Mariscos':             { badge:'text-teal-700 bg-teal-50',   icon:'set_meal'  },
-    'Lácteos':              { badge:'text-amber-700 bg-amber-50', icon:'egg'       },
-    'Vinos':                { badge:'text-purple-700 bg-purple-50',icon:'wine_bar' },
-    'Refrescos y Cervezas': { badge:'text-cyan-700 bg-cyan-50',   icon:'local_bar' },
-  };
+  // ── Calcular consumo por insumo ────────────────────────────
+  const resultados = INV_INSUMOS.map(ins => {
+    const key     = ins.nombre.toUpperCase().trim();
+    const st      = INV_STATE[key] || { ini: '', fin: '' };
+    const compras = comprasSemana[key] || 0;
+    const ini     = parseFloat(st.ini) || 0;
+    const fin     = parseFloat(st.fin);
+    const tenemos_fin = st.fin !== '' && st.fin !== null && !isNaN(fin);
+    const finVal  = tenemos_fin ? fin : 0;
 
-  const cats = {};
-  INV_INSUMOS.forEach(ins => {
-    if (!cats[ins.cat]) cats[ins.cat] = [];
-    cats[ins.cat].push(ins);
+    const tieneLP     = ins.loyverse && ins.loyverse.length > 0;
+    const tieneReceta = ins.receta   && ins.receta.length  > 0;
+    let consumo = 0, tieneVentas = false;
+    const desglose = [];
+
+    if (tieneLP) {
+      ins.loyverse.forEach(lv => {
+        const v = ventasSemana[lv.item.toUpperCase().trim()] || 0;
+        const c = v / lv.copas;
+        if (v > 0) { tieneVentas = true; desglose.push({ label: lv.item, valor: c.toFixed(2), raw: v + ' ventas ÷ ' + lv.copas }); }
+        consumo += c;
+      });
+    } else if (tieneReceta) {
+      ins.receta.filter(r => !r.item.startsWith('MOD:')).forEach(rv => {
+        const v = ventasSemana[rv.item.toUpperCase().trim()] || 0;
+        const c = v * rv.kg;
+        if (v > 0) { tieneVentas = true; desglose.push({ label: rv.item, valor: c.toFixed(3), raw: v + ' porciones × ' + rv.kg + ' kg' }); }
+        consumo += c;
+      });
+      ins.receta.filter(r => r.item.startsWith('MOD:')).forEach(rv => {
+        const v = ventasSemana[rv.item.toUpperCase().trim()] || 0;
+        const c = v * rv.kg;
+        if (v > 0) { tieneVentas = true; desglose.push({ label: '+ ' + rv.item.replace('MOD:','') + ' (adicional)', valor: c.toFixed(3), raw: v + ' × ' + rv.kg + ' kg' }); }
+        consumo += c;
+      });
+    }
+
+    const tieneCruce = tieneLP || tieneReceta;
+    // Disponible = ini + compras
+    const disponible   = ini + compras;
+    // Debería quedar = disponible - consumo
+    const deberiaQuedar = tieneCruce ? Math.max(0, disponible - consumo) : null;
+    // Diferencia = lo que hay realmente vs. lo que debería haber
+    const diferencia = (deberiaQuedar !== null && tenemos_fin) ? finVal - deberiaQuedar : null;
+
+    // Estado semáforo
+    let estado = 'sin-datos';
+    if (diferencia !== null) {
+      const pct = deberiaQuedar > 0 ? Math.abs(diferencia / deberiaQuedar) : 0;
+      if (diferencia < -0.01 && pct > 0.05) estado = 'faltante';
+      else if (diferencia > 0.01 && pct > 0.05) estado = 'exceso';
+      else estado = 'ok';
+    } else if (!tieneCruce) {
+      estado = 'sin-receta';
+    } else if (!tenemos_fin) {
+      estado = 'pendiente';
+    }
+
+    return { ins, key, st, compras, ini, finVal, tenemos_fin, consumo, disponible, deberiaQuedar, diferencia, estado, desglose, tieneVentas, tieneCruce };
   });
 
+  // ── Filtrar ────────────────────────────────────────────────
+  const filtrados = resultados.filter(r => {
+    if (INV_CAT_FILTRO === 'todos') return true;
+    if (INV_CAT_FILTRO === 'alertas') return r.estado === 'faltante';
+    return r.ins.cat === INV_CAT_FILTRO;
+  });
+
+  // ── Renderizar tarjetas ────────────────────────────────────
+  const catColors = {
+    'Carnicería':           { dot:'bg-red-400',    txt:'text-red-700',    bg:'bg-red-50'    },
+    'Mariscos':             { dot:'bg-teal-400',   txt:'text-teal-700',   bg:'bg-teal-50'   },
+    'Lácteos':              { dot:'bg-amber-400',  txt:'text-amber-700',  bg:'bg-amber-50'  },
+    'Vinos':                { dot:'bg-purple-400', txt:'text-purple-700', bg:'bg-purple-50' },
+    'Refrescos y Cervezas': { dot:'bg-cyan-400',   txt:'text-cyan-700',   bg:'bg-cyan-50'   },
+  };
+
+  if (!filtrados.length) {
+    document.getElementById('inv-categorias').innerHTML =
+      '<div class="text-center py-10 text-slate-300 text-sm">No hay ingredientes que mostrar en este filtro</div>';
+    recalcInvTotales();
+    renderAdicionalesInventario(modifSemana);
+    return;
+  }
+
   let html = '';
-  Object.entries(cats).forEach(([cat, items]) => {
-    const cc      = catColors[cat] || { badge:'text-slate-600 bg-slate-50', icon:'inventory_2' };
-    const tieneLP     = items.some(i => i.loyverse && i.loyverse.length > 0);
-    const tieneReceta = items.some(i => i.receta   && i.receta.length  > 0);
-    const badgeCruce  = tieneLP
-      ? '<span class="text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-lg font-medium">✓ Cruce Loyverse activo</span>'
-      : tieneReceta
-        ? '<span class="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-lg font-medium">✓ Cruce por recetario</span>'
-        : '<span class="text-xs bg-slate-50 text-slate-400 px-2 py-0.5 rounded-lg">Sin cruce</span>';
+  // Agrupar por categoría para mostrar cabeceras
+  const gruposVistos = {};
+  filtrados.forEach(r => {
+    const cat = r.ins.cat;
+    const cc  = catColors[cat] || { dot:'bg-slate-400', txt:'text-slate-600', bg:'bg-slate-50' };
 
-    html += `<div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden mb-5">
-      <div class="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100">
-        <span class="ms ${cc.badge.split(' ')[0]}">${cc.icon}</span>
-        <span class="font-semibold text-slate-900 text-sm">${cat}</span>
-        ${badgeCruce}
-        <span class="text-xs text-slate-400 ml-auto">${items.length} productos · ${semDesde} → ${fecha}</span>
+    if (!gruposVistos[cat]) {
+      gruposVistos[cat] = true;
+      html += `<div class="flex items-center gap-2 mt-4 mb-2 first:mt-0">
+        <div class="w-2.5 h-2.5 rounded-full ${cc.dot}"></div>
+        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">${cat}</span>
+        <div class="flex-1 h-px bg-slate-100"></div>
+      </div>`;
+    }
+
+    // Semáforo
+    const { estado, ins, key, compras, ini, finVal, tenemos_fin, consumo, disponible, deberiaQuedar, diferencia, desglose, tieneVentas, tieneCruce } = r;
+
+    let semaforoClase = '', semaforoLabel = '', semaforoBg = '', barColor = '';
+    if (estado === 'ok')        { semaforoClase='text-green-700';  semaforoLabel='✓ Cuadra';   semaforoBg='bg-green-50 border-green-200';  barColor='bg-green-400'; }
+    else if (estado === 'faltante')  { semaforoClase='text-red-600';    semaforoLabel='⚠ Falta';   semaforoBg='bg-red-50 border-red-200';     barColor='bg-red-400';   }
+    else if (estado === 'exceso')    { semaforoClase='text-blue-600';   semaforoLabel='+ Exceso';  semaforoBg='bg-blue-50 border-blue-200';   barColor='bg-blue-400';  }
+    else if (estado === 'pendiente') { semaforoClase='text-amber-600';  semaforoLabel='Contar';    semaforoBg='bg-amber-50 border-amber-200'; barColor='bg-amber-300'; }
+    else if (estado === 'sin-receta'){ semaforoClase='text-slate-400';  semaforoLabel='Sin receta';semaforoBg='bg-slate-50 border-slate-200'; barColor='bg-slate-200'; }
+    else                             { semaforoClase='text-slate-300';  semaforoLabel='—';         semaforoBg='bg-slate-50 border-slate-100'; barColor='bg-slate-100'; }
+
+    // Barra de progreso: consumo / disponible
+    const barPct = disponible > 0 ? Math.min(100, (consumo / disponible) * 100) : 0;
+
+    // Desglose visible (no tooltip)
+    const desgloseHtml = desglose.length
+      ? desglose.map(d => `<span class="inline-flex items-center gap-1 text-xs text-slate-500 bg-slate-50 rounded-lg px-2 py-0.5 mr-1 mb-1">
+          <span class="font-medium text-slate-700">${d.label}</span>
+          <span class="text-slate-400">${d.raw}</span>
+        </span>`).join('')
+      : tieneCruce
+        ? '<span class="text-xs text-slate-300">Sin ventas en el período</span>'
+        : '<span class="text-xs text-slate-300">Configura la receta en el Recetario</span>';
+
+    const difStr = diferencia !== null
+      ? (diferencia >= 0 ? '+' : '') + diferencia.toFixed(2) + ' ' + ins.unidad
+      : '—';
+
+    html += `
+    <div class="bg-white rounded-2xl border ${semaforoBg} p-4 transition-all hover:shadow-sm">
+      <div class="flex items-start gap-4">
+
+        <!-- Semáforo lateral -->
+        <div class="flex flex-col items-center gap-1 pt-0.5 flex-shrink-0 w-16">
+          <span class="text-xs font-bold ${semaforoClase} text-center leading-tight">${semaforoLabel}</span>
+          ${diferencia !== null ? `<span class="text-xs font-semibold ${semaforoClase}">${difStr}</span>` : ''}
+        </div>
+
+        <!-- Cuerpo principal -->
+        <div class="flex-1 min-w-0">
+
+          <!-- Nombre + categoria -->
+          <div class="flex items-center gap-2 mb-2">
+            <span class="font-semibold text-slate-900 text-sm">${ins.nombre}</span>
+            <span class="text-xs ${cc.txt} ${cc.bg} px-1.5 py-0.5 rounded-md">${ins.unidad}</span>
+            ${!tieneCruce ? '<span class="text-xs text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded-md">Sin receta</span>' : ''}
+          </div>
+
+          <!-- Barra de consumo -->
+          ${tieneCruce ? `
+          <div class="mb-2">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs text-slate-400">Consumo según ventas</span>
+              <span class="text-xs font-semibold ${tieneVentas ? 'text-slate-700' : 'text-slate-300'}">${tieneVentas ? consumo.toFixed(2) + ' ' + ins.unidad : '0'}</span>
+            </div>
+            <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
+              <div class="${barColor} h-full rounded-full transition-all" style="width:${barPct.toFixed(0)}%"></div>
+            </div>
+            <div class="flex justify-between mt-0.5">
+              <span class="text-xs text-slate-300">0</span>
+              <span class="text-xs text-slate-400">Disponible: ${disponible.toFixed(2)} ${ins.unidad}</span>
+            </div>
+          </div>` : ''}
+
+          <!-- Desglose de platillos -->
+          ${tieneCruce && desglose.length ? `<div class="mb-2">${desgloseHtml}</div>` : ''}
+
+          <!-- Fila de datos operativos -->
+          <div class="flex items-center gap-3 text-xs text-slate-400 flex-wrap">
+            <span>Inicio semana: <b class="text-slate-600">${ini > 0 ? ini.toFixed(2) + ' ' + ins.unidad : '—'}</b></span>
+            ${compras > 0 ? `<span class="text-green-600">+ ${compras.toFixed(2)} comprado</span>` : ''}
+            ${deberiaQuedar !== null ? `<span class="text-blue-600">→ debería quedar ${deberiaQuedar.toFixed(2)}</span>` : ''}
+          </div>
+        </div>
+
+        <!-- Input de conteo al cierre -->
+        <div class="flex-shrink-0 flex flex-col items-center gap-1">
+          <span class="text-xs text-slate-400 text-center">Al cerrar</span>
+          <input type="number" step="0.01" min="0"
+            value="${tenemos_fin ? finVal : ''}"
+            placeholder="—"
+            oninput="invUpdate('${key}','fin',this.value)"
+            class="w-20 text-center font-semibold text-slate-900 border-2 ${tenemos_fin ? 'border-slate-300 bg-white' : 'border-dashed border-slate-200 bg-slate-50'} rounded-xl px-2 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50"/>
+          <span class="text-xs text-slate-400">${ins.unidad}</span>
+        </div>
+
+        <!-- Input de inicio de semana -->
+        <div class="flex-shrink-0 flex flex-col items-center gap-1">
+          <span class="text-xs text-slate-400 text-center">Al abrir</span>
+          <input type="number" step="0.01" min="0"
+            value="${ini > 0 ? ini : ''}"
+            placeholder="—"
+            oninput="invUpdate('${key}','ini',this.value)"
+            class="w-20 text-center text-slate-600 border border-slate-200 bg-slate-50 rounded-xl px-2 py-2.5 text-sm outline-none focus:ring-2 focus:ring-slate-200"/>
+          <span class="text-xs text-slate-400">${ins.unidad}</span>
+        </div>
+
       </div>
-      <div class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="bg-slate-50/60">
-          <tr>
-            <th class="text-left px-4 py-2.5 text-xs text-slate-500 font-semibold min-w-36">Producto</th>
-            <th class="text-center px-2 py-2.5 text-xs text-slate-500 font-semibold">Unidad</th>
-            <th class="text-center px-2 py-2.5 text-xs text-slate-500 font-semibold">Inv. inicial</th>
-            <th class="text-center px-2 py-2.5 text-xs text-slate-500 font-semibold">+ Compras</th>
-            <th class="text-center px-2 py-2.5 text-xs text-slate-400 font-semibold bg-green-50/50">Vendido Loyverse</th>
-            <th class="text-center px-2 py-2.5 text-xs font-semibold bg-blue-50/60" style="color:#0059b5">Debería haber</th>
-            <th class="text-center px-2 py-2.5 text-xs text-slate-500 font-semibold bg-amber-50/40">Existencia real</th>
-            <th class="text-center px-2 py-2.5 text-xs text-slate-500 font-semibold">Diferencia</th>
-            <th class="text-center px-2 py-2.5 text-xs text-slate-500 font-semibold">Estado</th>
-          </tr>
-        </thead>
-        <tbody>`;
-
-    items.forEach(ins => {
-      const key     = ins.nombre.toUpperCase().trim();
-      const st      = INV_STATE[key] || { ini: '', fin: '' };
-      const compras = comprasSemana[key] || 0;
-      const ini     = parseFloat(st.ini) || 0;
-      const fin     = parseFloat(st.fin) || 0; // existencia real capturada
-
-      // ── Calcular consumo según Loyverse ──────────────────
-      // Modo A — Vinos/bebidas: loyverse[].copas → consumo = vendidas / copas
-      // Modo B — Insumos cocina: receta[].kg     → consumo = vendidas × kg (kg por porción)
-      let consumoLoyverse = 0;
-      let tieneVentas     = false;
-      const tieneLP     = ins.loyverse && ins.loyverse.length > 0;
-      const tieneReceta = ins.receta   && ins.receta.length  > 0;
-
-      if (tieneLP) {
-        // MODO A: copas (vinos, bebidas)
-        ins.loyverse.forEach(lv => {
-          const vendidas = ventasSemana[lv.item.toUpperCase().trim()] || 0;
-          if (vendidas > 0) tieneVentas = true;
-          consumoLoyverse += vendidas / lv.copas;
-        });
-      } else if (tieneReceta) {
-        // MODO B: recetario (kg consumido = porciones_vendidas × kg_por_porcion)
-        ins.receta.forEach(rv => {
-          const vendidas = ventasSemana[rv.item.toUpperCase().trim()] || 0;
-          if (vendidas > 0) tieneVentas = true;
-          consumoLoyverse += vendidas * rv.kg;
-        });
-      }
-
-      // Debería haber = ini + compras - consumo_loyverse
-      const tieneCruce  = tieneLP || tieneReceta;
-      const deberiaHaber = tieneCruce
-        ? Math.max(0, ini + compras - consumoLoyverse)
-        : null; // sin cruce no se puede calcular
-
-      // Diferencia = existencia_real - deberia_haber
-      const tenemos_fin = st.fin !== '' && st.fin !== null;
-      const diferencia  = (deberiaHaber !== null && tenemos_fin)
-        ? fin - deberiaHaber
-        : null;
-
-      // ── Estado ───────────────────────────────────────────
-      let estadoHtml = '<span class="text-xs text-slate-200">—</span>';
-      if (diferencia !== null) {
-        if (Math.abs(diferencia) < 0.1) {
-          estadoHtml = '<span class="text-xs font-semibold text-green-700 bg-green-50 px-2 py-0.5 rounded-lg">✓ OK</span>';
-        } else if (diferencia < -0.1) {
-          const pct = deberiaHaber > 0 ? Math.abs(diferencia/deberiaHaber*100) : 0;
-          estadoHtml = `<span class="text-xs font-semibold text-red-600 bg-red-50 px-2 py-0.5 rounded-lg">⚠ falta ${Math.abs(diferencia).toFixed(2)} (${pct.toFixed(0)}%)</span>`;
-        } else {
-          estadoHtml = `<span class="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-lg">+${diferencia.toFixed(2)} stock extra</span>`;
-        }
-      } else if (!ins.loyverse || ins.loyverse.length === 0) {
-        estadoHtml = '<span class="text-xs text-slate-300">sin recetario</span>';
-      } else if (!tenemos_fin) {
-        estadoHtml = '<span class="text-xs text-slate-300">captura existencia</span>';
-      }
-
-      const fmtNum = n => n !== null ? n.toFixed(2) : '—';
-
-      html += `<tr class="border-t border-slate-50 hover:bg-slate-50/40 transition-colors">
-        <td class="px-4 py-3 font-medium text-slate-800 text-xs">${ins.nombre}</td>
-        <td class="px-2 py-3 text-center text-slate-400 text-xs">${ins.unidad}</td>
-        <td class="px-2 py-3 text-center">
-          <input type="number" step="0.01" min="0" value="${st.ini}"
-            placeholder="0" oninput="invUpdate('${key}','ini',this.value)"
-            class="w-20 text-center bg-slate-50 border border-slate-200 rounded-xl px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-primary/20"/>
-        </td>
-        <td class="px-2 py-3 text-center text-slate-500 text-xs font-medium">${compras > 0 ? '+'+compras.toFixed(2) : '<span class="text-slate-200">—</span>'}</td>
-        <td class="px-2 py-3 text-center text-xs bg-green-50/30 ${tieneVentas ? 'text-green-700 font-semibold' : 'text-slate-300'} relative group">
-          ${tieneCruce ? (() => {
-            // Build breakdown tooltip
-            const lineas = [];
-            if (tieneLP) {
-              ins.loyverse.forEach(lv => {
-                const v = ventasSemana[lv.item.toUpperCase().trim()] || 0;
-                if (v > 0) lineas.push(lv.item + ': ' + (v/lv.copas).toFixed(2));
-              });
-            } else if (tieneReceta) {
-              ins.receta.forEach(rv => {
-                const v = ventasSemana[rv.item.toUpperCase().trim()] || 0;
-                if (v > 0) lineas.push(rv.item + ': ' + v + ' platos × ' + rv.kg + 'kg');
-              });
-            }
-            const tooltip = lineas.length
-              ? `<div class="absolute z-20 bottom-full left-1/2 -translate-x-1/2 mb-2 w-56 bg-slate-900 text-white text-xs rounded-xl p-3 shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity text-left space-y-1">${lineas.map(l=>`<div class="text-slate-300">${l}</div>`).join('')}<div class="text-slate-500 border-t border-slate-700 mt-1 pt-1">Total: ${consumoLoyverse.toFixed(2)} ${ins.unidad}</div></div>`
-              : '';
-            return `<span class="cursor-help">${tieneVentas ? consumoLoyverse.toFixed(2) : '0'}</span>${tooltip}`;
-          })() : '<span class="text-slate-200">—</span>'}
-        </td>
-        <td class="px-2 py-3 text-center text-xs font-bold bg-blue-50/40" style="color:#0059b5">
-          ${deberiaHaber !== null ? deberiaHaber.toFixed(2) : '<span class="text-slate-200">—</span>'}
-        </td>
-        <td class="px-2 py-3 text-center bg-amber-50/30">
-          <input type="number" step="0.01" min="0" value="${tenemos_fin ? st.fin : ''}"
-            placeholder="contar" oninput="invUpdate('${key}','fin',this.value)"
-            class="w-20 text-center bg-white border ${tenemos_fin ? 'border-amber-300' : 'border-amber-200'} rounded-xl px-2 py-1.5 text-xs outline-none focus:ring-2 focus:ring-amber-200"/>
-        </td>
-        <td class="px-2 py-3 text-center text-xs font-semibold ${diferencia === null ? 'text-slate-200' : diferencia < -0.1 ? 'text-red-600' : diferencia > 0.1 ? 'text-blue-600' : 'text-green-700'}">
-          ${diferencia !== null ? (diferencia >= 0 ? '+' : '') + diferencia.toFixed(2) : '—'}
-        </td>
-        <td class="px-2 py-3 text-center">${estadoHtml}</td>
-      </tr>`;
-    });
-
-    html += `</tbody></table></div></div>`;
+    </div>`;
   });
 
   document.getElementById('inv-categorias').innerHTML = html;
