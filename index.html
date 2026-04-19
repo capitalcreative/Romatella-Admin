@@ -1210,108 +1210,112 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
     </section>
 
     <!-- ======= INVENTARIO SEMANAL ======= -->
-    <section id="sec-inventario" class="sec p-5 fade">
+    <section id="sec-inventario" class="sec fade" style="flex-direction:column">
 
-      <!-- Header -->
-      <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
-        <div>
-          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Semana que termina el</p>
-          <input type="date" id="inv-fecha" onchange="invCambiarFecha()"
-            class="px-3 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-primary/20"/>
-          <p class="text-xs text-slate-400 mt-1.5 flex items-center gap-1" id="inv-sync-label">
-            <span class="ms text-sm">cloud_sync</span>Selecciona la fecha para cargar ventas
-          </p>
-        </div>
-        <div class="flex items-center gap-2">
-          <button type="button" onclick="diagnosticarModificadores()"
-            class="border border-slate-200 text-slate-500 px-3 py-2 rounded-xl text-xs font-medium flex items-center gap-1.5 hover:bg-slate-50">
-            <span class="ms text-sm">troubleshoot</span>Verificar adicionales
-          </button>
-          <button type="button" onclick="guardarInventario()"
-            class="bg-primary-container text-white px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 hover:opacity-90">
-            <span class="ms text-base">save</span>Guardar
-          </button>
-        </div>
-      </div>
-
-      <!-- Resumen de semana: 4 números clave, lenguaje claro -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        <div class="bg-white rounded-2xl p-4 border border-slate-100">
-          <p class="text-xs text-slate-400 mb-1">Consumo calculado</p>
-          <p class="text-2xl font-bold text-slate-900" id="inv-teorico">—</p>
-          <p class="text-xs text-slate-400 mt-0.5">según ventas + receta</p>
-        </div>
-        <div class="bg-white rounded-2xl p-4 border border-slate-100">
-          <p class="text-xs text-slate-400 mb-1">Consumo real</p>
-          <p class="text-2xl font-bold text-slate-900" id="inv-real">—</p>
-          <p class="text-xs text-slate-400 mt-0.5">según tu conteo físico</p>
-        </div>
-        <div class="bg-white rounded-2xl p-4 border border-slate-100">
-          <p class="text-xs text-slate-400 mb-1">Food cost</p>
-          <p class="text-2xl font-bold text-slate-300" id="inv-fc-insumos">—</p>
-          <p class="text-xs text-slate-400 mt-0.5" id="inv-fc-sub">consumo / ventas</p>
-        </div>
-        <div class="bg-white rounded-2xl p-4 border border-slate-100">
-          <div class="flex items-center justify-between">
-            <p class="text-xs text-slate-400 mb-1">Alertas</p>
-            <p class="text-xs font-bold text-red-500" id="inv-alertas-badge"></p>
+      <!-- Barra de control fija arriba -->
+      <div class="sticky top-13 z-20 bg-white/95 backdrop-blur border-b border-slate-200/60 px-5 py-3">
+        <div class="flex flex-wrap items-center gap-3">
+          <!-- Semana -->
+          <div class="flex items-center gap-2">
+            <span class="ms text-slate-400 text-base">calendar_today</span>
+            <div>
+              <p class="text-xs text-slate-400 leading-none mb-0.5">Semana que cierra el</p>
+              <input type="date" id="inv-fecha" onchange="invCambiarFecha()"
+                class="text-sm font-semibold text-slate-900 bg-transparent outline-none border-none"/>
+            </div>
           </div>
-          <p class="text-2xl font-bold text-slate-300" id="inv-diferencia">—</p>
-          <p class="text-xs text-slate-400 mt-0.5" id="inv-diferencia-pct">diferencia total</p>
+          <!-- Estado sync -->
+          <div class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-50 rounded-xl">
+            <span class="ms text-sm text-slate-400">cloud_sync</span>
+            <p class="text-xs text-slate-500" id="inv-sync-label">Selecciona fecha</p>
+          </div>
+          <div class="ml-auto flex items-center gap-2">
+            <button type="button" onclick="diagnosticarModificadores()"
+              class="border border-slate-200 text-slate-500 px-3 py-1.5 rounded-xl text-xs font-medium flex items-center gap-1 hover:bg-slate-50">
+              <span class="ms text-sm">troubleshoot</span>Adicionales
+            </button>
+            <button type="button" onclick="guardarInventario()"
+              class="bg-primary-container text-white px-4 py-1.5 rounded-xl text-sm font-semibold flex items-center gap-1.5 hover:opacity-90">
+              <span class="ms text-base">save</span>Guardar
+            </button>
+          </div>
+        </div>
+
+        <!-- KPIs compactos en una fila -->
+        <div class="flex items-center gap-4 mt-2.5 pt-2.5 border-t border-slate-100 overflow-x-auto">
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <span class="text-xs text-slate-400">Insumos críticos</span>
+            <span class="font-bold text-slate-900" id="inv-kpi-criticos">—</span>
+          </div>
+          <div class="w-px h-4 bg-slate-200"></div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <span class="text-xs text-slate-400">Consumo calculado</span>
+            <span class="font-bold text-slate-900" id="inv-teorico">—</span>
+          </div>
+          <div class="w-px h-4 bg-slate-200"></div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <span class="text-xs text-slate-400">Food cost insumos</span>
+            <span class="font-bold" id="inv-fc-insumos">—</span>
+            <span class="text-xs text-slate-400" id="inv-fc-sub"></span>
+          </div>
+          <div class="w-px h-4 bg-slate-200"></div>
+          <div class="flex items-center gap-2 flex-shrink-0">
+            <span class="text-xs text-red-500 font-semibold" id="inv-alertas-badge"></span>
+            <span class="text-xs text-slate-400" id="inv-diferencia-pct"></span>
+          </div>
+          <div class="w-px h-4 bg-slate-200 hidden lg:block"></div>
+          <!-- Filtros rápidos inline -->
+          <div class="flex items-center gap-1.5 ml-auto flex-shrink-0">
+            <button onclick="invFiltrarCat('critico',this)" id="inv-cat-critico"
+              class="px-2.5 py-1 rounded-lg bg-slate-900 text-white text-xs font-semibold">Críticos</button>
+            <button onclick="invFiltrarCat('automatico',this)"
+              class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">Vinos</button>
+            <button onclick="invFiltrarCat('todos',this)"
+              class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">Todos</button>
+            <button onclick="invFiltrarCat('alertas',this)"
+              class="px-2.5 py-1 rounded-lg bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100">⚠ Alertas</button>
+          </div>
         </div>
       </div>
 
-      <!-- Filtro de categoría -->
-      <div class="flex items-center gap-2 mb-4 flex-wrap">
-        <button onclick="invFiltrarCat('todos',this)" id="inv-cat-todos"
-          class="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold">Todos</button>
-        <button onclick="invFiltrarCat('Carnicería',this)"
-          class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">🥩 Carnicería</button>
-        <button onclick="invFiltrarCat('Mariscos',this)"
-          class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">🦐 Mariscos</button>
-        <button onclick="invFiltrarCat('Lácteos',this)"
-          class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">🧀 Lácteos</button>
-        <button onclick="invFiltrarCat('Vinos',this)"
-          class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">🍷 Vinos</button>
-        <button onclick="invFiltrarCat('Refrescos y Cervezas',this)"
-          class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">🍺 Refrescos</button>
-        <button onclick="invFiltrarCat('alertas',this)"
-          class="px-3 py-1.5 rounded-xl bg-red-50 text-red-600 text-xs font-semibold hover:bg-red-100 border border-red-100">⚠ Solo alertas</button>
-      </div>
+      <!-- Contenido scrolleable -->
+      <div class="flex-1 p-5">
 
-      <!-- Tarjetas de ingredientes -->
-      <div id="inv-categorias" class="space-y-3">
-        <div class="flex flex-col items-center justify-center py-16 text-center">
-          <span class="ms text-5xl text-slate-200 mb-3">fact_check</span>
-          <p class="text-slate-400 text-sm">Selecciona la fecha para cargar el conteo</p>
+        <!-- Tarjetas de ingredientes -->
+        <div id="inv-categorias" class="space-y-2">
+          <div class="flex flex-col items-center justify-center py-20 text-center">
+            <span class="ms text-5xl text-slate-200 mb-3">fact_check</span>
+            <p class="text-slate-400 text-sm font-medium">Selecciona la fecha para cargar el conteo</p>
+            <p class="text-xs text-slate-300 mt-1">Los datos de ventas se sincronizan automáticamente</p>
+          </div>
+        </div>
+
+        <!-- Panel adicionales -->
+        <div id="inv-adicionales" class="hidden mt-6 bg-white rounded-2xl border border-slate-100 overflow-hidden">
+          <div class="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100">
+            <span class="ms text-amber-500">add_shopping_cart</span>
+            <span class="font-semibold text-slate-900 text-sm">Adicionales pedidos esta semana</span>
+            <span class="text-xs text-slate-400 ml-auto" id="inv-adicionales-sub">—</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead class="bg-slate-50/60">
+                <tr>
+                  <th class="text-left px-4 py-2.5 text-xs text-slate-500 font-semibold">Adicional</th>
+                  <th class="text-center px-3 py-2.5 text-xs text-slate-500 font-semibold">Porciones</th>
+                  <th class="text-center px-3 py-2.5 text-xs text-slate-500 font-semibold">Ingreso extra</th>
+                  <th class="text-left px-3 py-2.5 text-xs text-slate-500 font-semibold">Platillos base</th>
+                </tr>
+              </thead>
+              <tbody id="inv-adicionales-body">
+                <tr><td colspan="4" class="text-center py-6 text-slate-300 text-xs">Sin datos</td></tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </div>
 
-      <!-- Panel adicionales (debajo de las tarjetas) -->
-      <div id="inv-adicionales" class="hidden mt-4 bg-white rounded-2xl border border-slate-100 overflow-hidden">
-        <div class="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100">
-          <span class="ms text-amber-500">add_shopping_cart</span>
-          <span class="font-semibold text-slate-900 text-sm">Adicionales pedidos esta semana</span>
-          <span class="text-xs text-slate-400 ml-auto" id="inv-adicionales-sub">—</span>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-sm">
-            <thead class="bg-slate-50/60">
-              <tr>
-                <th class="text-left px-4 py-2.5 text-xs text-slate-500 font-semibold">Adicional</th>
-                <th class="text-center px-3 py-2.5 text-xs text-slate-500 font-semibold">Porciones</th>
-                <th class="text-center px-3 py-2.5 text-xs text-slate-500 font-semibold">Ingreso extra</th>
-                <th class="text-left px-3 py-2.5 text-xs text-slate-500 font-semibold">Platillos base</th>
-              </tr>
-            </thead>
-            <tbody id="inv-adicionales-body">
-              <tr><td colspan="4" class="text-center py-6 text-slate-300 text-xs">Sin datos</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Modal diagnóstico de modificadores -->
+      <!-- Modal diagnóstico -->
       <div id="modal-diagnostico" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
           <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
@@ -2072,189 +2076,202 @@ const DB = {
 // ============================================================
 // INVENTARIO SEMANAL
 // ============================================================
-// MODOS DE CRUCE LOYVERSE:
-//   loyverse: [{ item, copas }]   → vinos/bebidas: consumo = vendidas / copas
-//   receta:   [{ item, kg }]      → insumos cocina: consumo = vendidas × kg  (kg por porción)
-// Si ambos vacíos → sin cruce (muestra "—")
+// ============================================================
+// INV_INSUMOS — Insumos controlados
+// ESTRUCTURA EN DOS CAPAS:
+//   nivel:'critico'   → conteo físico obligatorio cada semana (alto valor/riesgo)
+//   nivel:'automatico'→ Loyverse los cuenta copa a copa, solo se captura el stock inicial
+//   nivel:'referencia'→ monitoreados por food cost de categoría, sin conteo individual
+//
+// MODOS DE CRUCE:
+//   loyverse: [{ item, copas }] → consumo = ventas / copas
+//   receta:   [{ item, kg }]    → consumo = ventas × kg/porción
+// ============================================================
 const INV_INSUMOS = [
-  // ── CARNICERÍA — cruce por recetario ────────────────────────
-  { cat:'Carnicería', nombre:'Carne molida premium', unidad:'kg', precio_ref:245, loyverse:[], receta:[
-    { item:'CARPACCIO DI MANZO',    kg:0.15   },
-    { item:'BOLOGNESE',             kg:0.10   }, // 0.2L salsa × 5kg carne/10L
-    { item:'BOLOGNESA BAMBINI',     kg:0.05   }, // 0.1L salsa × 0.5
-    { item:'LASAGNA',               kg:0.1875 }, // 0.375kg salsa × 0.5
-  ]},
-  { cat:'Carnicería', nombre:'Tocino', unidad:'kg', precio_ref:223, loyverse:[], receta:[
-    { item:'CARBONARA',                    kg:0.06 },
-    { item:'AL FORNO',                     kg:0.06 },
-    { item:'PENNE ALLA VODKA',             kg:0.06 },
-    { item:'CREMOSA DI PARMIGIANO',        kg:0.06 },
-    { item:'CREMOSA DI PARMIGIANO ROJA',   kg:0.06 },
-    // Adicionales (modificadores Loyverse)
-    { item:'MOD:TOCINO',                   kg:0.06 },
-  ]},
-  { cat:'Carnicería', nombre:'Pechuga sin hueso', unidad:'kg', precio_ref:160, loyverse:[], receta:[
-    { item:'PANINI DELICATO', kg:0.12 },
-    // Adicionales (modificadores Loyverse — nombre real se confirma con diagnóstico)
-    { item:'MOD:POLLO',       kg:0.12 },
-  ]},
-  { cat:'Carnicería', nombre:'Bistec de pechuga', unidad:'kg', precio_ref:180, loyverse:[], receta:[
-    { item:'SCALOPINE AL VINO BLANCO',  kg:0.20 },
-    { item:'SCALOPINE MEDITERRANEO',    kg:0.20 },
-  ]},
-  { cat:'Carnicería', nombre:'Caña de filete', unidad:'kg', precio_ref:370, loyverse:[], receta:[] },
 
-  // ── MARISCOS — cruce por recetario ──────────────────────────
-  { cat:'Mariscos', nombre:'Camarón 21/25', unidad:'kg', precio_ref:215, loyverse:[], receta:[
-    { item:'SPAGUETTI DI MARE', kg:0.13 },
-    { item:'GAMBERI AL LIMON',  kg:0.20 },
-    { item:'GAMBERI CREMOSI',   kg:0.20 },
-    // Adicionales (modificadores Loyverse) — nombre exacto a confirmar con diagnóstico
-    { item:'MOD:CAMARON',       kg:0.13 },
-    { item:'MOD:CAMARÓN',       kg:0.13 },
+  // ══════════════════════════════════════════════════════════
+  // CAPA 1 — CONTEO FÍSICO OBLIGATORIO (9 insumos de cocina)
+  // Criterio: precio > $180/kg Y costo semanal estimado > $90
+  // ══════════════════════════════════════════════════════════
+
+  // ── CARNICERÍA ─────────────────────────────────────────────────────────────
+  { nivel:'critico', cat:'Carnicería', nombre:'Carne molida premium', unidad:'kg', precio_ref:245,
+    loyverse:[], receta:[
+      { item:'CARPACCIO DI MANZO',  kg:0.150  },
+      { item:'BOLOGNESE',           kg:0.100  },
+      { item:'BOLOGNESA BAMBINI',   kg:0.050  },
+      { item:'LASAGNA',             kg:0.1875 },
   ]},
-  { cat:'Mariscos', nombre:'Camarón 31/35', unidad:'kg', precio_ref:205, loyverse:[], receta:[
-    { item:'CESTINO DI MARE', kg:0.10 },
+  { nivel:'critico', cat:'Carnicería', nombre:'Tocino', unidad:'kg', precio_ref:223,
+    loyverse:[], receta:[
+      { item:'CARBONARA',              kg:0.06 },
+      { item:'AL FORNO',               kg:0.06 },
+      { item:'PENNE ALLA VODKA',       kg:0.06 },
+      { item:'CREMOSA DI PARMIGIANO',  kg:0.06 },
+      { item:'CREMOSA DI PARMIGIANO ROJA', kg:0.06 },
+      { item:'MOD:TOCINO',             kg:0.06 },
   ]},
-  { cat:'Mariscos', nombre:'Salmón', unidad:'kg', precio_ref:220, loyverse:[], receta:[
-    { item:'SALMONE AL NOCI', kg:0.20 },
-    // Adicionales (nombre exacto a confirmar con diagnóstico)
-    { item:'MOD:SALMÓN',      kg:0.20 },
-    { item:'MOD:SALMON',      kg:0.20 },
+  { nivel:'critico', cat:'Carnicería', nombre:'Pechuga sin hueso', unidad:'kg', precio_ref:160,
+    loyverse:[], receta:[
+      { item:'PANINI DELICATO', kg:0.12 },
+      { item:'MOD:POLLO',       kg:0.12 },
   ]},
-  { cat:'Mariscos', nombre:'Aros de calamar', unidad:'kg', precio_ref:180, loyverse:[], receta:[
-    { item:'SPAGUETTI DI MARE', kg:0.05 },
+  { nivel:'critico', cat:'Carnicería', nombre:'Bistec de pechuga', unidad:'kg', precio_ref:180,
+    loyverse:[], receta:[
+      { item:'SCALOPINE AL VINO BLANCO', kg:0.20 },
+      { item:'SCALOPINE MEDITERRANEO',   kg:0.20 },
   ]},
-  { cat:'Mariscos', nombre:'Calamar americano', unidad:'kg', precio_ref:160, loyverse:[], receta:[
-    { item:'CALAMARI FRITTI', kg:0.18 },
+  // Caña de filete: $370/kg — sin receta aún, se captura solo el stock para auditoría
+  { nivel:'critico', cat:'Carnicería', nombre:'Caña de filete', unidad:'kg', precio_ref:370,
+    loyverse:[], receta:[], notas:'Sin receta aún — controlar por monto puro' },
+
+  // ── MARISCOS ───────────────────────────────────────────────────────────────
+  { nivel:'critico', cat:'Mariscos', nombre:'Camarón 21/25', unidad:'kg', precio_ref:215,
+    loyverse:[], receta:[
+      { item:'SPAGUETTI DI MARE', kg:0.13 },
+      { item:'GAMBERI AL LIMON',  kg:0.20 },
+      { item:'GAMBERI CREMOSI',   kg:0.20 },
+      { item:'MOD:CAMARON',       kg:0.13 },
+      { item:'MOD:CAMARÓN',       kg:0.13 },
   ]},
-  { cat:'Mariscos', nombre:'Pulpo', unidad:'kg', precio_ref:180, loyverse:[], receta:[
-    { item:'CESTINO DI MARE', kg:0.04 },
-    // Adicionales
-    { item:'MOD:PULPO',       kg:0.04 },
+  { nivel:'critico', cat:'Mariscos', nombre:'Camarón 31/35', unidad:'kg', precio_ref:205,
+    loyverse:[], receta:[
+      { item:'CESTINO DI MARE', kg:0.10 },
+  ]},
+  { nivel:'critico', cat:'Mariscos', nombre:'Salmón', unidad:'kg', precio_ref:220,
+    loyverse:[], receta:[
+      { item:'SALMONE AL NOCI', kg:0.20 },
+      { item:'MOD:SALMÓN',      kg:0.20 },
+      { item:'MOD:SALMON',      kg:0.20 },
   ]},
 
-  // ── LÁCTEOS — cruce por recetario ───────────────────────────
-  { cat:'Lácteos', nombre:'Queso parmesano', unidad:'kg', precio_ref:315, loyverse:[], receta:[
-    { item:'FUNGHI AL AJILLO',         kg:0.060 },
-    { item:'CESTINO DI MARE',          kg:0.060 },
-    { item:'PANINI PROSCUITTO',        kg:0.020 },
-    { item:'INSALATA CESAR',           kg:0.030 },
-    { item:'SPAGUETTI DI MARE',        kg:0.030 },
-    { item:'GAMBERI AL LIMON',         kg:0.025 },
-    { item:'CARBONARA',                kg:0.050 },
-    { item:'BOLOGNESE',                kg:0.050 },
-    { item:'ALFREDO PRIMAVERA',        kg:0.025 },
-    { item:'SEMPLICE',                 kg:0.050 },
-    { item:'BOLOGNESA BAMBINI',        kg:0.025 },
-    { item:'AL FORNO',                 kg:0.025 },
-    { item:'PASTA AL PESTO',           kg:0.030 },
-    { item:'QUATTRO FORMAGI',          kg:0.050 },
-    { item:'PENNE ALLA VODKA',         kg:0.050 },
-    { item:'CREMOSA DI PARMIGIANO',    kg:0.055 },
-    { item:'GAMBERI CREMOSI',          kg:0.025 },
-    { item:'CARPACCIO DI MANZO',       kg:0.020 },
-    { item:'RISOTTO',                  kg:0.040 },
+  // ── LÁCTEOS CRÍTICOS ───────────────────────────────────────────────────────
+  { nivel:'critico', cat:'Lácteos', nombre:'Queso parmesano', unidad:'kg', precio_ref:315,
+    loyverse:[], receta:[
+      { item:'FUNGHI AL AJILLO',      kg:0.060 },
+      { item:'CESTINO DI MARE',       kg:0.060 },
+      { item:'PANINI PROSCUITTO',     kg:0.020 },
+      { item:'INSALATA CESAR',        kg:0.030 },
+      { item:'SPAGUETTI DI MARE',     kg:0.030 },
+      { item:'GAMBERI AL LIMON',      kg:0.025 },
+      { item:'CARBONARA',             kg:0.050 },
+      { item:'BOLOGNESE',             kg:0.050 },
+      { item:'ALFREDO PRIMAVERA',     kg:0.025 },
+      { item:'SEMPLICE',              kg:0.050 },
+      { item:'BOLOGNESA BAMBINI',     kg:0.025 },
+      { item:'AL FORNO',              kg:0.025 },
+      { item:'PASTA AL PESTO',        kg:0.030 },
+      { item:'QUATTRO FORMAGI',       kg:0.050 },
+      { item:'PENNE ALLA VODKA',      kg:0.050 },
+      { item:'CREMOSA DI PARMIGIANO', kg:0.055 },
+      { item:'GAMBERI CREMOSI',       kg:0.025 },
+      { item:'CARPACCIO DI MANZO',    kg:0.020 },
+      { item:'RISOTTO',               kg:0.040 },
   ]},
-  { cat:'Lácteos', nombre:'Queso mozzarella', unidad:'kg', precio_ref:195, loyverse:[], receta:[
-    { item:'LASAGNA',                  kg:0.031 },
-    { item:'MOZZARELLA IN CARROZZA',   kg:0.030 },
+  { nivel:'critico', cat:'Lácteos', nombre:'Jamón serrano', unidad:'kg', precio_ref:664,
+    loyverse:[], receta:[
+      { item:'MOZZARELLA IN CARROZZA', kg:0.030 },
+      { item:'CROSTINI MISTI',         kg:0.030 },
+      { item:'CROSTINI IBERICO',       kg:0.100 },
+      { item:'PANINI PROSCUITTO',      kg:0.060 },
   ]},
-  { cat:'Lácteos', nombre:'Queso chihuahua', unidad:'kg', precio_ref:180, loyverse:[], receta:[
-    { item:'QUATTRO FORMAGI',          kg:0.020 },
+  { nivel:'critico', cat:'Lácteos', nombre:'Queso gouda', unidad:'kg', precio_ref:220,
+    loyverse:[], receta:[
+      { item:'MOZZARELLA IN CARROZZA', kg:0.015 },
+      { item:'CROSTINI MISTI',         kg:0.040 },
+      { item:'PANINI PIZZOLO',         kg:0.040 },
+      { item:'AL FORNO',               kg:0.040 },
+      { item:'QUATTRO FORMAGI',        kg:0.020 },
+      { item:'LASAGNA',                kg:0.031 },
   ]},
-  { cat:'Lácteos', nombre:'Queso gouda', unidad:'kg', precio_ref:220, loyverse:[], receta:[
-    { item:'MOZZARELLA IN CARROZZA',   kg:0.015 },
-    { item:'CROSTINI MISTI',           kg:0.040 },
-    { item:'PANINI PIZZOLO',           kg:0.040 },
-    { item:'AL FORNO',                 kg:0.040 },
-    { item:'QUATTRO FORMAGI',          kg:0.020 },
-    { item:'LASAGNA',                  kg:0.031 },
+  { nivel:'critico', cat:'Lácteos', nombre:'Queso mozzarella', unidad:'kg', precio_ref:195,
+    loyverse:[], receta:[
+      { item:'LASAGNA',               kg:0.031 },
+      { item:'MOZZARELLA IN CARROZZA',kg:0.030 },
   ]},
-  { cat:'Lácteos', nombre:'Queso ricotta',    unidad:'kg',  precio_ref:140, loyverse:[], receta:[] },
-  { cat:'Lácteos', nombre:'Mantequilla Desy', unidad:'kg',  precio_ref:135, loyverse:[], receta:[
-    { item:'PANINI DELICATO',           kg:0.020 },
-    { item:'GAMBERI AL LIMON',          kg:0.040 },
-    { item:'ALFREDO PRIMAVERA',         kg:0.015 },
-    { item:'SEMPLICE',                  kg:0.030 },
-    { item:'SCALOPINE AL VINO BLANCO',  kg:0.030 },
-    { item:'SCALOPINE MEDITERRANEO',    kg:0.030 },
-    { item:'GAMBERI CREMOSI',           kg:0.040 },
-    { item:'RISOTTO',                   kg:0.030 },
-  ]},
-  { cat:'Lácteos', nombre:'Crema Corona', unidad:'lt', precio_ref:95, loyverse:[], receta:[
-    { item:'ALFREDO PRIMAVERA', kg:0.080 },
-    { item:'QUATTRO FORMAGI',   kg:0.090 },
-    { item:'PENNE ALLA VODKA',  kg:0.045 },
-  ]},
-  { cat:'Lácteos', nombre:'Jamón serrano', unidad:'kg', precio_ref:664, loyverse:[], receta:[
-    { item:'MOZZARELLA IN CARROZZA', kg:0.030 },
-    { item:'CROSTINI MISTI',         kg:0.030 },
-    { item:'CROSTINI IBERICO',       kg:0.100 },
-    { item:'PANINI PROSCUITTO',      kg:0.060 },
-  ]},
-  // VINOS — cruce con Loyverse: { item: nombre en Loyverse, copas: unidades por botella }
-  // copas=5 → 1 botella rinde 5 copas  |  copas=1 → se vende por botella completa
-  { cat:'Vinos', nombre:'Cal y Canto',           unidad:'bot', precio_ref:164, loyverse:[
+
+  // ══════════════════════════════════════════════════════════
+  // CAPA 2 — AUTOMÁTICOS (vinos — Loyverse cuenta copa a copa)
+  // Solo necesitan stock inicial el lunes. No requieren conteo de cierre.
+  // ══════════════════════════════════════════════════════════
+  { nivel:'automatico', cat:'Vinos', nombre:'Cal y Canto', unidad:'bot', precio_ref:164,
+    loyverse:[
       { item:'CAL & CANTO COPA',    copas:5 },
       { item:'CAL & CANTO BOTELLA', copas:1 },
   ]},
-  { cat:'Vinos', nombre:'Rincones Rosé',         unidad:'bot', precio_ref:160, loyverse:[
+  { nivel:'automatico', cat:'Vinos', nombre:'Rincones Rosé', unidad:'bot', precio_ref:160,
+    loyverse:[
       { item:'COPA Rincones ROSADO', copas:5 },
   ]},
-  { cat:'Vinos', nombre:"Nero d'Avola IGT",      unidad:'bot', precio_ref:253, loyverse:[
-      { item:'Nero D\'Avola Copa',      copas:5 },
-      { item:'Botella NERO DAVOLA IGT', copas:1 },
+  { nivel:'automatico', cat:'Vinos', nombre:"Nero d'Avola IGT", unidad:'bot', precio_ref:253,
+    loyverse:[
+      { item:"Nero D'Avola Copa",      copas:5 },
+      { item:'Botella NERO DAVOLA IGT',copas:1 },
   ]},
-  { cat:'Vinos', nombre:'Soave DOC',             unidad:'bot', precio_ref:235, loyverse:[
+  { nivel:'automatico', cat:'Vinos', nombre:'Soave DOC', unidad:'bot', precio_ref:235,
+    loyverse:[
       { item:'SOAVE BLANCO COPA', copas:5 },
   ]},
-  { cat:'Vinos', nombre:'Alvarinho Desvario',    unidad:'bot', precio_ref:290, loyverse:[
+  { nivel:'automatico', cat:'Vinos', nombre:'Alvarinho Desvario', unidad:'bot', precio_ref:290,
+    loyverse:[
       { item:'Botella Alvarinho', copas:1 },
   ]},
-  { cat:'Vinos', nombre:'Prosecco Villa Sandi',  unidad:'bot', precio_ref:209, loyverse:[
+  { nivel:'automatico', cat:'Vinos', nombre:'Prosecco Villa Sandi', unidad:'bot', precio_ref:209,
+    loyverse:[
       { item:'Prosecco DOC Copa', copas:5 },
   ]},
-  { cat:'Vinos', nombre:'Gran Passione Merlot',  unidad:'bot', precio_ref:310, loyverse:[
+  { nivel:'automatico', cat:'Vinos', nombre:'Gran Passione Merlot', unidad:'bot', precio_ref:310,
+    loyverse:[
       { item:'GRAN PASSIONE, MERLOT BOTELLA', copas:1 },
   ]},
-  { cat:'Vinos', nombre:'Chauvenet 5L (blanco cocina)', unidad:'pza', precio_ref:476, loyverse:[], receta:[
-      // Chauvenet blanco = SOLO cocina. Consumo en garrafas (1 pza = 5L).
-      // "kg" aquí = litros del platillo / 5L por garrafa
-      { item:'GAMBERI AL LIMON',           kg: 0.030 }, // 0.15L / 5L = 0.030 garrafas
-      { item:'SCALOPINE AL VINO BLANCO',   kg: 0.020 }, // 0.10L / 5L = 0.020 garrafas
-      { item:'SCALOPINE MEDITERRANEO',     kg: 0.020 }, // 0.10L / 5L = 0.020 garrafas
-      { item:'CESTINO DI MARE',            kg: 0.010 }, // 0.05L / 5L = 0.010 garrafas
-      { item:'FUNGHI AL AJILLO',           kg: 0.010 }, // 0.05L / 5L = 0.010 garrafas
-      { item:'SALMONE AL NOCI',            kg: 0.004 }, // 0.02L / 5L = 0.004 garrafas
-      { item:'CREMOSA DI PARMIGIANO',      kg: 0.006 }, // 0.03L / 5L = 0.006 garrafas
+  { nivel:'automatico', cat:'Vinos', nombre:'Cabernet Sauvignon 3L Kirkland', unidad:'pza', precio_ref:280,
+    loyverse:[
+      { item:'COPA CLERICOT',     copas:15 },
+      { item:'JARRA DE CLERICOT', copas:3  },
+      { item:'TINTO DE VERANO',   copas:15 },
   ]},
-  // Cabernet Sauvignon 3L Kirkland — insumo del clericot (copa, jarra, tinto de verano)
-  // Garrafa 3L: copa clericot ~200ml → 15 copas | jarra ~1L → 3 jarras | tinto verano ~200ml → 15
-  { cat:'Vinos', nombre:'Cabernet Sauvignon 3L Kirkland', unidad:'pza', precio_ref:280, loyverse:[
-      { item:'COPA CLERICOT',     copas:15 }, // 3,000ml / 200ml por copa  = 15 copas
-      { item:'JARRA DE CLERICOT', copas:3  }, // 3,000ml / 1,000ml por jarra = 3 jarras
-      { item:'TINTO DE VERANO',   copas:15 }, // 3,000ml / 200ml por vaso  = 15 vasos
+  { nivel:'automatico', cat:'Vinos', nombre:'Chauvenet 5L (blanco cocina)', unidad:'pza', precio_ref:476,
+    loyverse:[], receta:[
+      { item:'GAMBERI AL LIMON',         kg:0.030 },
+      { item:'SCALOPINE AL VINO BLANCO', kg:0.020 },
+      { item:'SCALOPINE MEDITERRANEO',   kg:0.020 },
+      { item:'CESTINO DI MARE',          kg:0.010 },
+      { item:'FUNGHI AL AJILLO',         kg:0.010 },
+      { item:'SALMONE AL NOCI',          kg:0.004 },
+      { item:'CREMOSA DI PARMIGIANO',    kg:0.006 },
   ]},
-  { cat:'Vinos', nombre:'Bacardi Blanco 1.75L',  unidad:'bot', precio_ref:464, loyverse:[
-      { item:'BACARDI BLANCO', copas:29 }, // 1.75L / 60ml por copa ≈ 29 copas
-  ]},
-  { cat:'Vinos', nombre:'Tanqueray 750ml',       unidad:'bot', precio_ref:549, loyverse:[
-      { item:'TANQUERAY', copas:15 }, // 750ml / 50ml por copa ≈ 15 copas
-  ]},
-  { cat:'Vinos', nombre:'Campari 750ml',         unidad:'bot', precio_ref:450, loyverse:[
-      { item:'SPRITZ', copas:8 }, // Campari en Spritz ~90ml → 750ml / 90ml ≈ 8
-  ]},
-  // REFRESCOS Y CERVEZAS — precios reales de facturas Walmart/Costco
-  { cat:'Refrescos y Cervezas', nombre:'Coca Cola',       unidad:'pza', precio_ref:20.35, loyverse:[{ item:'COCA COLA',       copas:1 }] },
 
-  { cat:'Refrescos y Cervezas', nombre:'Coca Cola Zero',  unidad:'pza', precio_ref:22.00, loyverse:[{ item:'COCA COLA ZERO',  copas:1 }] },
-  { cat:'Refrescos y Cervezas', nombre:'Topo Chico',      unidad:'pza', precio_ref:20.31, loyverse:[{ item:'TOPO CHICO',      copas:1 }] },
-  { cat:'Refrescos y Cervezas', nombre:'Modelo Especial', unidad:'pza', precio_ref:23.32, loyverse:[{ item:'MODELO ESPECIAL', copas:1 }] },
-  { cat:'Refrescos y Cervezas', nombre:'Negra Modelo',    unidad:'pza', precio_ref:24.38, loyverse:[{ item:'NEGRA MODELO',    copas:1 }] },
-  { cat:'Refrescos y Cervezas', nombre:'Corona',          unidad:'pza', precio_ref:23.32, loyverse:[{ item:'CORONA',          copas:1 }] },
-  { cat:'Refrescos y Cervezas', nombre:'Stella Artois',   unidad:'pza', precio_ref:24.38, loyverse:[{ item:'STELLA ARTOIS',   copas:1 }] },
-  { cat:'Refrescos y Cervezas', nombre:'Victoria',        unidad:'pza', precio_ref:16.96, loyverse:[{ item:'VICTORIA',        copas:1 }] },
+  // ══════════════════════════════════════════════════════════
+  // CAPA 3 — REFERENCIA (monitoreados por food cost, sin conteo físico)
+  // ══════════════════════════════════════════════════════════
+  { nivel:'referencia', cat:'Lácteos', nombre:'Mantequilla Desy', unidad:'kg', precio_ref:135,
+    loyverse:[], receta:[
+      { item:'PANINI DELICATO',          kg:0.020 },
+      { item:'GAMBERI AL LIMON',         kg:0.040 },
+      { item:'ALFREDO PRIMAVERA',        kg:0.015 },
+      { item:'SEMPLICE',                 kg:0.030 },
+      { item:'SCALOPINE AL VINO BLANCO', kg:0.030 },
+      { item:'SCALOPINE MEDITERRANEO',   kg:0.030 },
+      { item:'GAMBERI CREMOSI',          kg:0.040 },
+      { item:'RISOTTO',                  kg:0.030 },
+  ]},
+  { nivel:'referencia', cat:'Lácteos',  nombre:'Crema Corona',     unidad:'lt', precio_ref:95,   loyverse:[], receta:[
+      { item:'ALFREDO PRIMAVERA', kg:0.080 },
+      { item:'QUATTRO FORMAGI',   kg:0.090 },
+      { item:'PENNE ALLA VODKA',  kg:0.045 },
+  ]},
+  { nivel:'referencia', cat:'Lácteos',  nombre:'Queso chihuahua',  unidad:'kg', precio_ref:180,  loyverse:[], receta:[{ item:'QUATTRO FORMAGI', kg:0.020 }] },
+  { nivel:'referencia', cat:'Mariscos', nombre:'Aros de calamar',  unidad:'kg', precio_ref:180,  loyverse:[], receta:[{ item:'SPAGUETTI DI MARE', kg:0.05 }] },
+  { nivel:'referencia', cat:'Mariscos', nombre:'Calamar americano',unidad:'kg', precio_ref:160,  loyverse:[], receta:[{ item:'CALAMARI FRITTI', kg:0.18 }] },
+  { nivel:'referencia', cat:'Mariscos', nombre:'Pulpo',            unidad:'kg', precio_ref:180,  loyverse:[], receta:[{ item:'CESTINO DI MARE', kg:0.04 }, { item:'MOD:PULPO', kg:0.04 }] },
+  { nivel:'referencia', cat:'Refrescos y Cervezas', nombre:'Coca Cola',       unidad:'pza', precio_ref:20.35, loyverse:[{ item:'COCA COLA',       copas:1 }] },
+  { nivel:'referencia', cat:'Refrescos y Cervezas', nombre:'Coca Cola Zero',  unidad:'pza', precio_ref:22.00, loyverse:[{ item:'COCA COLA ZERO',  copas:1 }] },
+  { nivel:'referencia', cat:'Refrescos y Cervezas', nombre:'Topo Chico',      unidad:'pza', precio_ref:20.31, loyverse:[{ item:'TOPO CHICO',      copas:1 }] },
+  { nivel:'referencia', cat:'Refrescos y Cervezas', nombre:'Modelo Especial', unidad:'pza', precio_ref:23.32, loyverse:[{ item:'MODELO ESPECIAL', copas:1 }] },
+  { nivel:'referencia', cat:'Refrescos y Cervezas', nombre:'Negra Modelo',    unidad:'pza', precio_ref:24.38, loyverse:[{ item:'NEGRA MODELO',    copas:1 }] },
+  { nivel:'referencia', cat:'Refrescos y Cervezas', nombre:'Corona',          unidad:'pza', precio_ref:23.32, loyverse:[{ item:'CORONA',          copas:1 }] },
+  { nivel:'referencia', cat:'Refrescos y Cervezas', nombre:'Stella Artois',   unidad:'pza', precio_ref:24.38, loyverse:[{ item:'STELLA ARTOIS',   copas:1 }] },
+  { nivel:'referencia', cat:'Refrescos y Cervezas', nombre:'Victoria',        unidad:'pza', precio_ref:16.96, loyverse:[{ item:'VICTORIA',        copas:1 }] },
 ];
 
 let INV_STATE = {}; // { 'PRODUCTO': { ini: 0, fin: 0 } }
@@ -2268,18 +2285,16 @@ function getInvSemanaDesde(fechaHasta) {
   return martes.toISOString().split('T')[0];
 }
 
-let INV_CAT_FILTRO = 'todos';
+let INV_CAT_FILTRO = 'critico';
 
 function invFiltrarCat(cat, btn) {
   INV_CAT_FILTRO = cat;
   document.querySelectorAll('[onclick^="invFiltrarCat"]').forEach(b => {
-    b.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200';
+    b.className = 'px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200';
   });
-  if (btn) {
-    btn.className = cat === 'alertas'
-      ? 'px-3 py-1.5 rounded-xl bg-red-500 text-white text-xs font-semibold border border-red-500'
-      : 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold';
-  }
+  if (btn) btn.className = cat === 'alertas'
+    ? 'px-2.5 py-1 rounded-lg bg-red-500 text-white text-xs font-semibold'
+    : 'px-2.5 py-1 rounded-lg bg-slate-900 text-white text-xs font-semibold';
   renderInventario();
 }
 
@@ -2287,20 +2302,18 @@ function renderInventario() {
   const fechaEl = document.getElementById('inv-fecha');
   if (!fechaEl) return;
 
-  // Fecha por defecto: domingo de esta semana
   if (!fechaEl.value) {
     const hoy = new Date();
     const dow = hoy.getDay();
     const diasHastaDom = dow === 0 ? 0 : (7 - dow);
-    const dom = new Date(hoy);
-    dom.setDate(hoy.getDate() + diasHastaDom);
+    const dom = new Date(hoy); dom.setDate(hoy.getDate() + diasHastaDom);
     fechaEl.value = dom.toISOString().split('T')[0];
   }
 
   const fecha    = fechaEl.value;
   const semDesde = getInvSemanaDesde(fecha);
 
-  // ── Compras de la semana por producto ────────────────────
+  // ── Compras de la semana ──────────────────────────────────
   const comprasSemana = {};
   DB.compras.filter(c => c.fecha >= semDesde && c.fecha <= fecha).forEach(c => {
     (c.items||[]).forEach(item => {
@@ -2310,9 +2323,8 @@ function renderInventario() {
     });
   });
 
-  // ── Ventas Loyverse (platillos + modificadores) ───────────
-  const ventasSemana = {};
-  const modifSemana  = {};
+  // ── Ventas Loyverse ───────────────────────────────────────
+  const ventasSemana = {}, modifSemana = {};
   const recibos = DB.invRecibos || [];
   recibos.filter(r => {
     const d = (r.created_at||'').substring(0,10);
@@ -2339,16 +2351,16 @@ function renderInventario() {
 
   // ── Calcular consumo por insumo ────────────────────────────
   const resultados = INV_INSUMOS.map(ins => {
-    const key     = ins.nombre.toUpperCase().trim();
-    const st      = INV_STATE[key] || { ini: '', fin: '' };
-    const compras = comprasSemana[key] || 0;
-    const ini     = parseFloat(st.ini) || 0;
-    const fin     = parseFloat(st.fin);
-    const tenemos_fin = st.fin !== '' && st.fin !== null && !isNaN(fin);
-    const finVal  = tenemos_fin ? fin : 0;
+    const key       = ins.nombre.toUpperCase().trim();
+    const st        = INV_STATE[key] || { ini:'', fin:'' };
+    const compras   = comprasSemana[key] || 0;
+    const ini       = parseFloat(st.ini) || 0;
+    const finRaw    = parseFloat(st.fin);
+    const tenemos_fin = st.fin !== '' && st.fin !== null && !isNaN(finRaw);
+    const finVal    = tenemos_fin ? finRaw : 0;
 
-    const tieneLP     = ins.loyverse && ins.loyverse.length > 0;
-    const tieneReceta = ins.receta   && ins.receta.length  > 0;
+    const tieneLP     = ins.loyverse?.length > 0;
+    const tieneReceta = ins.receta?.length   > 0;
     let consumo = 0, tieneVentas = false;
     const desglose = [];
 
@@ -2356,187 +2368,226 @@ function renderInventario() {
       ins.loyverse.forEach(lv => {
         const v = ventasSemana[lv.item.toUpperCase().trim()] || 0;
         const c = v / lv.copas;
-        if (v > 0) { tieneVentas = true; desglose.push({ label: lv.item, valor: c.toFixed(2), raw: v + ' ventas ÷ ' + lv.copas }); }
+        if (v > 0) { tieneVentas = true; desglose.push({ label:lv.item, c, raw:v+' ventas ÷ '+lv.copas }); }
         consumo += c;
       });
     } else if (tieneReceta) {
-      ins.receta.filter(r => !r.item.startsWith('MOD:')).forEach(rv => {
+      ins.receta.forEach(rv => {
         const v = ventasSemana[rv.item.toUpperCase().trim()] || 0;
         const c = v * rv.kg;
-        if (v > 0) { tieneVentas = true; desglose.push({ label: rv.item, valor: c.toFixed(3), raw: v + ' porciones × ' + rv.kg + ' kg' }); }
-        consumo += c;
-      });
-      ins.receta.filter(r => r.item.startsWith('MOD:')).forEach(rv => {
-        const v = ventasSemana[rv.item.toUpperCase().trim()] || 0;
-        const c = v * rv.kg;
-        if (v > 0) { tieneVentas = true; desglose.push({ label: '+ ' + rv.item.replace('MOD:','') + ' (adicional)', valor: c.toFixed(3), raw: v + ' × ' + rv.kg + ' kg' }); }
+        const isMod = rv.item.startsWith('MOD:');
+        if (v > 0) { tieneVentas = true; desglose.push({ label: isMod ? rv.item.replace('MOD:','')+'  (adicional)' : rv.item, c, raw: v+(isMod ? ' adicionales' : ' platos')+' × '+rv.kg+' kg' }); }
         consumo += c;
       });
     }
 
-    const tieneCruce = tieneLP || tieneReceta;
-    // Disponible = ini + compras
-    const disponible   = ini + compras;
-    // Debería quedar = disponible - consumo
+    const tieneCruce    = tieneLP || tieneReceta;
+    const disponible    = ini + compras;
     const deberiaQuedar = tieneCruce ? Math.max(0, disponible - consumo) : null;
-    // Diferencia = lo que hay realmente vs. lo que debería haber
-    const diferencia = (deberiaQuedar !== null && tenemos_fin) ? finVal - deberiaQuedar : null;
+    const diferencia    = (deberiaQuedar !== null && tenemos_fin) ? finVal - deberiaQuedar : null;
 
-    // Estado semáforo
     let estado = 'sin-datos';
     if (diferencia !== null) {
       const pct = deberiaQuedar > 0 ? Math.abs(diferencia / deberiaQuedar) : 0;
-      if (diferencia < -0.01 && pct > 0.05) estado = 'faltante';
-      else if (diferencia > 0.01 && pct > 0.05) estado = 'exceso';
+      if      (diferencia < -0.01 && pct > 0.05) estado = 'faltante';
+      else if (diferencia >  0.01 && pct > 0.05) estado = 'exceso';
       else estado = 'ok';
-    } else if (!tieneCruce) {
-      estado = 'sin-receta';
-    } else if (!tenemos_fin) {
-      estado = 'pendiente';
-    }
+    } else if (!tieneCruce) estado = 'sin-receta';
+    else if (!tenemos_fin)  estado = 'pendiente';
 
     return { ins, key, st, compras, ini, finVal, tenemos_fin, consumo, disponible, deberiaQuedar, diferencia, estado, desglose, tieneVentas, tieneCruce };
   });
 
-  // ── Filtrar ────────────────────────────────────────────────
-  const filtrados = resultados.filter(r => {
-    if (INV_CAT_FILTRO === 'todos') return true;
-    if (INV_CAT_FILTRO === 'alertas') return r.estado === 'faltante';
-    return r.ins.cat === INV_CAT_FILTRO;
-  });
+  // ── KPIs globales ─────────────────────────────────────────
+  const criticos = resultados.filter(r => r.ins.nivel === 'critico');
+  const contados = criticos.filter(r => r.tenemos_fin);
+  const alertas  = resultados.filter(r => r.estado === 'faltante');
+  const totalConsumo = resultados.filter(r => r.ins.nivel !== 'referencia')
+    .reduce((a,r) => a + r.consumo * r.ins.precio_ref, 0);
+  const ventasPer = DB.dashVentas || 0;
+  const fcPct     = ventasPer > 0 ? (totalConsumo / ventasPer * 100) : 0;
 
-  // ── Renderizar tarjetas ────────────────────────────────────
-  const catColors = {
-    'Carnicería':           { dot:'bg-red-400',    txt:'text-red-700',    bg:'bg-red-50'    },
-    'Mariscos':             { dot:'bg-teal-400',   txt:'text-teal-700',   bg:'bg-teal-50'   },
-    'Lácteos':              { dot:'bg-amber-400',  txt:'text-amber-700',  bg:'bg-amber-50'  },
-    'Vinos':                { dot:'bg-purple-400', txt:'text-purple-700', bg:'bg-purple-50' },
-    'Refrescos y Cervezas': { dot:'bg-cyan-400',   txt:'text-cyan-700',   bg:'bg-cyan-50'   },
+  const s = (id,v) => { const e=document.getElementById(id); if(e) e.textContent=v; };
+  s('inv-kpi-criticos', contados.length + '/' + criticos.length + ' contados');
+  s('inv-teorico',      totalConsumo > 0 ? fmt(totalConsumo) : '—');
+  const fcEl = document.getElementById('inv-fc-insumos');
+  if (fcEl) {
+    fcEl.textContent  = fcPct > 0 ? fcPct.toFixed(1)+'%' : '—';
+    fcEl.className    = 'font-bold ' + (fcPct > 40 ? 'text-red-600' : fcPct > 30 ? 'text-amber-600' : fcPct > 0 ? 'text-green-700' : 'text-slate-300');
+  }
+  s('inv-fc-sub', ventasPer > 0 ? 'de ventas ' + fmt(ventasPer) : '(sincroniza ventas)');
+  s('inv-alertas-badge', alertas.length > 0 ? alertas.length + ' alertas' : '');
+  s('inv-diferencia-pct', contados.length > 0 ? contados.length + ' insumos contados' : 'Captura existencias al cierre');
+
+  // ── Filtrar para renderizar ───────────────────────────────
+  let filtrados;
+  if      (INV_CAT_FILTRO === 'critico')    filtrados = resultados.filter(r => r.ins.nivel === 'critico');
+  else if (INV_CAT_FILTRO === 'automatico') filtrados = resultados.filter(r => r.ins.nivel === 'automatico');
+  else if (INV_CAT_FILTRO === 'alertas')    filtrados = resultados.filter(r => r.estado === 'faltante');
+  else                                       filtrados = resultados;
+
+  // ── Render tarjetas ───────────────────────────────────────
+  const CAT_DOT = {
+    'Carnicería':'bg-red-400', 'Mariscos':'bg-teal-400',
+    'Lácteos':'bg-amber-400',  'Vinos':'bg-purple-400',
+    'Refrescos y Cervezas':'bg-cyan-400'
+  };
+  const CAT_TXT = {
+    'Carnicería':'text-red-700 bg-red-50', 'Mariscos':'text-teal-700 bg-teal-50',
+    'Lácteos':'text-amber-700 bg-amber-50','Vinos':'text-purple-700 bg-purple-50',
+    'Refrescos y Cervezas':'text-cyan-700 bg-cyan-50'
   };
 
   if (!filtrados.length) {
     document.getElementById('inv-categorias').innerHTML =
-      '<div class="text-center py-10 text-slate-300 text-sm">No hay ingredientes que mostrar en este filtro</div>';
+      '<div class="text-center py-16 text-slate-300 text-sm">No hay alertas esta semana ✓</div>';
     recalcInvTotales();
     renderAdicionalesInventario(modifSemana);
     return;
   }
 
-  let html = '';
-  // Agrupar por categoría para mostrar cabeceras
-  const gruposVistos = {};
+  // Agrupar por categoría
+  const grupos = {};
   filtrados.forEach(r => {
-    const cat = r.ins.cat;
-    const cc  = catColors[cat] || { dot:'bg-slate-400', txt:'text-slate-600', bg:'bg-slate-50' };
+    if (!grupos[r.ins.cat]) grupos[r.ins.cat] = [];
+    grupos[r.ins.cat].push(r);
+  });
 
-    if (!gruposVistos[cat]) {
-      gruposVistos[cat] = true;
-      html += `<div class="flex items-center gap-2 mt-4 mb-2 first:mt-0">
-        <div class="w-2.5 h-2.5 rounded-full ${cc.dot}"></div>
-        <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">${cat}</span>
-        <div class="flex-1 h-px bg-slate-100"></div>
-      </div>`;
-    }
+  let html = '';
+  Object.entries(grupos).forEach(([cat, rows]) => {
+    const dot = CAT_DOT[cat] || 'bg-slate-400';
+    const txt = CAT_TXT[cat] || 'text-slate-600 bg-slate-50';
 
-    // Semáforo
-    const { estado, ins, key, compras, ini, finVal, tenemos_fin, consumo, disponible, deberiaQuedar, diferencia, desglose, tieneVentas, tieneCruce } = r;
-
-    let semaforoClase = '', semaforoLabel = '', semaforoBg = '', barColor = '';
-    if (estado === 'ok')        { semaforoClase='text-green-700';  semaforoLabel='✓ Cuadra';   semaforoBg='bg-green-50 border-green-200';  barColor='bg-green-400'; }
-    else if (estado === 'faltante')  { semaforoClase='text-red-600';    semaforoLabel='⚠ Falta';   semaforoBg='bg-red-50 border-red-200';     barColor='bg-red-400';   }
-    else if (estado === 'exceso')    { semaforoClase='text-blue-600';   semaforoLabel='+ Exceso';  semaforoBg='bg-blue-50 border-blue-200';   barColor='bg-blue-400';  }
-    else if (estado === 'pendiente') { semaforoClase='text-amber-600';  semaforoLabel='Contar';    semaforoBg='bg-amber-50 border-amber-200'; barColor='bg-amber-300'; }
-    else if (estado === 'sin-receta'){ semaforoClase='text-slate-400';  semaforoLabel='Sin receta';semaforoBg='bg-slate-50 border-slate-200'; barColor='bg-slate-200'; }
-    else                             { semaforoClase='text-slate-300';  semaforoLabel='—';         semaforoBg='bg-slate-50 border-slate-100'; barColor='bg-slate-100'; }
-
-    // Barra de progreso: consumo / disponible
-    const barPct = disponible > 0 ? Math.min(100, (consumo / disponible) * 100) : 0;
-
-    // Desglose visible (no tooltip)
-    const desgloseHtml = desglose.length
-      ? desglose.map(d => `<span class="inline-flex items-center gap-1 text-xs text-slate-500 bg-slate-50 rounded-lg px-2 py-0.5 mr-1 mb-1">
-          <span class="font-medium text-slate-700">${d.label}</span>
-          <span class="text-slate-400">${d.raw}</span>
-        </span>`).join('')
-      : tieneCruce
-        ? '<span class="text-xs text-slate-300">Sin ventas en el período</span>'
-        : '<span class="text-xs text-slate-300">Configura la receta en el Recetario</span>';
-
-    const difStr = diferencia !== null
-      ? (diferencia >= 0 ? '+' : '') + diferencia.toFixed(2) + ' ' + ins.unidad
-      : '—';
-
-    html += `
-    <div class="bg-white rounded-2xl border ${semaforoBg} p-4 transition-all hover:shadow-sm">
-      <div class="flex items-start gap-4">
-
-        <!-- Semáforo lateral -->
-        <div class="flex flex-col items-center gap-1 pt-0.5 flex-shrink-0 w-16">
-          <span class="text-xs font-bold ${semaforoClase} text-center leading-tight">${semaforoLabel}</span>
-          ${diferencia !== null ? `<span class="text-xs font-semibold ${semaforoClase}">${difStr}</span>` : ''}
-        </div>
-
-        <!-- Cuerpo principal -->
-        <div class="flex-1 min-w-0">
-
-          <!-- Nombre + categoria -->
-          <div class="flex items-center gap-2 mb-2">
-            <span class="font-semibold text-slate-900 text-sm">${ins.nombre}</span>
-            <span class="text-xs ${cc.txt} ${cc.bg} px-1.5 py-0.5 rounded-md">${ins.unidad}</span>
-            ${!tieneCruce ? '<span class="text-xs text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded-md">Sin receta</span>' : ''}
-          </div>
-
-          <!-- Barra de consumo -->
-          ${tieneCruce ? `
-          <div class="mb-2">
-            <div class="flex items-center justify-between mb-1">
-              <span class="text-xs text-slate-400">Consumo según ventas</span>
-              <span class="text-xs font-semibold ${tieneVentas ? 'text-slate-700' : 'text-slate-300'}">${tieneVentas ? consumo.toFixed(2) + ' ' + ins.unidad : '0'}</span>
-            </div>
-            <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-              <div class="${barColor} h-full rounded-full transition-all" style="width:${barPct.toFixed(0)}%"></div>
-            </div>
-            <div class="flex justify-between mt-0.5">
-              <span class="text-xs text-slate-300">0</span>
-              <span class="text-xs text-slate-400">Disponible: ${disponible.toFixed(2)} ${ins.unidad}</span>
-            </div>
-          </div>` : ''}
-
-          <!-- Desglose de platillos -->
-          ${tieneCruce && desglose.length ? `<div class="mb-2">${desgloseHtml}</div>` : ''}
-
-          <!-- Fila de datos operativos -->
-          <div class="flex items-center gap-3 text-xs text-slate-400 flex-wrap">
-            <span>Inicio semana: <b class="text-slate-600">${ini > 0 ? ini.toFixed(2) + ' ' + ins.unidad : '—'}</b></span>
-            ${compras > 0 ? `<span class="text-green-600">+ ${compras.toFixed(2)} comprado</span>` : ''}
-            ${deberiaQuedar !== null ? `<span class="text-blue-600">→ debería quedar ${deberiaQuedar.toFixed(2)}</span>` : ''}
-          </div>
-        </div>
-
-        <!-- Input de conteo al cierre -->
-        <div class="flex-shrink-0 flex flex-col items-center gap-1">
-          <span class="text-xs text-slate-400 text-center">Al cerrar</span>
-          <input type="number" step="0.01" min="0"
-            value="${tenemos_fin ? finVal : ''}"
-            placeholder="—"
-            oninput="invUpdate('${key}','fin',this.value)"
-            class="w-20 text-center font-semibold text-slate-900 border-2 ${tenemos_fin ? 'border-slate-300 bg-white' : 'border-dashed border-slate-200 bg-slate-50'} rounded-xl px-2 py-2.5 text-sm outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50"/>
-          <span class="text-xs text-slate-400">${ins.unidad}</span>
-        </div>
-
-        <!-- Input de inicio de semana -->
-        <div class="flex-shrink-0 flex flex-col items-center gap-1">
-          <span class="text-xs text-slate-400 text-center">Al abrir</span>
-          <input type="number" step="0.01" min="0"
-            value="${ini > 0 ? ini : ''}"
-            placeholder="—"
-            oninput="invUpdate('${key}','ini',this.value)"
-            class="w-20 text-center text-slate-600 border border-slate-200 bg-slate-50 rounded-xl px-2 py-2.5 text-sm outline-none focus:ring-2 focus:ring-slate-200"/>
-          <span class="text-xs text-slate-400">${ins.unidad}</span>
-        </div>
-
-      </div>
+    // Cabecera de categoría
+    html += `<div class="flex items-center gap-2 mt-5 mb-2 first:mt-0">
+      <div class="w-2 h-2 rounded-full ${dot} flex-shrink-0"></div>
+      <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">${cat}</span>
+      <div class="flex-1 h-px bg-slate-100"></div>
+      <span class="text-xs text-slate-400">${rows.filter(r=>r.tenemos_fin).length}/${rows.length} contados</span>
     </div>`;
+
+    rows.forEach(({ ins, key, compras, ini, finVal, tenemos_fin, consumo, disponible, deberiaQuedar, diferencia, estado, desglose, tieneVentas, tieneCruce }) => {
+
+      // Semáforo
+      const SEM = {
+        ok:          { border:'border-green-200',  bg:'bg-green-50/50',  icon:'check_circle', iconcls:'text-green-500',  label:'Cuadra',     lbcls:'text-green-700' },
+        faltante:    { border:'border-red-300',    bg:'bg-red-50/60',    icon:'warning',      iconcls:'text-red-500',    label:'Faltante',   lbcls:'text-red-700' },
+        exceso:      { border:'border-blue-200',   bg:'bg-blue-50/40',   icon:'inventory',    iconcls:'text-blue-500',   label:'Exceso',     lbcls:'text-blue-700' },
+        pendiente:   { border:'border-amber-200',  bg:'bg-amber-50/40',  icon:'edit',         iconcls:'text-amber-400',  label:'Contar',     lbcls:'text-amber-600' },
+        'sin-datos': { border:'border-slate-200',  bg:'',                icon:'remove',       iconcls:'text-slate-300',  label:'—',          lbcls:'text-slate-300' },
+        'sin-receta':{ border:'border-slate-200',  bg:'bg-slate-50/40',  icon:'link_off',     iconcls:'text-slate-300',  label:'Sin receta', lbcls:'text-slate-400' },
+      };
+      const sem = SEM[estado] || SEM['sin-datos'];
+
+      // Nivel badge
+      const nivelBadge = ins.nivel === 'automatico'
+        ? '<span class="text-xs text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded font-medium">Auto Loyverse</span>'
+        : ins.nivel === 'referencia'
+          ? '<span class="text-xs text-slate-400 bg-slate-50 px-1.5 py-0.5 rounded">Referencia</span>'
+          : '';
+
+      // Barra de consumo (solo si tiene cruce y hay disponible)
+      const barPct = disponible > 0 ? Math.min(100, (consumo / disponible) * 100) : 0;
+      const barColor = barPct > 90 ? 'bg-red-400' : barPct > 70 ? 'bg-amber-400' : 'bg-green-400';
+
+      // Diferencia legible
+      const difStr = diferencia !== null
+        ? (diferencia >= 0 ? '+' : '') + diferencia.toFixed(2) + ' ' + ins.unidad
+        : '';
+
+      // Desglose de platillos (máx 4 para no sobrecargar)
+      const desgloseHtml = desglose.length
+        ? `<div class="flex flex-wrap gap-1 mt-1.5">
+            ${desglose.slice(0,5).map(d =>
+              `<span class="text-xs text-slate-500 bg-slate-50 border border-slate-100 rounded-md px-2 py-0.5">
+                <b class="text-slate-700 font-medium">${d.label}</b>
+                <span class="text-slate-400 ml-1">${d.raw} = ${parseFloat(d.c).toFixed(2)} ${ins.unidad}</span>
+              </span>`).join('')}
+            ${desglose.length > 5 ? `<span class="text-xs text-slate-400">+${desglose.length-5} más</span>` : ''}
+          </div>`
+        : tieneCruce && !tieneVentas
+          ? '<p class="text-xs text-slate-300 mt-1">Sin ventas registradas esta semana</p>'
+          : !tieneCruce
+            ? '<p class="text-xs text-slate-300 mt-1">Configura la receta en el Recetario →</p>'
+            : '';
+
+      html += `
+      <div class="bg-white border ${sem.border} ${sem.bg} rounded-2xl p-4 transition-all hover:shadow-sm">
+        <div class="flex items-start gap-3">
+
+          <!-- Ícono semáforo -->
+          <div class="flex flex-col items-center gap-0.5 pt-0.5 flex-shrink-0 w-14 text-center">
+            <span class="ms text-2xl ${sem.iconcls}">${sem.icon}</span>
+            <span class="text-xs font-semibold ${sem.lbcls} leading-tight">${sem.label}</span>
+            ${difStr ? `<span class="text-xs font-bold ${sem.lbcls} mt-0.5">${difStr}</span>` : ''}
+          </div>
+
+          <!-- Centro: nombre + datos -->
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-semibold text-slate-900">${ins.nombre}</span>
+              <span class="text-xs ${txt} px-1.5 py-0.5 rounded">${ins.unidad}</span>
+              ${nivelBadge}
+            </div>
+
+            ${tieneCruce && (tieneVentas || disponible > 0) ? `
+            <div class="mt-2 mb-1">
+              <div class="flex justify-between text-xs mb-1">
+                <span class="text-slate-400">Consumo según ventas: <b class="text-slate-700">${consumo.toFixed(2)} ${ins.unidad}</b></span>
+                <span class="text-slate-400">de ${disponible.toFixed(2)} disponible</span>
+              </div>
+              <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                <div class="${barColor} h-full rounded-full" style="width:${barPct.toFixed(0)}%"></div>
+              </div>
+            </div>` : ''}
+
+            ${desgloseHtml}
+
+            <!-- Datos operativos compactos -->
+            <div class="flex items-center gap-3 mt-2 text-xs text-slate-400">
+              ${ini > 0 ? `<span>Inicio: <b class="text-slate-600">${ini.toFixed(2)}</b></span>` : '<span class="text-slate-300">Sin stock inicial</span>'}
+              ${compras > 0 ? `<span class="text-green-600">+ ${compras.toFixed(2)} comprado</span>` : ''}
+              ${deberiaQuedar !== null ? `<span class="text-primary font-medium">→ debería quedar ${deberiaQuedar.toFixed(2)}</span>` : ''}
+            </div>
+          </div>
+
+          <!-- Inputs al extremo derecho -->
+          <div class="flex-shrink-0 flex gap-2">
+            ${ins.nivel !== 'automatico' ? `
+            <!-- Cierre (más importante: borde prominente) -->
+            <div class="flex flex-col items-center gap-1">
+              <span class="text-xs text-slate-400">Al cerrar</span>
+              <input type="number" step="0.01" min="0"
+                value="${tenemos_fin ? finVal : ''}" placeholder="—"
+                oninput="invUpdate('${key}','fin',this.value)"
+                class="w-20 text-center font-bold text-slate-900 border-2 ${tenemos_fin ? 'border-slate-300 bg-white' : 'border-dashed border-slate-300 bg-slate-50'} rounded-xl px-2 py-2 text-sm outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary/50"/>
+              <span class="text-xs text-slate-400">${ins.unidad}</span>
+            </div>
+            <!-- Apertura (secundario) -->
+            <div class="flex flex-col items-center gap-1">
+              <span class="text-xs text-slate-400">Al abrir</span>
+              <input type="number" step="0.01" min="0"
+                value="${ini > 0 ? ini : ''}" placeholder="—"
+                oninput="invUpdate('${key}','ini',this.value)"
+                class="w-16 text-center text-slate-600 border border-slate-200 bg-slate-50 rounded-xl px-2 py-2 text-xs outline-none focus:ring-2 focus:ring-slate-200"/>
+              <span class="text-xs text-slate-400">${ins.unidad}</span>
+            </div>
+            ` : `
+            <!-- Vinos automáticos: solo stock inicial -->
+            <div class="flex flex-col items-center gap-1">
+              <span class="text-xs text-slate-400">Stock lunes</span>
+              <input type="number" step="0.01" min="0"
+                value="${ini > 0 ? ini : ''}" placeholder="—"
+                oninput="invUpdate('${key}','ini',this.value)"
+                class="w-20 text-center font-semibold text-purple-900 border-2 ${ini > 0 ? 'border-purple-200 bg-purple-50' : 'border-dashed border-purple-200 bg-purple-50/50'} rounded-xl px-2 py-2 text-sm outline-none focus:ring-2 focus:ring-purple-200"/>
+              <span class="text-xs text-slate-400">${ins.unidad}</span>
+            </div>
+            `}
+          </div>
+
+        </div>
+      </div>`;
+    });
   });
 
   document.getElementById('inv-categorias').innerHTML = html;
@@ -2624,7 +2675,7 @@ function recalcInvTotales() {
 
   const s = (id, val) => { const e = document.getElementById(id); if(e) e.textContent = val; };
   s('inv-teorico', totalTeorico > 0 ? fmt(totalTeorico) : '—');
-  s('inv-real',    totalReal    > 0 ? fmt(totalReal)    : '—');
+  // inv-real removed from compact KPIs
   s('inv-diferencia', '—'); // se actualiza abajo
   const alertasBadge = document.getElementById('inv-alertas-badge');
   if (alertasBadge) {
