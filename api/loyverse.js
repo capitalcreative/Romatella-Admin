@@ -7,104 +7,153 @@ export default async function handler(req, res) {
   const TOKEN = process.env.LOYVERSE_TOKEN;
   if (!TOKEN) return res.status(500).json({ error: 'LOYVERSE_TOKEN no configurado' });
 
-  const { endpoint, date_from, date_to, limit } = req.query;
+  const { endpoint, date_from, date_to, limit, cursor } = req.query;
+
+  const HEADERS = {
+    'Authorization': `Bearer ${TOKEN}`,
+    'Content-Type': 'application/json'
+  };
+
+  // ─── Función auxiliar: paginación completa con cursor ──────────────────────
+  // Loyverse usa cursor-based pagination: el campo `cursor` en la respuesta
+  // indica que hay más páginas. Se itera hasta que no haya cursor.
+  async function fetchAllPages(baseUrl, dataKey) {
+    let allItems = [];
+    let nextCursor = cursor || null; // permite pasar cursor externo si se quiere
+    let url = baseUrl + (nextCursor ? '&cursor=' + encodeURIComponent(nextCursor) : '');
+    let pages = 0;
+    const MAX_PAGES = 20; // safety cap: 20 × 250 = 5,000 recibos
+
+    do {
+      const resp = await fetch(url, { headers: HEADERS });
+      if (!resp.ok) {
+        const err = await resp.text();
+        throw new Error('Loyverse ' + resp.status + ': ' + err);
+      }
+      const data = await resp.json();
+      const items = data[dataKey] || [];
+      allItems = allItems.concat(items);
+      nextCursor = data.cursor || null;
+      url = baseUrl + (nextCursor ? '&cursor=' + encodeURIComponent(nextCursor) : '');
+      pages++;
+    } while (nextCursor && pages < MAX_PAGES);
+
+    return { [dataKey]: allItems, total_pages: pages, total_items: allItems.length };
+  }
 
   try {
-
-    // ── Endpoints que requieren paginación ───────────────────
-    if (endpoint === 'summary' || endpoint === 'receipts') {
-      const PAGE = 250; // máximo permitido por Loyverse
-      let allReceipts = [];
-      let cursor = null;
-      let keepGoing = true;
-
-      while (keepGoing) {
-        let url = `https://api.loyverse.com/v1.0/receipts?limit=${PAGE}`;
-        if (date_from) url += `&created_at_min=${date_from}`;
-        if (date_to)   url += `&created_at_max=${date_to}`;
-        if (cursor)    url += `&cursor=${cursor}`;
-
-        const resp = await fetch(url, {
-          headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' }
-        });
-
-        if (!resp.ok) {
-          const err = await resp.text();
-          return res.status(resp.status).json({ error: err });
-        }
-
-        const data = await resp.json();
-        const batch = data.receipts || [];
-        allReceipts = allReceipts.concat(batch);
-
-        if (data.cursor && batch.length === PAGE) {
-          cursor = data.cursor;
-        } else {
-          keepGoing = false;
-        }
-      }
-
-      return res.status(200).json({ receipts: allReceipts });
+    // ─── ENDPOINT: receipts (simple, 1 página, legacy) ────────────────────
+    if (endpoint === 'receipts') {
+      const url = `https://api.loyverse.com/v1.0/receipts?limit=${limit||50}`
+        + (date_from ? '&created_at_min=' + date_from : '')
+        + (date_to   ? '&created_at_max=' + date_to   : '');
+      const resp = await fetch(url, { headers: HEADERS });
+      if (!resp.ok) { const e = await resp.text(); return res.status(resp.status).json({ error: e }); }
+      return res.status(200).json(await resp.json());
     }
 
+    // ─── ENDPOINT: summary — TODOS los recibos del período con paginación ──
+    if (endpoint === 'summary') {
+      const baseUrl = 'https://api.loyverse.com/v1.0/receipts?limit=250'
+        + (date_from ? '&created_at_min=' + encodeURIComponent(date_from) : '')
+        + (date_to   ? '&created_at_max=' + encodeURIComponent(date_to)   : '');
+      const result = await fetchAllPages(baseUrl, 'receipts');
+      return res.status(200).json(result);
+    }
+
+    // ─── ENDPOINT: shifts — turnos con PAY_OUT ────────────────────────────
     if (endpoint === 'shifts') {
-      const PAGE = 50;
-      let allShifts = [];
-      let cursor = null;
-      let keepGoing = true;
+      const baseUrl = 'https://api.loyverse.com/v1.0/shifts?limit=50'
+        + (date_from ? '&opened_at_min=' + encodeURIComponent(date_from) : '')
+        + (date_to   ? '&opened_at_max=' + encodeURIComponent(date_to)   : '');
+      const result = await fetchAllPages(baseUrl, 'shifts');
+      return res.status(200).json(result);
+    }
 
-      while (keepGoing) {
-        let url = `https://api.loyverse.com/v1.0/shifts?limit=${PAGE}`;
-        if (date_from) url += `&opened_at_min=${date_from}`;
-        if (date_to)   url += `&opened_at_max=${date_to}`;
-        if (cursor)    url += `&cursor=${cursor}`;
+    // ─── ENDPOINT: items — catálogo de productos ──────────────────────────
+    if (endpoint === 'items') {
+      const result = await fetchAllPages('https://api.loyverse.com/v1.0/items?limit=250', 'items');
+      return res.status(200).json(result);
+    }
 
-        const resp = await fetch(url, {
-          headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' }
+    // ─── ENDPOINT: payment_types ──────────────────────────────────────────
+    if (endpoint === 'payment_types') {
+      const resp = await fetch('https://api.loyverse.com/v1.0/payment_types', { headers: HEADERS });
+      if (!resp.ok) { const e = await resp.text(); return res.status(resp.status).json({ error: e }); }
+      return res.status(200).json(await resp.json());
+    }
+
+    // ─── ENDPOINT: diagnostico — analiza modificadores reales en recibos ──
+    // Devuelve un resumen de todos los modifier option_names encontrados
+    // en el período, agrupados por frecuencia. Útil para calibrar el mapeo.
+    if (endpoint === 'diagnostico') {
+      const baseUrl = 'https://api.loyverse.com/v1.0/receipts?limit=250'
+        + (date_from ? '&created_at_min=' + encodeURIComponent(date_from) : '')
+        + (date_to   ? '&created_at_max=' + encodeURIComponent(date_to)   : '');
+      const { receipts } = await fetchAllPages(baseUrl, 'receipts');
+
+      // Analizar estructura de modificadores
+      const modifMap  = {}; // { option_name: { count, price_set, en_platillos: {} } }
+      const platillos = {}; // { item_name: count }
+      let   totalRecibos = receipts.length;
+      let   recibosConMods = 0;
+
+      receipts.forEach(r => {
+        (r.line_items || []).forEach(li => {
+          const base = (li.item_name || '').trim();
+          platillos[base] = (platillos[base] || 0) + (li.quantity || 1);
+
+          if (li.modifiers && li.modifiers.length > 0) {
+            recibosConMods++;
+            li.modifiers.forEach(mod => {
+              const optName      = (mod.option_name || mod.modifier_name || '').trim();
+              const modifGrp     = (mod.modifier_name || '').trim();
+              if (!optName) return;
+
+              if (!modifMap[optName]) {
+                modifMap[optName] = {
+                  count: 0,
+                  modifier_group: modifGrp,
+                  price: mod.price || 0,
+                  en_platillos: {}
+                };
+              }
+              modifMap[optName].count++;
+              modifMap[optName].en_platillos[base] = (modifMap[optName].en_platillos[base] || 0) + 1;
+            });
+          }
         });
+      });
 
-        if (!resp.ok) {
-          const err = await resp.text();
-          return res.status(resp.status).json({ error: err });
-        }
+      // Ordenar por frecuencia
+      const modifSorted = Object.entries(modifMap)
+        .sort((a, b) => b[1].count - a[1].count)
+        .map(([name, d]) => ({
+          option_name:    name,
+          modifier_group: d.modifier_group,
+          count:          d.count,
+          price:          d.price,
+          en_platillos:   d.en_platillos
+        }));
 
-        const data = await resp.json();
-        const batch = data.shifts || [];
-        allShifts = allShifts.concat(batch);
+      const platSorted = Object.entries(platillos)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 30)
+        .map(([name, count]) => ({ name, count }));
 
-        if (data.cursor && batch.length === PAGE) {
-          cursor = data.cursor;
-        } else {
-          keepGoing = false;
-        }
-      }
-
-      return res.status(200).json({ shifts: allShifts });
+      return res.status(200).json({
+        periodo:           { from: date_from, to: date_to },
+        total_recibos:     totalRecibos,
+        recibos_con_mods:  recibosConMods,
+        modificadores:     modifSorted,
+        top_platillos:     platSorted,
+        _hint: 'Usa option_name de modificadores para actualizar receta[] en INV_INSUMOS con prefijo MOD:'
+      });
     }
 
-    // ── Endpoints simples (sin paginación necesaria) ─────────
-    const endpoints = {
-      receipts_single: `https://api.loyverse.com/v1.0/receipts?limit=${limit||50}${date_from?'&created_at_min='+date_from:''}${date_to?'&created_at_max='+date_to:''}`,
-      items:           'https://api.loyverse.com/v1.0/items?limit=250',
-      payment_types:   'https://api.loyverse.com/v1.0/payment_types',
-    };
-
-    const url = endpoints[endpoint];
-    if (!url) return res.status(400).json({ error: 'Endpoint invalido: ' + endpoint });
-
-    const response = await fetch(url, {
-      headers: { 'Authorization': `Bearer ${TOKEN}`, 'Content-Type': 'application/json' }
-    });
-
-    if (!response.ok) {
-      const err = await response.text();
-      return res.status(response.status).json({ error: err });
-    }
-
-    const data = await response.json();
-    res.status(200).json(data);
+    return res.status(400).json({ error: 'Endpoint invalido: ' + endpoint });
 
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    return res.status(500).json({ error: error.message });
   }
 }
