@@ -2177,12 +2177,24 @@ const INV_INSUMOS = [
   { cat:'Vinos', nombre:'Gran Passione Merlot',  unidad:'bot', precio_ref:310, loyverse:[
       { item:'GRAN PASSIONE, MERLOT BOTELLA', copas:1 },
   ]},
-  { cat:'Vinos', nombre:'Chauvenet 5L (blanco cocina)', unidad:'pza', precio_ref:476, loyverse:[
-      { item:'COPA CLERICOT',      copas:0.2  }, // 1 garrafa 5L = 25 copas → 1 copa = 0.04 pza → invertido: 5 copas = 1 garrafa × 1/5
-      { item:'JARRA DE CLERICOT',  copas:1    }, // 1 jarra ≈ 1 garrafa
-      { item:'TINTO DE VERANO',    copas:0.2  },
+  { cat:'Vinos', nombre:'Chauvenet 5L (blanco cocina)', unidad:'pza', precio_ref:476, loyverse:[], receta:[
+      // Chauvenet blanco = SOLO cocina. Consumo en garrafas (1 pza = 5L).
+      // "kg" aquí = litros del platillo / 5L por garrafa
+      { item:'GAMBERI AL LIMON',           kg: 0.030 }, // 0.15L / 5L = 0.030 garrafas
+      { item:'SCALOPINE AL VINO BLANCO',   kg: 0.020 }, // 0.10L / 5L = 0.020 garrafas
+      { item:'SCALOPINE MEDITERRANEO',     kg: 0.020 }, // 0.10L / 5L = 0.020 garrafas
+      { item:'CESTINO DI MARE',            kg: 0.010 }, // 0.05L / 5L = 0.010 garrafas
+      { item:'FUNGHI AL AJILLO',           kg: 0.010 }, // 0.05L / 5L = 0.010 garrafas
+      { item:'SALMONE AL NOCI',            kg: 0.004 }, // 0.02L / 5L = 0.004 garrafas
+      { item:'CREMOSA DI PARMIGIANO',      kg: 0.006 }, // 0.03L / 5L = 0.006 garrafas
   ]},
-  { cat:'Vinos', nombre:'Vino tinto Clericot',   unidad:'pza', precio_ref:280, loyverse:[] },
+  // Cabernet Sauvignon 3L Kirkland — insumo del clericot (copa, jarra, tinto de verano)
+  // Garrafa 3L: copa clericot ~200ml → 15 copas | jarra ~1L → 3 jarras | tinto verano ~200ml → 15
+  { cat:'Vinos', nombre:'Cabernet Sauvignon 3L Kirkland', unidad:'pza', precio_ref:280, loyverse:[
+      { item:'COPA CLERICOT',     copas:15 }, // 3,000ml / 200ml por copa  = 15 copas
+      { item:'JARRA DE CLERICOT', copas:3  }, // 3,000ml / 1,000ml por jarra = 3 jarras
+      { item:'TINTO DE VERANO',   copas:15 }, // 3,000ml / 200ml por vaso  = 15 vasos
+  ]},
   { cat:'Vinos', nombre:'Bacardi Blanco 1.75L',  unidad:'bot', precio_ref:464, loyverse:[
       { item:'BACARDI BLANCO', copas:29 }, // 1.75L / 60ml por copa ≈ 29 copas
   ]},
