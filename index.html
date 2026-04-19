@@ -1943,8 +1943,8 @@ const DB = {
     { id:20, nombre:'BROCOLI', categoria:'Frutas y Verduras', unidad:'kg', precio:28.00, proveedor:'DISFRULEG' },
     { id:21, nombre:'CALABACITA', categoria:'Frutas y Verduras', unidad:'kg', precio:18.00, proveedor:'DISFRULEG' },
     { id:22, nombre:'CALAMAR AMERICANO', categoria:'Mariscos', unidad:'kg', precio:143.00, proveedor:'KRILL' },
-    { id:23, nombre:'CAMARON 21/25', categoria:'Mariscos', unidad:'kg', precio:249.00, proveedor:'KRILL' },
-    { id:24, nombre:'CAMARON 31/35', categoria:'Mariscos', unidad:'kg', precio:205.00, proveedor:'KRILL' },
+    { id:23, nombre:'CAMARON 21/25', categoria:'Mariscos', unidad:'kg', precio:215.00, proveedor:'KRILL' }, // rendimiento 78% → precio usable $275.64/kg (se aplica en receta)
+    // CAMARON 31/35 retirado — se usa solo 21/25 con rendimiento 78%
     { id:25, nombre:'CARNE MOLIDA PREMIUM', categoria:'Carnicería', unidad:'kg', precio:217.00, proveedor:'CARNICIERIA DIANA' },
     { id:26, nombre:'CEBOLLA BLANCA', categoria:'Frutas y Verduras', unidad:'kg', precio:19.00, proveedor:'DISFRULEG' },
     { id:27, nombre:'CEBOLLA MORADA', categoria:'Frutas y Verduras', unidad:'kg', precio:18.00, proveedor:'DISFRULEG' },
@@ -2130,18 +2130,18 @@ const INV_INSUMOS = [
     loyverse:[], receta:[], notas:'Sin receta aún — controlar por monto puro' },
 
   // ── MARISCOS ───────────────────────────────────────────────────────────────
+  // Camarón 21/25 — precio compra $215/kg, rendimiento 78% → usable $275.64/kg
+  // Opción B: cantidad en receta = porción_receta / 0.78
   { nivel:'critico', cat:'Mariscos', nombre:'Camarón 21/25', unidad:'kg', precio_ref:215,
     loyverse:[], receta:[
-      { item:'SPAGUETTI DI MARE', kg:0.13 },
-      { item:'GAMBERI AL LIMON',  kg:0.20 },
-      { item:'GAMBERI CREMOSI',   kg:0.20 },
-      { item:'MOD:CAMARON',       kg:0.13 },
-      { item:'MOD:CAMARÓN',       kg:0.13 },
+      { item:'CESTINO DI MARE',   kg:0.128 }, // 0.10 / 0.78 (antes era 31/35)
+      { item:'SPAGUETTI DI MARE', kg:0.167 }, // 0.13 / 0.78
+      { item:'GAMBERI AL LIMON',  kg:0.256 }, // 0.20 / 0.78
+      { item:'GAMBERI CREMOSI',   kg:0.256 }, // 0.20 / 0.78
+      { item:'MOD:CAMARON',       kg:0.109 }, // 0.085 / 0.78 (adicional)
+      { item:'MOD:CAMARÓN',       kg:0.109 }, // 0.085 / 0.78
   ]},
-  { nivel:'critico', cat:'Mariscos', nombre:'Camarón 31/35', unidad:'kg', precio_ref:205,
-    loyverse:[], receta:[
-      { item:'CESTINO DI MARE', kg:0.10 },
-  ]},
+  // Camarón 31/35 retirado — todo se maneja con 21/25 (rendimiento 78%)
   { nivel:'critico', cat:'Mariscos', nombre:'Salmón', unidad:'kg', precio_ref:220,
     loyverse:[], receta:[
       { item:'SALMONE AL NOCI', kg:0.20 },
