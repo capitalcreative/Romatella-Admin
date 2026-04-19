@@ -1389,9 +1389,17 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
                   Receta — platillos que lo usan
                   <span class="text-blue-600 ml-1 normal-case font-normal">(modo: kg por porción)</span>
                 </label>
-                <button type="button" onclick="recModalAddReceta()" class="text-xs text-primary font-semibold hover:underline flex items-center gap-1">
-                  <span class="ms text-sm">add</span>agregar platillo
-                </button>
+                <div class="flex items-center gap-3">
+                  <button type="button" onclick="recModalAddMod()"
+                    class="text-xs text-amber-600 font-semibold hover:underline flex items-center gap-1"
+                    title="Agrega un modificador/adicional de Loyverse (MOD:)">
+                    <span class="ms text-sm">add</span>+ adicional
+                  </button>
+                  <button type="button" onclick="recModalAddReceta()"
+                    class="text-xs text-primary font-semibold hover:underline flex items-center gap-1">
+                    <span class="ms text-sm">add</span>+ platillo
+                  </button>
+                </div>
               </div>
               <div id="rec-m-receta-rows" class="space-y-2"></div>
             </div>
@@ -2046,15 +2054,12 @@ const INV_INSUMOS = [
   ]},
   { cat:'Carnicería', nombre:'Pechuga sin hueso', unidad:'kg', precio_ref:160, loyverse:[], receta:[
     { item:'PANINI DELICATO', kg:0.12 },
-    // Adicionales (modificadores Loyverse)
+    // Adicionales (modificadores Loyverse — nombre real se confirma con diagnóstico)
     { item:'MOD:POLLO',       kg:0.12 },
-    { item:'MOD:CHICKEN',     kg:0.12 },
   ]},
   { cat:'Carnicería', nombre:'Bistec de pechuga', unidad:'kg', precio_ref:180, loyverse:[], receta:[
     { item:'SCALOPINE AL VINO BLANCO',  kg:0.20 },
     { item:'SCALOPINE MEDITERRANEO',    kg:0.20 },
-    // Adicionales Scalopine por variante
-    { item:'MOD:MILANESA',              kg:0.20 },
   ]},
   { cat:'Carnicería', nombre:'Caña de filete', unidad:'kg', precio_ref:370, loyverse:[], receta:[] },
 
@@ -2063,19 +2068,18 @@ const INV_INSUMOS = [
     { item:'SPAGUETTI DI MARE', kg:0.13 },
     { item:'GAMBERI AL LIMON',  kg:0.20 },
     { item:'GAMBERI CREMOSI',   kg:0.20 },
-    // Adicionales (modificadores Loyverse) — camarón agregado a cualquier pasta
+    // Adicionales (modificadores Loyverse) — nombre exacto a confirmar con diagnóstico
     { item:'MOD:CAMARON',       kg:0.13 },
     { item:'MOD:CAMARÓN',       kg:0.13 },
-    { item:'MOD:SHRIMP',        kg:0.13 },
   ]},
   { cat:'Mariscos', nombre:'Camarón 31/35', unidad:'kg', precio_ref:205, loyverse:[], receta:[
     { item:'CESTINO DI MARE', kg:0.10 },
   ]},
   { cat:'Mariscos', nombre:'Salmón', unidad:'kg', precio_ref:220, loyverse:[], receta:[
     { item:'SALMONE AL NOCI', kg:0.20 },
-    // Adicionales
-    { item:'MOD:SALMON',      kg:0.20 },
+    // Adicionales (nombre exacto a confirmar con diagnóstico)
     { item:'MOD:SALMÓN',      kg:0.20 },
+    { item:'MOD:SALMON',      kg:0.20 },
   ]},
   { cat:'Mariscos', nombre:'Aros de calamar', unidad:'kg', precio_ref:180, loyverse:[], receta:[
     { item:'SPAGUETTI DI MARE', kg:0.05 },
@@ -3576,23 +3580,9 @@ function recetarioEditar(idx) {
   document.getElementById('rec-m-unidad').value  = ins.unidad;
   document.getElementById('rec-m-precio').value  = ins.precio_ref;
 
-  // Renderizar filas de receta
-  recModalRenderReceta(ins.receta.filter(r => !r.item.startsWith('MOD:')));
+  // Renderizar TODAS las filas de receta: platillos normales + MODs en ámbar
+  recModalRenderReceta(ins.receta);
   recModalRenderLoyverse(ins.loyverse);
-
-  // Mostrar sección adicionales si existen
-  const mods = ins.receta.filter(r => r.item.startsWith('MOD:'));
-  const modWrap = document.getElementById('rec-m-receta-rows');
-  if (mods.length && modWrap) {
-    const modSection = document.createElement('div');
-    modSection.className = 'mt-3 pt-3 border-t border-slate-100';
-    modSection.innerHTML = '<p class="text-xs font-semibold text-amber-600 uppercase tracking-wider mb-2">Adicionales mapeados (MOD:)</p>'
-      + mods.map(m => `<div class="flex items-center gap-2 mb-1.5">
-          <input type="text" value="${m.item}" disabled class="flex-1 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700"/>
-          <span class="text-xs text-slate-500">${m.kg} kg</span>
-        </div>`).join('');
-    modWrap.parentElement.appendChild(modSection);
-  }
 
   document.getElementById('modal-recetario').classList.remove('hidden');
 }
@@ -3616,7 +3606,7 @@ function recModalRenderReceta(rows) {
   const wrap = document.getElementById('rec-m-receta-rows');
   if (!wrap) return;
   wrap.innerHTML = '';
-  rows.forEach((r, i) => recModalAddRecetaRow(r.item, r.kg));
+  rows.forEach(r => recModalAddRecetaRow(r.item, r.kg));
 }
 
 function recModalRenderLoyverse(rows) {
@@ -3630,19 +3620,46 @@ function recModalAddReceta() { recModalAddRecetaRow('', ''); }
 function recModalAddRecetaRow(item, kg) {
   const wrap = document.getElementById('rec-m-receta-rows');
   if (!wrap) return;
+
+  const isMod = (item || '').startsWith('MOD:');
+  // MOD: = adicional de modificador Loyverse → estilo ámbar, editable, con X
   const row = document.createElement('div');
   row.className = 'flex items-center gap-2';
-  row.innerHTML = `
-    <input type="text" placeholder="Nombre platillo en Loyverse (MAYÚSCULAS)" value="${item}"
-      class="flex-1 px-3 py-2 bg-surface-container-low border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary/20 rec-receta-item uppercase"/>
-    <div class="flex items-center gap-1 flex-shrink-0">
-      <input type="number" step="0.001" min="0" placeholder="kg" value="${kg}"
-        class="w-20 px-2 py-2 bg-surface-container-low border border-slate-200 rounded-xl text-xs text-center outline-none focus:ring-2 focus:ring-primary/20 rec-receta-kg"/>
-      <span class="text-xs text-slate-400">kg/p.</span>
-    </div>
-    <button type="button" onclick="this.parentElement.remove()" class="ms text-slate-300 hover:text-red-400 text-lg flex-shrink-0">remove_circle</button>`;
+
+  if (isMod) {
+    // Mostrar prefijo MOD: como badge fijo y el nombre editable sin prefijo
+    const modNombre = item.replace('MOD:', '');
+    row.innerHTML = `
+      <div class="flex items-center flex-1 gap-1.5 bg-amber-50 border border-amber-200 rounded-xl px-2 py-1.5">
+        <span class="text-xs font-bold text-amber-500 flex-shrink-0 select-none">MOD:</span>
+        <input type="text" value="${modNombre}" placeholder="nombre del adicional"
+          class="flex-1 bg-transparent text-xs text-amber-800 outline-none uppercase rec-receta-item-mod"
+          title="Nombre del modificador/adicional en Loyverse (sin el prefijo MOD:)"/>
+      </div>
+      <div class="flex items-center gap-1 flex-shrink-0">
+        <input type="number" step="0.001" min="0" placeholder="kg" value="${kg}"
+          class="w-20 px-2 py-2 bg-amber-50 border border-amber-200 rounded-xl text-xs text-center outline-none focus:ring-2 focus:ring-amber-200 rec-receta-kg"/>
+        <span class="text-xs text-slate-400">kg/p.</span>
+      </div>
+      <button type="button" onclick="this.parentElement.remove()"
+        class="ms text-amber-300 hover:text-red-400 text-lg flex-shrink-0" title="Eliminar adicional">remove_circle</button>`;
+  } else {
+    row.innerHTML = `
+      <input type="text" placeholder="Nombre del platillo en Loyverse" value="${item}"
+        class="flex-1 px-3 py-2 bg-surface-container-low border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary/20 rec-receta-item uppercase"/>
+      <div class="flex items-center gap-1 flex-shrink-0">
+        <input type="number" step="0.001" min="0" placeholder="kg" value="${kg}"
+          class="w-20 px-2 py-2 bg-surface-container-low border border-slate-200 rounded-xl text-xs text-center outline-none focus:ring-2 focus:ring-primary/20 rec-receta-kg"/>
+        <span class="text-xs text-slate-400">kg/p.</span>
+      </div>
+      <button type="button" onclick="this.parentElement.remove()"
+        class="ms text-slate-300 hover:text-red-400 text-lg flex-shrink-0" title="Eliminar platillo">remove_circle</button>`;
+  }
   wrap.appendChild(row);
 }
+
+// Botón para agregar específicamente un adicional MOD:
+function recModalAddMod() { recModalAddRecetaRow('MOD:', ''); }
 
 function recModalAddLoyverse() { recModalAddLoverseRow('', ''); }
 function recModalAddLoverseRow(item, copas) {
@@ -3675,15 +3692,26 @@ function recetarioGuardar() {
 
   if (!ins.nombre) { toast('El nombre del insumo es obligatorio'); return; }
 
-  // Leer filas de receta
+  // Leer filas de receta (incluye platillos normales Y adicionales MOD:)
   const recetaRows = [];
-  document.querySelectorAll('#rec-m-receta-rows .flex').forEach(row => {
+  document.querySelectorAll('#rec-m-receta-rows > div').forEach(row => {
+    const kgEl = row.querySelector('.rec-receta-kg');
+    if (!kgEl) return;
+    const kg = parseFloat(kgEl.value) || 0;
+
+    // Fila de platillo normal
     const itemEl = row.querySelector('.rec-receta-item');
-    const kgEl   = row.querySelector('.rec-receta-kg');
-    if (!itemEl || !kgEl) return;
-    const item = itemEl.value.trim().toUpperCase();
-    const kg   = parseFloat(kgEl.value) || 0;
-    if (item) recetaRows.push({ item, kg });
+    if (itemEl) {
+      const item = itemEl.value.trim().toUpperCase();
+      if (item) recetaRows.push({ item, kg });
+      return;
+    }
+    // Fila MOD: adicional
+    const modEl = row.querySelector('.rec-receta-item-mod');
+    if (modEl) {
+      const nombre = modEl.value.trim().toUpperCase();
+      if (nombre) recetaRows.push({ item: 'MOD:' + nombre, kg });
+    }
   });
 
   // Leer filas loyverse
@@ -3697,9 +3725,8 @@ function recetarioGuardar() {
     if (item) lvRows.push({ item, copas });
   });
 
-  // Preservar MOD: entries existentes
-  const modsExistentes = ins.receta.filter(r => r.item.startsWith('MOD:'));
-  ins.receta   = [...recetaRows, ...modsExistentes];
+  // recetaRows ya incluye los MOD: editados/eliminados — usar directamente
+  ins.receta   = recetaRows;
   ins.loyverse = lvRows;
 
   // Sincronizar de vuelta a INV_INSUMOS (mismo objeto en memoria)
