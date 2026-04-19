@@ -117,6 +117,9 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
       <div onclick="showSec('inventario')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-inventario">
         <span class="ms text-lg">fact_check</span>Inventario
       </div>
+      <div onclick="showSec('recetario')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-recetario">
+        <span class="ms text-lg">menu_book</span>Recetario
+      </div>
       <div onclick="showSec('salidas')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-salidas">
         <span class="ms text-lg">payments</span>Salidas de Caja
       </div>
@@ -187,6 +190,9 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         </div>
         <div onclick="mobileNav('inventario')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
           <span class="ms text-lg">fact_check</span>Inventario
+        </div>
+        <div onclick="mobileNav('recetario')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
+          <span class="ms text-lg">menu_book</span>Recetario
         </div>
         <div onclick="mobileNav('salidas')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
           <span class="ms text-lg">payments</span>Salidas de Caja
@@ -1280,6 +1286,143 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         <div class="flex flex-col items-center justify-center py-16 text-center">
           <span class="ms text-5xl text-slate-200 mb-3">fact_check</span>
           <p class="text-slate-400 text-sm">Selecciona una fecha para iniciar el conteo</p>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- ======= RECETARIO ======= -->
+    <section id="sec-recetario" class="sec p-5 fade">
+
+      <!-- Header con filtros -->
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <div class="flex items-center gap-2 flex-wrap">
+          <button type="button" onclick="recetarioFiltrar('todos',this)"
+            id="rec-btn-todos"
+            class="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold">Todos</button>
+          <button type="button" onclick="recetarioFiltrar('Carnicería',this)"
+            class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">🥩 Carnicería</button>
+          <button type="button" onclick="recetarioFiltrar('Mariscos',this)"
+            class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">🦐 Mariscos</button>
+          <button type="button" onclick="recetarioFiltrar('Lácteos',this)"
+            class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">🧀 Lácteos</button>
+          <button type="button" onclick="recetarioFiltrar('Vinos',this)"
+            class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">🍷 Vinos</button>
+          <button type="button" onclick="recetarioFiltrar('Refrescos y Cervezas',this)"
+            class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">🍺 Refrescos</button>
+        </div>
+        <button type="button" onclick="recetarioNuevoInsumo()"
+          class="bg-primary-container text-white px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 hover:opacity-90 shadow-sm">
+          <span class="ms text-base">add</span>Nuevo insumo
+        </button>
+      </div>
+
+      <!-- KPIs resumen -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Total insumos</p>
+          <p class="text-2xl font-bold text-slate-900" id="rec-kpi-total">—</p>
+          <p class="text-xs text-slate-400 mt-1">en el recetario</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Con cruce Loyverse</p>
+          <p class="text-2xl font-bold text-green-700" id="rec-kpi-mapeados">—</p>
+          <p class="text-xs text-slate-400 mt-1">insumos activos</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Platillos mapeados</p>
+          <p class="text-2xl font-bold text-slate-900" id="rec-kpi-platillos">—</p>
+          <p class="text-xs text-slate-400 mt-1">en total (con duplicados)</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Sin mapeo</p>
+          <p class="text-2xl font-bold text-amber-600" id="rec-kpi-sinmap">—</p>
+          <p class="text-xs text-slate-400 mt-1">pendientes de receta</p>
+        </div>
+      </div>
+
+      <!-- Tabla del recetario -->
+      <div id="rec-tabla" class="space-y-4">
+        <div class="flex items-center justify-center py-12 text-slate-300">
+          <span class="ms text-5xl">menu_book</span>
+        </div>
+      </div>
+
+      <!-- Modal editar insumo -->
+      <div id="modal-recetario" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-slate-100 flex-shrink-0">
+            <h3 class="font-bold text-slate-900" id="rec-modal-titulo">Editar insumo</h3>
+            <button type="button" onclick="closeModal('modal-recetario')" class="ms text-slate-400 hover:text-slate-600 text-xl">close</button>
+          </div>
+          <div class="overflow-y-auto flex-1 px-6 py-5 space-y-4">
+            <!-- Datos básicos -->
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Nombre insumo</label>
+                <input type="text" id="rec-m-nombre" class="w-full px-3 py-2.5 bg-surface-container-low rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Categoría</label>
+                <select id="rec-m-cat" class="w-full px-3 py-2.5 bg-surface-container-low rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20">
+                  <option>Carnicería</option><option>Mariscos</option><option>Lácteos</option>
+                  <option>Vinos</option><option>Refrescos y Cervezas</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Unidad</label>
+                <select id="rec-m-unidad" class="w-full px-3 py-2.5 bg-surface-container-low rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20">
+                  <option value="kg">kg</option><option value="lt">lt</option>
+                  <option value="pza">pza</option><option value="bot">bot</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Precio ref. ($/unidad)</label>
+                <input type="number" id="rec-m-precio" step="0.01" min="0" class="w-full px-3 py-2.5 bg-surface-container-low rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+              </div>
+            </div>
+
+            <!-- Receta: platillos que usan este insumo -->
+            <div id="rec-m-receta-wrap">
+              <div class="flex items-center justify-between mb-2">
+                <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Receta — platillos que lo usan
+                  <span class="text-blue-600 ml-1 normal-case font-normal">(modo: kg por porción)</span>
+                </label>
+                <button type="button" onclick="recModalAddReceta()" class="text-xs text-primary font-semibold hover:underline flex items-center gap-1">
+                  <span class="ms text-sm">add</span>agregar platillo
+                </button>
+              </div>
+              <div id="rec-m-receta-rows" class="space-y-2"></div>
+            </div>
+
+            <!-- Loyverse: ítems de bebidas (modo copas) -->
+            <div id="rec-m-loyverse-wrap">
+              <div class="flex items-center justify-between mb-2">
+                <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Loyverse — ítems de bebidas
+                  <span class="text-green-600 ml-1 normal-case font-normal">(modo: unidades por ítem vendido)</span>
+                </label>
+                <button type="button" onclick="recModalAddLoyverse()" class="text-xs text-primary font-semibold hover:underline flex items-center gap-1">
+                  <span class="ms text-sm">add</span>agregar ítem
+                </button>
+              </div>
+              <div id="rec-m-loyverse-rows" class="space-y-2"></div>
+            </div>
+
+            <!-- Info de cobertura -->
+            <div class="bg-blue-50 border border-blue-100 rounded-2xl p-3">
+              <p class="text-xs text-blue-700" id="rec-m-cobertura">
+                Los platillos en "Receta" calculan consumo como <strong>porciones vendidas × kg/porción</strong>.<br>
+                Los ítems en "Loyverse" calculan como <strong>unidades vendidas ÷ copas</strong> (para bebidas).<br>
+                Los adicionales (modificadores) se mapean con el prefijo <code class="bg-blue-100 px-1 rounded">MOD:</code>.
+              </p>
+            </div>
+          </div>
+          <div class="px-6 py-4 border-t border-slate-100 flex-shrink-0 flex gap-3">
+            <button type="button" onclick="closeModal('modal-recetario')" class="flex-1 py-3 border border-slate-200 rounded-2xl text-sm font-semibold text-slate-600 hover:bg-slate-50">Cancelar</button>
+            <button type="button" onclick="recetarioGuardar()" class="flex-1 py-3 bg-primary-container text-white rounded-2xl text-sm font-semibold hover:opacity-90">Guardar cambios</button>
+          </div>
         </div>
       </div>
     </section>
@@ -3272,6 +3415,309 @@ function recalcPnLNeto() {
   if (brutaEl) brutaEl.className = 'font-bold ' + (bruta >= 0 ? 'text-green-400' : 'text-red-400');
 }
 
+
+// ============================================================
+// RECETARIO — Gestión de insumos y su mapeo a Loyverse
+// ============================================================
+
+// Copia editable en memoria (se edita en pantalla, no persiste en Supabase aún)
+// Se inicializa clonando INV_INSUMOS para no mutar el array original
+let RECETARIO_DATA = null;
+function getRecetarioData() {
+  if (!RECETARIO_DATA) {
+    RECETARIO_DATA = INV_INSUMOS.map(ins => ({
+      ...ins,
+      receta:    JSON.parse(JSON.stringify(ins.receta   || [])),
+      loyverse:  JSON.parse(JSON.stringify(ins.loyverse || [])),
+    }));
+  }
+  return RECETARIO_DATA;
+}
+
+let REC_FILTRO = 'todos';
+let REC_EDIT_IDX = null; // índice en RECETARIO_DATA del insumo en edición
+
+const CAT_ICONS = {
+  'Carnicería':           { icon:'grocery',   color:'text-red-600 bg-red-50' },
+  'Mariscos':             { icon:'set_meal',  color:'text-teal-600 bg-teal-50' },
+  'Lácteos':              { icon:'egg',       color:'text-amber-600 bg-amber-50' },
+  'Vinos':                { icon:'wine_bar',  color:'text-purple-600 bg-purple-50' },
+  'Refrescos y Cervezas': { icon:'local_bar', color:'text-cyan-600 bg-cyan-50' },
+};
+
+function recetarioFiltrar(cat, btn) {
+  REC_FILTRO = cat;
+  document.querySelectorAll('[onclick^="recetarioFiltrar"]').forEach(b => {
+    b.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200';
+  });
+  if (btn) btn.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold';
+  renderRecetario();
+}
+
+function renderRecetario() {
+  const data    = getRecetarioData();
+  const filtrado = REC_FILTRO === 'todos' ? data : data.filter(i => i.cat === REC_FILTRO);
+
+  // KPIs
+  const totalInsumos  = data.length;
+  const conCruce      = data.filter(i => (i.receta.length > 0 || i.loyverse.length > 0)).length;
+  const sinCruce      = data.filter(i => (i.receta.length === 0 && i.loyverse.length === 0)).length;
+  const totalPlatMap  = data.reduce((a, i) => a + i.receta.filter(r => !r.item.startsWith('MOD:')).length + i.loyverse.length, 0);
+
+  const s = (id, v) => { const e = document.getElementById(id); if(e) e.textContent = v; };
+  s('rec-kpi-total',    totalInsumos);
+  s('rec-kpi-mapeados', conCruce);
+  s('rec-kpi-platillos',totalPlatMap);
+  s('rec-kpi-sinmap',   sinCruce);
+
+  const wrap = document.getElementById('rec-tabla');
+  if (!wrap) return;
+
+  if (!filtrado.length) {
+    wrap.innerHTML = '<div class="text-center py-10 text-slate-300 text-sm">No hay insumos en esta categoría</div>';
+    return;
+  }
+
+  // Agrupar por categoría
+  const cats = {};
+  filtrado.forEach(ins => {
+    if (!cats[ins.cat]) cats[ins.cat] = [];
+    cats[ins.cat].push(ins);
+  });
+
+  wrap.innerHTML = Object.entries(cats).map(([cat, items]) => {
+    const cc = CAT_ICONS[cat] || { icon:'inventory_2', color:'text-slate-600 bg-slate-50' };
+    const rows = items.map((ins, i) => {
+      const globalIdx = data.indexOf(ins);
+      const tieneCruce = ins.receta.length > 0 || ins.loyverse.length > 0;
+
+      // Construir chips de platillos (excluir MOD:)
+      const platillosChips = ins.receta
+        .filter(r => !r.item.startsWith('MOD:'))
+        .map(r => `<span class="inline-flex items-center gap-1 bg-blue-50 text-blue-700 border border-blue-100 rounded-lg px-2 py-0.5 text-xs">
+          ${r.item}
+          <span class="text-blue-400">${r.kg}kg</span>
+        </span>`).join('');
+
+      // Chips de bebidas Loyverse
+      const lvChips = ins.loyverse.map(lv => `
+        <span class="inline-flex items-center gap-1 bg-green-50 text-green-700 border border-green-100 rounded-lg px-2 py-0.5 text-xs">
+          ${lv.item}
+          <span class="text-green-400">÷${lv.copas}</span>
+        </span>`).join('');
+
+      // Chips de adicionales MOD:
+      const modChips = ins.receta
+        .filter(r => r.item.startsWith('MOD:'))
+        .map(r => `<span class="inline-flex items-center gap-1 bg-amber-50 text-amber-700 border border-amber-100 rounded-lg px-2 py-0.5 text-xs">
+          ${r.item.replace('MOD:','')}
+          <span class="text-amber-400">(adicional)</span>
+        </span>`).join('');
+
+      const allChips = [platillosChips, lvChips, modChips].filter(Boolean).join('');
+
+      return `<tr class="border-t border-slate-50 hover:bg-slate-50/40 transition-colors group">
+        <td class="px-4 py-3">
+          <div class="font-semibold text-slate-800 text-sm">${ins.nombre}</div>
+          <div class="text-xs text-slate-400 mt-0.5">${ins.unidad} · $${ins.precio_ref}/unidad</div>
+        </td>
+        <td class="px-3 py-3 text-center">
+          ${tieneCruce
+            ? `<span class="text-xs bg-green-50 text-green-700 font-semibold px-2 py-0.5 rounded-lg border border-green-100">✓ Activo</span>`
+            : `<span class="text-xs bg-slate-50 text-slate-400 px-2 py-0.5 rounded-lg border border-slate-200">Sin mapeo</span>`}
+        </td>
+        <td class="px-3 py-3 text-xs">
+          <div class="flex flex-wrap gap-1.5">
+            ${allChips || '<span class="text-slate-300 italic">sin platillos asignados</span>'}
+          </div>
+        </td>
+        <td class="px-3 py-3 text-right">
+          <button type="button" onclick="recetarioEditar(${globalIdx})"
+            class="opacity-0 group-hover:opacity-100 transition-opacity text-xs font-semibold text-primary border border-primary/20 px-3 py-1.5 rounded-xl hover:bg-blue-50 flex items-center gap-1 ml-auto">
+            <span class="ms text-sm">edit</span>Editar
+          </button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    return `<div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+      <div class="flex items-center gap-3 px-5 py-3.5 border-b border-slate-100">
+        <span class="ms ${cc.color.split(' ')[0]} text-lg">${cc.icon}</span>
+        <span class="font-semibold text-slate-900 text-sm">${cat}</span>
+        <span class="text-xs ${cc.color} px-2 py-0.5 rounded-lg font-medium">${items.length} insumos</span>
+        <span class="text-xs text-slate-400 ml-auto">
+          ${items.filter(i=>i.receta.length>0||i.loyverse.length>0).length}/${items.length} mapeados
+        </span>
+      </div>
+      <table class="w-full">
+        <thead class="bg-slate-50/60">
+          <tr>
+            <th class="text-left px-4 py-2.5 text-xs text-slate-500 font-semibold min-w-40">Insumo</th>
+            <th class="text-center px-3 py-2.5 text-xs text-slate-500 font-semibold w-24">Estado</th>
+            <th class="text-left px-3 py-2.5 text-xs text-slate-500 font-semibold">Platillos / Bebidas mapeados</th>
+            <th class="w-24"></th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+  }).join('');
+}
+
+function recetarioEditar(idx) {
+  REC_EDIT_IDX = idx;
+  const data = getRecetarioData();
+  const ins  = data[idx];
+  if (!ins) return;
+
+  document.getElementById('rec-modal-titulo').textContent = 'Editar: ' + ins.nombre;
+  document.getElementById('rec-m-nombre').value  = ins.nombre;
+  document.getElementById('rec-m-cat').value     = ins.cat;
+  document.getElementById('rec-m-unidad').value  = ins.unidad;
+  document.getElementById('rec-m-precio').value  = ins.precio_ref;
+
+  // Renderizar filas de receta
+  recModalRenderReceta(ins.receta.filter(r => !r.item.startsWith('MOD:')));
+  recModalRenderLoyverse(ins.loyverse);
+
+  // Mostrar sección adicionales si existen
+  const mods = ins.receta.filter(r => r.item.startsWith('MOD:'));
+  const modWrap = document.getElementById('rec-m-receta-rows');
+  if (mods.length && modWrap) {
+    const modSection = document.createElement('div');
+    modSection.className = 'mt-3 pt-3 border-t border-slate-100';
+    modSection.innerHTML = '<p class="text-xs font-semibold text-amber-600 uppercase tracking-wider mb-2">Adicionales mapeados (MOD:)</p>'
+      + mods.map(m => `<div class="flex items-center gap-2 mb-1.5">
+          <input type="text" value="${m.item}" disabled class="flex-1 px-3 py-2 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700"/>
+          <span class="text-xs text-slate-500">${m.kg} kg</span>
+        </div>`).join('');
+    modWrap.parentElement.appendChild(modSection);
+  }
+
+  document.getElementById('modal-recetario').classList.remove('hidden');
+}
+
+function recetarioNuevoInsumo() {
+  const data = getRecetarioData();
+  REC_EDIT_IDX = data.length; // nuevo al final
+  data.push({ cat:'Carnicería', nombre:'', unidad:'kg', precio_ref:0, receta:[], loyverse:[] });
+
+  document.getElementById('rec-modal-titulo').textContent = 'Nuevo insumo';
+  document.getElementById('rec-m-nombre').value  = '';
+  document.getElementById('rec-m-cat').value     = 'Carnicería';
+  document.getElementById('rec-m-unidad').value  = 'kg';
+  document.getElementById('rec-m-precio').value  = '';
+  recModalRenderReceta([]);
+  recModalRenderLoyverse([]);
+  document.getElementById('modal-recetario').classList.remove('hidden');
+}
+
+function recModalRenderReceta(rows) {
+  const wrap = document.getElementById('rec-m-receta-rows');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  rows.forEach((r, i) => recModalAddRecetaRow(r.item, r.kg));
+}
+
+function recModalRenderLoyverse(rows) {
+  const wrap = document.getElementById('rec-m-loyverse-rows');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  rows.forEach((r, i) => recModalAddLoverseRow(r.item, r.copas));
+}
+
+function recModalAddReceta() { recModalAddRecetaRow('', ''); }
+function recModalAddRecetaRow(item, kg) {
+  const wrap = document.getElementById('rec-m-receta-rows');
+  if (!wrap) return;
+  const row = document.createElement('div');
+  row.className = 'flex items-center gap-2';
+  row.innerHTML = `
+    <input type="text" placeholder="Nombre platillo en Loyverse (MAYÚSCULAS)" value="${item}"
+      class="flex-1 px-3 py-2 bg-surface-container-low border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary/20 rec-receta-item uppercase"/>
+    <div class="flex items-center gap-1 flex-shrink-0">
+      <input type="number" step="0.001" min="0" placeholder="kg" value="${kg}"
+        class="w-20 px-2 py-2 bg-surface-container-low border border-slate-200 rounded-xl text-xs text-center outline-none focus:ring-2 focus:ring-primary/20 rec-receta-kg"/>
+      <span class="text-xs text-slate-400">kg/p.</span>
+    </div>
+    <button type="button" onclick="this.parentElement.remove()" class="ms text-slate-300 hover:text-red-400 text-lg flex-shrink-0">remove_circle</button>`;
+  wrap.appendChild(row);
+}
+
+function recModalAddLoyverse() { recModalAddLoverseRow('', ''); }
+function recModalAddLoverseRow(item, copas) {
+  const wrap = document.getElementById('rec-m-loyverse-rows');
+  if (!wrap) return;
+  const row = document.createElement('div');
+  row.className = 'flex items-center gap-2';
+  row.innerHTML = `
+    <input type="text" placeholder="Nombre ítem en Loyverse" value="${item}"
+      class="flex-1 px-3 py-2 bg-surface-container-low border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-primary/20 rec-lv-item"/>
+    <div class="flex items-center gap-1 flex-shrink-0">
+      <input type="number" step="0.1" min="0.1" placeholder="÷" value="${copas}"
+        class="w-16 px-2 py-2 bg-surface-container-low border border-slate-200 rounded-xl text-xs text-center outline-none focus:ring-2 focus:ring-primary/20 rec-lv-copas"/>
+      <span class="text-xs text-slate-400">uds/bot</span>
+    </div>
+    <button type="button" onclick="this.parentElement.remove()" class="ms text-slate-300 hover:text-red-400 text-lg flex-shrink-0">remove_circle</button>`;
+  wrap.appendChild(row);
+}
+
+function recetarioGuardar() {
+  if (REC_EDIT_IDX === null) return;
+  const data = getRecetarioData();
+  const ins  = data[REC_EDIT_IDX];
+  if (!ins) return;
+
+  ins.nombre     = document.getElementById('rec-m-nombre').value.trim();
+  ins.cat        = document.getElementById('rec-m-cat').value;
+  ins.unidad     = document.getElementById('rec-m-unidad').value;
+  ins.precio_ref = parseFloat(document.getElementById('rec-m-precio').value) || 0;
+
+  if (!ins.nombre) { toast('El nombre del insumo es obligatorio'); return; }
+
+  // Leer filas de receta
+  const recetaRows = [];
+  document.querySelectorAll('#rec-m-receta-rows .flex').forEach(row => {
+    const itemEl = row.querySelector('.rec-receta-item');
+    const kgEl   = row.querySelector('.rec-receta-kg');
+    if (!itemEl || !kgEl) return;
+    const item = itemEl.value.trim().toUpperCase();
+    const kg   = parseFloat(kgEl.value) || 0;
+    if (item) recetaRows.push({ item, kg });
+  });
+
+  // Leer filas loyverse
+  const lvRows = [];
+  document.querySelectorAll('#rec-m-loyverse-rows .flex').forEach(row => {
+    const itemEl  = row.querySelector('.rec-lv-item');
+    const copasEl = row.querySelector('.rec-lv-copas');
+    if (!itemEl || !copasEl) return;
+    const item  = itemEl.value.trim();
+    const copas = parseFloat(copasEl.value) || 1;
+    if (item) lvRows.push({ item, copas });
+  });
+
+  // Preservar MOD: entries existentes
+  const modsExistentes = ins.receta.filter(r => r.item.startsWith('MOD:'));
+  ins.receta   = [...recetaRows, ...modsExistentes];
+  ins.loyverse = lvRows;
+
+  // Sincronizar de vuelta a INV_INSUMOS (mismo objeto en memoria)
+  const original = INV_INSUMOS[REC_EDIT_IDX];
+  if (original) {
+    original.nombre     = ins.nombre;
+    original.cat        = ins.cat;
+    original.unidad     = ins.unidad;
+    original.precio_ref = ins.precio_ref;
+    original.receta     = ins.receta;
+    original.loyverse   = ins.loyverse;
+  }
+
+  closeModal('modal-recetario');
+  renderRecetario();
+  toast('✓ Receta de ' + ins.nombre + ' actualizada');
+}
+
 // ============================================================
 // NAVIGATION
 // ============================================================
@@ -3393,7 +3839,7 @@ function showSec(name) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const nav = document.getElementById('nav-'+name);
   if (nav) nav.classList.add('active');
-  const titles = {home:'Dashboard',compras:'Nueva Compra',historial:'Historial de Compras',productos:'Productos',proveedores:'Proveedores',cuentas:'Cuentas por Pagar',requisiciones:'Requisiciones',ventas:'Ventas Loyverse',reportes:'Reportes & Exportar',inventario:'Inventario Semanal',salidas:'Salidas de Caja',pnl:'P&L Semanal'};
+  const titles = {home:'Dashboard',compras:'Nueva Compra',historial:'Historial de Compras',productos:'Productos',proveedores:'Proveedores',cuentas:'Cuentas por Pagar',requisiciones:'Requisiciones',ventas:'Ventas Loyverse',reportes:'Reportes & Exportar',inventario:'Inventario Semanal',recetario:'Recetario',salidas:'Salidas de Caja',pnl:'P&L Semanal'};
   document.getElementById('sec-title').textContent = titles[name] || name;
   // Render section data
   if (name === 'home') renderDashboard();
@@ -3405,6 +3851,7 @@ function showSec(name) {
   if (name === 'proveedores') renderProveedores();
   if (name === 'reportes') renderReportes();
   if (name === 'inventario') { cargarUltimoInventario().then(() => invCambiarFecha()); }
+  if (name === 'recetario') { renderRecetario(); }
   if (name === 'salidas') { initSalidas(); }
   if (name === 'pnl')     { initPnL(); }
   if (name === 'requisiciones') renderRequisiciones('pendientes');
