@@ -808,17 +808,11 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           <button type="button" onclick="setVentasPeriodo('semana',this)" id="vbtn-semana" class="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold">Esta semana</button>
           <button type="button" onclick="setVentasPeriodo('pasada',this)" id="vbtn-pasada" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">Semana pasada</button>
           <button type="button" onclick="setVentasPeriodo('custom',this)" id="vbtn-custom" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">Personalizado</button>
-          <div id="ventas-rango-custom" class="hidden flex gap-1 items-center">
-            <input type="date" id="ventas-desde" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs outline-none"/>
-            <span class="text-slate-300 text-xs">—</span>
-            <input type="date" id="ventas-hasta" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs outline-none"/>
-            <button type="button" onclick="renderVentas()" class="px-3 py-1.5 rounded-xl bg-primary-container text-white text-xs font-semibold flex items-center gap-1 hover:opacity-90">
-              <span class="ms text-sm">sync</span>Ir
-            </button>
-          </div>
-          <!-- inputs ocultos para compatibilidad cuando custom no está visible -->
-          <input type="hidden" id="ventas-desde-val" value=""/>
-          <input type="hidden" id="ventas-hasta-val" value=""/>
+          <input type="date" id="ventas-desde" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs outline-none hidden"/>
+          <input type="date" id="ventas-hasta" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs outline-none hidden"/>
+          <button type="button" id="vbtn-ir" onclick="renderVentas()" class="hidden px-3 py-1.5 rounded-xl bg-primary-container text-white text-xs font-semibold flex items-center gap-1 hover:opacity-90">
+            <span class="ms text-sm">sync</span>Ir
+          </button>
         </div>
       </div>
       <!-- Sub tabs -->
@@ -1216,7 +1210,7 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
       <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div>
           <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Semana a contar</p>
-          <div class="flex gap-2 items-center mb-2 flex-wrap">
+          <div class="flex gap-2 items-center mb-1 flex-wrap">
             <button type="button" onclick="setInvSemana('actual')" class="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold">Esta semana</button>
             <button type="button" onclick="setInvSemana('pasada')" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">Semana pasada</button>
             <input type="date" id="inv-fecha" onchange="invCambiarFecha()" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
@@ -2120,12 +2114,10 @@ async function cargarUltimoInventario() {
   } catch(e) {}
 }
 
-// getSemanaActual es alias de getRangoSemana (definida junto a isVencida)
+// getSemanaActual: alias de getRangoSemana para compatibilidad con código existente
 function getSemanaActual() { return getRangoSemana('actual'); }
 
-function initSalidas() {
-  setSalidasPeriodo('semana');
-}
+function initSalidas() { setSalidasPeriodo('semana'); }
 
 function setSalidasPeriodo(tipo) {
   const { desde, hasta } = getRangoSemana(tipo);
@@ -2136,9 +2128,7 @@ function setSalidasPeriodo(tipo) {
   cargarSalidas();
 }
 
-function initPnL() {
-  setPnLPeriodo('semana');
-}
+function initPnL() { setPnLPeriodo('semana'); }
 
 function setPnLPeriodo(tipo) {
   const { desde, hasta } = getRangoSemana(tipo);
@@ -2152,10 +2142,7 @@ function setPnLPeriodo(tipo) {
 function setInvSemana(tipo) {
   const { hasta } = getRangoSemana(tipo);
   const fechaEl = document.getElementById('inv-fecha');
-  if (fechaEl) {
-    fechaEl.value = hasta;
-    invCambiarFecha();
-  }
+  if (fechaEl) { fechaEl.value = hasta; invCambiarFecha(); }
 }
 
 async function invCambiarFecha() {
@@ -2189,7 +2176,7 @@ async function sincronizarInventarioLoyverse(btn) {
 // SALIDAS DE CAJA
 // ============================================================
 let SAL_DATA = []; // salidas cargadas de Loyverse
-// Persistir en localStorage para sobrevivir recargas de página
+// Persistir IDs registrados en localStorage para sobrevivir recargas
 let SAL_REGISTRADAS = (() => {
   try { return new Set(JSON.parse(localStorage.getItem('sal_registradas') || '[]')); }
   catch(e) { return new Set(); }
@@ -2339,7 +2326,7 @@ function abrirModalSalida(id) {
 }
 
 function anularSalida(id) {
-  if (!confirm('¿Anular el registro de esta salida? Solo se desmarca aquí — no afecta Loyverse.')) return;
+  if (!confirm('¿Anular el registro de esta salida?\nSe desmarcará como registrada — no afecta datos en Loyverse.')) return;
   SAL_REGISTRADAS.delete(id);
   salPersistir();
   renderSalidas();
@@ -2384,7 +2371,7 @@ async function confirmarSalida() {
       total: sal.monto, vencimiento: null, items: [] };
     if (!DB.compras.find(x => String(x.id) === String(compra.id))) DB.compras.push(compra);
 
-    // Marcar como registrada y persistir
+    // Marcar como registrada
     SAL_REGISTRADAS.add(id);
     salPersistir();
     closeModal('modal-salida');
@@ -2420,22 +2407,22 @@ async function cargarPnL() {
     DB.invRecibos = receipts;
   } catch(e) {}
 
-  // Separar insumos de gastos fijos/operativos
+  // ── KPIs ──────────────────────────────────────────────────
+  // Separar insumos (food cost real) de gastos fijos/operativos
   const CATS_INSUMOS = ['Carnicería','Mariscos','Lácteos','Frutas y Verduras','Abarrotes','Vinos','Licores','Refrescos','Panadería','Semillas'];
   const CATS_FIJOS   = ['Nómina','Renta','Música','Gastos Fijos','Limpieza','Otros insumos'];
-
   const costoInsumos = compras.filter(c => CATS_INSUMOS.includes(c.categoria)).reduce((a,c) => a+(c.total||0), 0);
   const costoFijos   = compras.filter(c => CATS_FIJOS.includes(c.categoria)).reduce((a,c) => a+(c.total||0), 0);
-
-  // Food cost = solo insumos / ventas (el estándar de la industria)
+  const totalCostosPnL = costoInsumos + costoFijos;
+  // Food cost = solo insumos / ventas (estándar de industria restaurantera)
   const fc       = totalVentas > 0 ? (costoInsumos / totalVentas * 100) : 0;
-  const utilidad = totalVentas - costoInsumos - costoFijos;
+  const utilidad = totalVentas - totalCostosPnL;
   const utilPct  = totalVentas > 0 ? (utilidad / totalVentas * 100) : 0;
 
   const s = (id, val) => { const e = document.getElementById(id); if(e) e.textContent = val; };
   s('pnl-ventas',  fmt(totalVentas));
   s('pnl-costos',  fmt(costoInsumos));
-  s('pnl-costos-sub', 'Insumos · gastos fijos: ' + fmt(costoFijos));
+  s('pnl-costos-sub', 'Insumos · Gastos fijos: ' + fmt(costoFijos));
 
   const fcEl = document.getElementById('pnl-fc');
   if (fcEl) {
@@ -2820,7 +2807,7 @@ function fmtDate(str) {
 }
 function isVencida(vencimiento) {
   if (!vencimiento) return false;
-  // Comparar solo fechas (sin hora) para evitar falsos positivos el mismo día de vencimiento
+  // Comparar solo fechas sin hora para evitar falsos positivos el mismo día
   const hoyStr = new Date().toISOString().split('T')[0];
   return vencimiento < hoyStr;
 }
@@ -2832,25 +2819,22 @@ function porVencer(vencimiento) {
   return diff >= 0 && diff <= 3;
 }
 
-// ── Función maestra de rangos de semana operativa (mar→dom) ──────────────
-// tipo: 'actual'  → martes de esta semana → domingo de esta semana
-// tipo: 'pasada'  → martes de semana anterior → domingo de semana anterior
-// LUNES: se trata como parte de la semana PASADA (no hay operación los lunes)
+// ── Función maestra de rango de semana operativa (mar→dom) ──────────────
+// El LUNES se trata como parte de la semana PASADA (no hay servicio los lunes)
+// tipo='actual'  → martes de esta semana..domingo de esta semana
+// tipo='pasada'  → martes semana anterior..domingo semana anterior
 function getRangoSemana(tipo) {
   const hoy = new Date();
   const pad = n => String(n).padStart(2,'0');
   const toStr = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
-  const dow = hoy.getDay(); // 0=dom,1=lun,...,6=sab
-
-  // Si hoy es LUNES (dow=1), retrocedemos 6 días para llegar al martes anterior
-  // En cualquier otro día, (dow+5)%7 da los días desde el último martes
+  const dow = hoy.getDay(); // 0=dom,1=lun,2=mar...6=sab
+  // Si es lunes (dow=1) retrocedemos 6 días al martes anterior
+  // En cualquier otro día: (dow+5)%7 da los días transcurridos desde el último martes
   const diasDesdeMartes = dow === 1 ? 6 : (dow + 5) % 7;
-
   const martesActual = new Date(hoy);
   martesActual.setDate(hoy.getDate() - diasDesdeMartes);
   const domingoActual = new Date(martesActual);
   domingoActual.setDate(martesActual.getDate() + 6);
-
   if (tipo === 'actual') {
     return { desde: toStr(martesActual), hasta: toStr(domingoActual) };
   }
@@ -4047,21 +4031,18 @@ async function renderVentas() {
   error.classList.add('hidden');
   contentDiv.classList.add('hidden');
 
-  // Leer desde los campos; si están vacíos, usar la semana operativa actual
+  // Set default dates: usar semana operativa en lugar del primer día del mes
   const hoy = new Date();
-  const desdeEl = document.getElementById('ventas-desde');
-  const hastaEl = document.getElementById('ventas-hasta');
-
-  if (!desdeEl.value || !hastaEl.value) {
+  const desde = document.getElementById('ventas-desde');
+  const hasta = document.getElementById('ventas-hasta');
+  if (!desde.value || !hasta.value) {
     const { desde: sd, hasta: sh } = getRangoSemana('actual');
-    if (desdeEl && !desdeEl.value) desdeEl.value = sd;
-    if (hastaEl && !hastaEl.value) hastaEl.value = sh;
+    if (!desde.value) desde.value = sd;
+    if (!hasta.value) hasta.value = sh;
   }
-  const desdeVal = desdeEl?.value || getRangoSemana('actual').desde;
-  const hastaVal = hastaEl?.value || getRangoSemana('actual').hasta;
 
-  const dateFrom = desdeVal + 'T00:00:00.000Z';
-  const dateTo = hastaVal + 'T23:59:59.000Z';
+  const dateFrom = desde.value + 'T00:00:00.000Z';
+  const dateTo = hasta.value + 'T23:59:59.000Z';
 
   try {
     const resp = await fetch(`/api/loyverse?endpoint=summary&date_from=${encodeURIComponent(dateFrom)}&date_to=${encodeURIComponent(dateTo)}`);
@@ -4188,22 +4169,31 @@ function setVentasTab(tab, btn) {
 }
 
 function setVentasPeriodo(tipo, btn) {
+  // Actualizar estado visual de botones
   ['vbtn-semana','vbtn-pasada','vbtn-custom'].forEach(id => {
     const b = document.getElementById(id);
     if (b) b.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200';
   });
   if (btn) btn.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold';
 
-  const customDiv = document.getElementById('ventas-rango-custom');
-  if (tipo === 'custom') {
-    if (customDiv) customDiv.classList.remove('hidden');
-    return;
-  }
-  if (customDiv) customDiv.classList.add('hidden');
-
-  const { desde, hasta } = getRangoSemana(tipo === 'semana' ? 'actual' : 'pasada');
   const desdeEl = document.getElementById('ventas-desde');
   const hastaEl = document.getElementById('ventas-hasta');
+  const irBtn   = document.getElementById('vbtn-ir');
+
+  if (tipo === 'custom') {
+    // Mostrar los inputs de fecha y el botón Ir
+    if (desdeEl) desdeEl.classList.remove('hidden');
+    if (hastaEl) hastaEl.classList.remove('hidden');
+    if (irBtn)   irBtn.classList.remove('hidden');
+    return; // Esperar que el usuario ingrese fechas y dé clic en Ir
+  }
+
+  // Ocultar inputs en modo automático
+  if (desdeEl) desdeEl.classList.add('hidden');
+  if (hastaEl) hastaEl.classList.add('hidden');
+  if (irBtn)   irBtn.classList.add('hidden');
+
+  const { desde, hasta } = getRangoSemana(tipo === 'semana' ? 'actual' : 'pasada');
   if (desdeEl) desdeEl.value = desde;
   if (hastaEl) hastaEl.value = hasta;
   renderVentas();
@@ -5423,11 +5413,11 @@ function filtrarHistorial(filtro, btnEl) {
   if (filtro === 'hoy') {
     compras = compras.filter(c => c.fecha === todayStr);
   } else if (filtro === 'semana') {
-    const { desde: semDesde, hasta: semHasta } = getRangoSemana('actual');
-    compras = compras.filter(c => c.fecha >= semDesde && c.fecha <= semHasta);
+    const { desde: sd, hasta: sh } = getRangoSemana('actual');
+    compras = compras.filter(c => c.fecha >= sd && c.fecha <= sh);
   } else if (filtro === 'semana-pasada') {
-    const { desde: semDesde, hasta: semHasta } = getRangoSemana('pasada');
-    compras = compras.filter(c => c.fecha >= semDesde && c.fecha <= semHasta);
+    const { desde: sd, hasta: sh } = getRangoSemana('pasada');
+    compras = compras.filter(c => c.fecha >= sd && c.fecha <= sh);
   } else if (filtro === 'mes') {
     const mesStr = hoy.getFullYear() + '-' + pad(hoy.getMonth() + 1);
     compras = compras.filter(c => c.fecha && c.fecha.startsWith(mesStr));
@@ -5541,11 +5531,11 @@ function renderHistorialPorProveedor() {
   if (filtro === 'hoy') {
     compras = compras.filter(c => c.fecha === todayStr);
   } else if (filtro === 'semana') {
-    const { desde: semDesde, hasta: semHasta } = getRangoSemana('actual');
-    compras = compras.filter(c => c.fecha >= semDesde && c.fecha <= semHasta);
+    const { desde: sd, hasta: sh } = getRangoSemana('actual');
+    compras = compras.filter(c => c.fecha >= sd && c.fecha <= sh);
   } else if (filtro === 'semana-pasada') {
-    const { desde: semDesde, hasta: semHasta } = getRangoSemana('pasada');
-    compras = compras.filter(c => c.fecha >= semDesde && c.fecha <= semHasta);
+    const { desde: sd, hasta: sh } = getRangoSemana('pasada');
+    compras = compras.filter(c => c.fecha >= sd && c.fecha <= sh);
   } else if (filtro === 'mes') {
     const mesStr = hoy.getFullYear() + '-' + pad(hoy.getMonth()+1);
     compras = compras.filter(c => c.fecha && c.fecha.startsWith(mesStr));
@@ -6166,11 +6156,11 @@ function renderReportes(periodo) {
   let compras = [...DB.compras];
 
   if (p === 'semana') {
-    const { desde: semDesde, hasta: semHasta } = getRangoSemana('actual');
-    compras = compras.filter(c => c.fecha >= semDesde && c.fecha <= semHasta);
+    const { desde: sd, hasta: sh } = getRangoSemana('actual');
+    compras = compras.filter(c => c.fecha >= sd && c.fecha <= sh);
   } else if (p === 'semana-pasada') {
-    const { desde: semDesde, hasta: semHasta } = getRangoSemana('pasada');
-    compras = compras.filter(c => c.fecha >= semDesde && c.fecha <= semHasta);
+    const { desde: sd, hasta: sh } = getRangoSemana('pasada');
+    compras = compras.filter(c => c.fecha >= sd && c.fecha <= sh);
   } else if (p === 'mes') {
     const mesStr = hoy.getFullYear() + '-' + pad(hoy.getMonth() + 1);
     compras = compras.filter(c => c.fecha && c.fecha.startsWith(mesStr));
