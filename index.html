@@ -1248,11 +1248,11 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
       <!-- Header con selector de fechas -->
       <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
         <div class="flex items-center gap-2 flex-wrap">
-          <button type="button" onclick="setSalidasPeriodo('semana')" class="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold">Esta semana</button>
-          <button type="button" onclick="setSalidasPeriodo('pasada')" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">Semana pasada</button>
-          <input type="date" id="sal-desde" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+          <button type="button" id="sal-btn-semana" onclick="setSalidasPeriodo('semana', this)" class="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold">Esta semana</button>
+          <button type="button" id="sal-btn-pasada" onclick="setSalidasPeriodo('pasada', this)" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">Semana pasada</button>
+          <input type="date" id="sal-desde" onchange="salDesactivarBotones()" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
           <span class="text-slate-400 text-sm">→</span>
-          <input type="date" id="sal-hasta" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+          <input type="date" id="sal-hasta" onchange="salDesactivarBotones()" class="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
           <button type="button" onclick="cargarSalidas()" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold flex items-center gap-2 hover:bg-slate-50">
             <span class="ms text-base">sync</span>Cargar
           </button>
@@ -1296,18 +1296,27 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
             <h3 class="font-bold text-slate-900">Registrar como compra</h3>
             <button type="button" onclick="closeModal('modal-salida')" class="ms text-slate-400 hover:text-slate-600">close</button>
           </div>
-          <!-- Info de la salida -->
-          <div class="bg-slate-50 rounded-2xl p-4 mb-4">
-            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Concepto en Loyverse</p>
-            <p class="font-semibold text-slate-900" id="sal-modal-desc">—</p>
+          <!-- Info de la salida — solo lectura, datos de Loyverse -->
+          <div class="bg-slate-50 rounded-2xl p-4 mb-5">
+            <p class="text-xs text-slate-400 uppercase tracking-wider font-semibold mb-1">Concepto en Loyverse</p>
+            <p class="font-semibold text-slate-700 italic" id="sal-modal-desc">—</p>
             <p class="text-2xl font-bold text-slate-900 mt-1" id="sal-modal-monto">$0</p>
-            <p class="text-xs text-slate-400 mt-1" id="sal-modal-fecha">—</p>
+            <p class="text-xs text-slate-400 mt-0.5" id="sal-modal-fecha">—</p>
             <p class="text-xs text-amber-600 mt-2">⚠ Los PAY_OUT de Loyverse no tienen desglose de productos — solo el monto y el concepto que escribió el cajero.</p>
           </div>
+          <!-- Concepto editable -->
+          <div class="mb-4">
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Concepto / Descripción</label>
+            <input type="text" id="sal-modal-concepto"
+              placeholder="Ej: Compra frutas y verduras, Pago proveedor carne..."
+              class="w-full px-4 py-3 bg-surface-container-low rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+          </div>
           <!-- Proveedor -->
-          <div class="mb-3">
+          <div class="mb-4">
             <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Proveedor</label>
-            <input type="text" id="sal-modal-proveedor" list="proveedores-list" placeholder="Ej: SAMS, KRILL, AYALA..." class="w-full px-4 py-3 bg-surface-container-low rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20 uppercase"/>
+            <input type="text" id="sal-modal-proveedor" list="proveedores-list"
+              placeholder="Escribe el proveedor (ej: SAMS, KRILL...)"
+              class="w-full px-4 py-3 bg-surface-container-low rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20 uppercase"/>
           </div>
           <!-- Desglose por categoría -->
           <div class="mb-3">
@@ -2108,14 +2117,24 @@ async function cargarUltimoInventario() {
 // getSemanaActual: alias de getRangoSemana para compatibilidad con código existente
 function getSemanaActual() { return getRangoSemana('actual'); }
 
-function initSalidas() { setSalidasPeriodo('semana'); }
+function initSalidas() { setSalidasPeriodo('semana', document.getElementById('sal-btn-semana')); }
 
-function setSalidasPeriodo(tipo) {
+function salDesactivarBotones() {
+  const btnS = document.getElementById('sal-btn-semana');
+  const btnP = document.getElementById('sal-btn-pasada');
+  if (btnS) btnS.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200';
+  if (btnP) btnP.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200';
+}
+
+function setSalidasPeriodo(tipo, btnEl) {
   const { desde, hasta } = getRangoSemana(tipo);
   const desdeEl = document.getElementById('sal-desde');
   const hastaEl = document.getElementById('sal-hasta');
   if (desdeEl) desdeEl.value = desde;
   if (hastaEl) hastaEl.value = hasta;
+  // Marcar botón activo
+  salDesactivarBotones();
+  if (btnEl) btnEl.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold';
   // Limpiar caché para forzar nueva llamada a Loyverse con el nuevo rango
   SAL_SHIFTS_CACHE = { desde: null, hasta: null, data: null };
   cargarSalidas();
@@ -2309,20 +2328,23 @@ function abrirModalSalida(id) {
   const sal = SAL_DATA.find(s => s.id === id);
   if (!sal) return;
 
-  // Mostrar concepto de Loyverse (puede ser vacío)
+  // Concepto de Loyverse — solo lectura en badge
   const descEl = document.getElementById('sal-modal-desc');
   descEl.textContent = sal.concepto || '— Sin concepto en Loyverse —';
   descEl.className = sal.concepto
-    ? 'font-semibold text-slate-900'
+    ? 'font-semibold text-slate-700 italic'
     : 'font-medium text-slate-400 italic';
 
-  document.getElementById('sal-modal-monto').textContent = fmt(sal.monto);
+  document.getElementById('sal-modal-monto').textContent = '$' + fmt(sal.monto);
   document.getElementById('sal-modal-fecha').textContent = sal.fecha + ' · ' + sal.hora;
 
-  // Proveedor: si hay concepto usarlo, si no dejar vacío para que el usuario lo escriba
+  // Campo concepto editable: pre-llenar con concepto de Loyverse si existe
+  const conceptoInput = document.getElementById('sal-modal-concepto');
+  if (conceptoInput) conceptoInput.value = sal.concepto || '';
+
+  // Proveedor: vacío, el usuario lo escribe
   const provInput = document.getElementById('sal-modal-proveedor');
-  provInput.value = sal.concepto ? sal.concepto.toUpperCase() : '';
-  provInput.placeholder = sal.concepto ? '' : 'Escribe el proveedor (ej: SAMS, KRILL...)';
+  provInput.value = '';
 
   document.getElementById('modal-salida').dataset.salId    = id;
   document.getElementById('modal-salida').dataset.salMonto = sal.monto;
@@ -2444,9 +2466,10 @@ function anularSalida(id) {
 }
 
 async function confirmarSalida() {
-  const id       = document.getElementById('modal-salida').dataset.salId;
-  const sal      = SAL_DATA.find(s => s.id === id);
+  const id        = document.getElementById('modal-salida').dataset.salId;
+  const sal       = SAL_DATA.find(s => s.id === id);
   const proveedor = document.getElementById('sal-modal-proveedor').value.trim().toUpperCase();
+  const concepto  = document.getElementById('sal-modal-concepto')?.value.trim() || '';
   if (!proveedor) { toast('Ingresa el proveedor'); return; }
   if (!sal) return;
 
@@ -2470,7 +2493,7 @@ async function confirmarSalida() {
             estatus_pago:     'Pagado',
             total:            linea.monto,
             vencimiento:      null,
-            notas:            sal.descripcion
+            notas:            concepto || sal.descripcion
           }
         })
       });
