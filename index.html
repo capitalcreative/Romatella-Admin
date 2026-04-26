@@ -2144,7 +2144,8 @@ function setSalidasPeriodo(tipo, btnEl) {
 function initPnL() { setPnLPeriodo('semana'); }
 
 function setPnLPeriodo(tipo) {
-  const { desde, hasta } = getRangoSemana(tipo);
+  const rangoTipo = tipo === 'semana' ? 'actual' : 'pasada';
+  const { desde, hasta } = getRangoSemana(rangoTipo);
   const desdeEl = document.getElementById('pnl-desde');
   const hastaEl = document.getElementById('pnl-hasta');
   if (desdeEl) desdeEl.value = desde;
