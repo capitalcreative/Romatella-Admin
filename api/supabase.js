@@ -9,8 +9,23 @@ export default async function handler(req, res) {
   if (!URL || !KEY) return res.status(500).json({ error: 'Supabase no configurado' });
 
   try {
-    const { table, action, data, id, filters } = req.method === 'GET' ? req.query : (req.body || {});
+    const { table, action, data, id, filters, email, password } = req.method === 'GET' ? req.query : (req.body || {});
 
+    // Auth login
+    if (action === 'auth_login') {
+      const authResp = await fetch(`${URL}/auth/v1/token?grant_type=password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': KEY
+        },
+        body: JSON.stringify({ email, password })
+      });
+      const authResult = await authResp.text();
+      return res.status(authResp.status).json(JSON.parse(authResult));
+    }
+
+    // REST queries
     let url = `${URL}/rest/v1/${table}`;
     let method = 'GET';
     let body = null;
@@ -38,16 +53,6 @@ export default async function handler(req, res) {
     } else if (action === 'delete_by_compra') {
       method = 'DELETE';
       url += `?compra_id=eq.${id}`;
-    } else if (action === 'auth_login') {
-      // Autenticación real con Supabase Auth
-      const authUrl = `${URL}/auth/v1/token?grant_type=password`;
-      const authResp = await fetch(authUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'apikey': KEY },
-        body: JSON.stringify({ email: data.email, password: data.password })
-      });
-      const authResult = await authResp.json();
-      return res.status(authResp.ok ? 200 : 401).json(authResult);
     }
 
     const response = await fetch(url, {
