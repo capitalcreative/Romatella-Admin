@@ -62,11 +62,11 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
       <div class="space-y-4">
         <div>
           <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Correo</label>
-          <input type="email" id="login-email" placeholder="harel@romatella.com" onkeydown="if(event.key==='Enter') doLogin()" class="w-full px-4 py-3 bg-surface-container-low rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+          <input type="email" id="login-email" placeholder="harel@romatella.com" class="w-full px-4 py-3 bg-surface-container-low rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Contraseña</label>
-          <input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter') doLogin()" class="w-full px-4 py-3 bg-surface-container-low rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+          <input type="password" id="login-pass" placeholder="••••••••" class="w-full px-4 py-3 bg-surface-container-low rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
         </div>
         <button type="button" onclick="doLogin()" class="w-full bg-primary-container text-white py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-200 hover:opacity-90 transition-opacity">
           Entrar <span class="ms">arrow_forward</span>
@@ -459,6 +459,13 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
                   <datalist id="proveedores-list"></datalist>
                 </div>
 
+                <div>
+                  <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Categoría</label>
+                  <select id="f-categoria" onchange="checkNuevaCatCompra(this)" class="w-full px-4 py-3 bg-surface-container-low rounded-xl text-sm outline-none">
+                    <option value="">Seleccionar...</option>
+                  </select>
+                </div>
+
                 <!-- Forma de pago: CÓMO se paga -->
                 <div>
                   <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Forma de Pago</label>
@@ -520,7 +527,7 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
                   </button>
                 </div>
                 <div class="grid grid-cols-12 gap-2 text-xs text-slate-400 uppercase tracking-wider mb-2 px-1">
-                  <span class="col-span-3">Producto</span><span class="col-span-3">Categoría</span><span class="col-span-1">Cant.</span><span class="col-span-2">P. Unit.</span><span class="col-span-2 text-right">Subtotal</span><span class="col-span-1"></span>
+                  <span class="col-span-4">Producto</span><span class="col-span-2">Unidad</span><span class="col-span-1">Cant.</span><span class="col-span-2">P. Unit.</span><span class="col-span-2 text-right">Subtotal</span><span class="col-span-1"></span>
                 </div>
                 <div id="items-container" class="space-y-2"></div>
               </div>
@@ -769,17 +776,22 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
 
     <!-- REQUISICIONES -->
     <section id="sec-requisiciones" class="sec p-5 fade">
-      <div class="flex justify-between items-center mb-5">
-        <div><h2 class="text-2xl font-bold text-slate-900">Bandeja de Requisiciones</h2>
-          <p class="text-sm text-slate-400" id="req-subtitle">Cargando...</p>
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+        <div>
+          <h2 class="text-2xl font-bold text-slate-900">Bandeja de Requisiciones</h2>
+          <p class="text-sm text-slate-400 mt-0.5" id="req-subtitle">Cargando…</p>
         </div>
-        <div class="flex gap-2">
-          <button type="button" onclick="filterReq('pendientes',this)" id="req-btn-pendientes" class="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-medium">Pendientes</button>
-          <button type="button" onclick="filterReq('aprobadas',this)" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200">Aprobadas</button>
-          <button type="button" onclick="filterReq('rechazadas',this)" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200">Rechazadas</button>
-        </div>
+        <button type="button" onclick="reqExportPDF()" class="px-4 py-2 rounded-xl border border-slate-200 bg-white text-xs font-semibold text-red-600 flex items-center gap-1.5 hover:bg-red-50">
+          <span class="ms text-base">picture_as_pdf</span> Exportar PDF
+        </button>
       </div>
-      <div id="req-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      <div class="flex gap-2 mb-5 flex-wrap">
+        <button id="req-btn-pend" onclick="filterReq('pendientes',this)" class="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-medium">Pendientes</button>
+        <button id="req-btn-apr"  onclick="filterReq('aprobadas',this)"  class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200">Aprobadas</button>
+        <button id="req-btn-rech" onclick="filterReq('rechazadas',this)" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200">Rechazadas</button>
+        <button id="req-btn-all"  onclick="filterReq('todas',this)"      class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-medium hover:bg-slate-200">Todas</button>
+      </div>
+      <div id="req-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
     </section>
 
     <!-- VENTAS LOYVERSE -->
@@ -1014,11 +1026,18 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
               <input id="edit-fecha" type="date" class="w-full px-4 py-3 bg-surface-container-low rounded-xl text-sm outline-none"/>
             </div>
           </div>
-          <div>
-            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Forma de pago</label>
-            <select id="edit-pago" class="w-full px-4 py-3 bg-surface-container-low rounded-xl text-sm outline-none">
-              <option>Efectivo</option><option>Banamex</option><option>Mercado Pago</option>
-            </select>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Categoría</label>
+              <select id="edit-categoria" onchange="checkNuevaCatCompra(this)" class="w-full px-4 py-3 bg-surface-container-low rounded-xl text-sm outline-none">
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Forma de pago</label>
+              <select id="edit-pago" class="w-full px-4 py-3 bg-surface-container-low rounded-xl text-sm outline-none">
+                <option>Efectivo</option><option>Banamex</option><option>Mercado Pago</option>
+              </select>
+            </div>
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
@@ -1044,9 +1063,6 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
               <button type="button" onclick="addEditItem()" class="text-xs text-primary-container font-semibold flex items-center gap-1">
                 <span class="ms text-sm">add</span>Agregar
               </button>
-            </div>
-            <div class="grid grid-cols-12 gap-1 text-xs text-slate-400 uppercase tracking-wider mb-1 px-1">
-              <span class="col-span-4">Producto</span><span class="col-span-3">Categoría</span><span class="col-span-2">Cant.</span><span class="col-span-2">P.Unit</span><span class="col-span-1"></span>
             </div>
             <div id="edit-items" class="space-y-2"></div>
           </div>
@@ -1444,73 +1460,91 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
   <a onclick="doLogin()" href="#" class="text-sm text-slate-400 mt-4 hover:text-primary">← Volver al login admin</a>
 </div>
 
+<!-- ===== EMP FORM: CHECKLIST COMPLETO ===== -->
 <div id="emp-form" class="emp-page min-h-screen bg-surface flex-col">
-  <div class="bg-white/80 backdrop-blur border-b border-slate-200/50 px-5 py-3 flex items-center justify-between">
-    <div class="flex items-center gap-2"><span class="ms text-primary">receipt_long</span><span class="font-bold text-slate-900">Nueva Requisición</span></div>
+  <div class="bg-white/90 backdrop-blur border-b border-slate-200/50 px-4 py-3 flex items-center justify-between sticky top-0 z-10">
+    <div class="flex items-center gap-2">
+      <span class="ms text-primary text-xl">receipt_long</span>
+      <span class="font-bold text-slate-900 text-sm">Requisición <span id="req-encargado-badge" class="ml-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-blue-50 text-primary">—</span></span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-xs text-slate-400" id="req-date-label"></span>
+      <div class="w-20 h-1.5 bg-slate-100 rounded-full overflow-hidden"><div id="req-prog-bar" class="h-full bg-primary-container rounded-full transition-all" style="width:0%"></div></div>
+    </div>
   </div>
-  <div class="flex-1 p-5 max-w-sm mx-auto w-full">
-    <h2 class="text-2xl font-bold text-slate-900 mb-1">Solicitud</h2>
-    <p class="text-sm text-slate-400 mb-5">Completa el formulario para solicitar productos.</p>
-    <div class="space-y-4">
-      <div>
-        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Tu nombre</label>
-        <input id="req-nombre" type="text" placeholder="Nombre completo" class="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
-      </div>
-      <div>
-        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Área</label>
-        <div class="grid grid-cols-2 gap-2" id="area-btns">
-          <button type="button" onclick="selArea(this,'Cocina')" class="area-btn py-4 rounded-2xl bg-white border border-slate-200 text-sm font-medium text-slate-700 hover:border-primary/40 hover:bg-blue-50 transition-all">🍳 Cocina</button>
-          <button type="button" onclick="selArea(this,'Bar')" class="area-btn py-4 rounded-2xl bg-white border border-slate-200 text-sm font-medium text-slate-700 hover:border-primary/40 hover:bg-blue-50 transition-all">🍹 Bar</button>
-          <button type="button" onclick="selArea(this,'Limpieza')" class="area-btn py-4 rounded-2xl bg-white border border-slate-200 text-sm font-medium text-slate-700 hover:border-primary/40 hover:bg-blue-50 transition-all">🧹 Limpieza</button>
-          <button type="button" onclick="selArea(this,'Otro')" class="area-btn py-4 rounded-2xl bg-white border border-slate-200 text-sm font-medium text-slate-700 hover:border-primary/40 hover:bg-blue-50 transition-all">⋯ Otro</button>
-        </div>
-      </div>
-      <div>
-        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Producto</label>
-        <input id="req-producto" type="text" placeholder="Ej: Aceite de Oliva" class="w-full px-4 py-3.5 bg-white border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Cantidad</label>
-          <input id="req-cantidad" type="number" value="1" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm outline-none"/>
-        </div>
-        <div>
-          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Unidad</label>
-          <select id="req-unidad" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm outline-none">
-            <option>kg</option><option>pza</option><option>litro</option><option>caja</option><option>otro</option>
-          </select>
-        </div>
-      </div>
-      <div>
-        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Prioridad</label>
-        <div class="grid grid-cols-2 gap-3">
-          <button type="button" onclick="selPrioridad(this,'Normal')" id="pri-normal" class="py-3.5 rounded-2xl border border-primary-container bg-blue-50 text-primary text-sm font-semibold">Normal</button>
-          <button type="button" onclick="selPrioridad(this,'Urgente')" id="pri-urgente" class="py-3.5 rounded-2xl border border-slate-200 text-slate-600 text-sm font-semibold">! Urgente</button>
-        </div>
-      </div>
-      <div>
-        <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Notas (opcional)</label>
-        <textarea id="req-notas" rows="3" placeholder="Detalles adicionales..." class="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm outline-none resize-none"></textarea>
-      </div>
-      <button type="button" onclick="enviarReq()" class="w-full bg-primary-container text-white py-4 rounded-2xl font-bold text-base flex items-center justify-center gap-2 shadow-lg shadow-blue-200">
-        Enviar Requisición <span class="ms">arrow_forward</span>
+
+  <div id="req-nombre-wrap" class="px-4 pt-4 pb-2 max-w-sm mx-auto w-full">
+    <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Tu nombre</label>
+    <input id="req-nombre" type="text" placeholder="Nombre completo" class="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+  </div>
+
+  <div class="flex border-b border-slate-200 bg-white max-w-sm mx-auto w-full">
+    <button type="button" id="rtab-barra" onclick="reqSwitchTab('barra')" class="flex-1 py-3 text-sm font-semibold text-primary border-b-2 border-primary-container">🍹 Barra</button>
+    <button type="button" id="rtab-cocina" onclick="reqSwitchTab('cocina')" class="flex-1 py-3 text-sm font-medium text-slate-400 border-b-2 border-transparent">🍳 Cocina</button>
+  </div>
+
+  <div id="req-checklist-body" class="flex-1 overflow-y-auto pb-28 max-w-sm mx-auto w-full"></div>
+
+  <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-3 z-20">
+    <div class="flex gap-2 max-w-sm mx-auto">
+      <button type="button" onclick="reqResetTab()" class="px-4 py-3 rounded-2xl border border-slate-200 text-slate-500 text-sm font-medium">Limpiar</button>
+      <button type="button" onclick="reqEnviar()" class="flex-1 bg-primary-container text-white py-3 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-200">
+        Ver resumen <span class="ms">arrow_forward</span>
       </button>
     </div>
   </div>
 </div>
 
-<div id="emp-confirm" class="emp-page min-h-screen bg-surface items-center justify-center p-6">
-  <div class="max-w-xs w-full text-center">
-    <div class="w-20 h-20 rounded-full bg-primary-container flex items-center justify-center mx-auto mb-6 shadow-xl shadow-blue-200">
-      <span class="ms ms-fill text-white text-4xl">check</span>
+<!-- ===== EMP CONFIRM: RESUMEN + WHATSAPP ===== -->
+<div id="emp-confirm" class="emp-page min-h-screen bg-surface flex-col">
+  <div class="bg-white/90 backdrop-blur border-b border-slate-200/50 px-4 py-3 flex items-center gap-2 sticky top-0 z-10">
+    <button type="button" onclick="showEmp('form')" class="p-1 rounded-xl hover:bg-slate-100"><span class="ms text-slate-500">arrow_back</span></button>
+    <span class="font-bold text-slate-900 text-sm">Resumen de Requisición</span>
+  </div>
+  <div class="flex-1 overflow-y-auto px-4 py-4 pb-52 max-w-sm mx-auto w-full">
+    <div class="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-4">
+      <div class="flex items-center justify-between mb-2">
+        <span class="font-semibold text-slate-900 text-sm" id="conf-nombre">—</span>
+        <span class="text-xs text-slate-400" id="conf-fecha">—</span>
+      </div>
+      <div class="flex gap-2" id="conf-areas"></div>
     </div>
-    <h2 class="text-2xl font-bold text-slate-900 mb-2">¡Requisición enviada!</h2>
-    <p class="text-sm text-slate-400 mb-6">Tu solicitud fue notificada al equipo de compras.</p>
-    <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 text-left mb-5" id="req-confirm-detail"></div>
-    <button type="button" onclick="showEmp('form')" class="w-full bg-primary-container text-white py-3.5 rounded-2xl font-bold flex items-center justify-center gap-2 shadow-lg mb-3">
-      <span class="ms">add</span> Nueva requisición
-    </button>
-    <button type="button" onclick="showEmp('pin')" class="w-full bg-slate-100 text-slate-700 py-3 rounded-2xl font-medium text-sm">Volver al inicio</button>
+
+    <div class="grid grid-cols-3 gap-2 mb-4">
+      <div class="bg-white rounded-xl border border-slate-100 p-3 text-center">
+        <div class="text-xl font-bold text-slate-900" id="conf-stat-total">0</div>
+        <div class="text-xs text-slate-400 mt-0.5">Solicitados</div>
+      </div>
+      <div class="bg-red-50 rounded-xl border border-red-100 p-3 text-center">
+        <div class="text-xl font-bold text-red-600" id="conf-stat-sinstock">0</div>
+        <div class="text-xs text-red-400 mt-0.5">Sin stock</div>
+      </div>
+      <div class="bg-slate-50 rounded-xl border border-slate-100 p-3 text-center">
+        <div class="text-xl font-bold text-slate-400" id="conf-stat-sintocar">0</div>
+        <div class="text-xs text-slate-400 mt-0.5">Sin tocar</div>
+      </div>
+    </div>
+
+    <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Artículos solicitados</h3>
+    <div id="conf-items-wrap" class="space-y-1.5 mb-4"></div>
+
+    <div id="conf-sinstock-wrap" class="hidden">
+      <h3 class="text-xs font-semibold text-red-400 uppercase tracking-wider mb-2 mt-3">Sin stock</h3>
+      <div id="conf-sinstock-list" class="space-y-1.5 mb-4"></div>
+    </div>
+  </div>
+
+  <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-3 z-20">
+    <div class="space-y-2 max-w-sm mx-auto">
+      <button type="button" onclick="reqEnviarWhatsApp()" class="w-full bg-green-500 text-white py-3.5 rounded-2xl font-bold text-sm flex items-center justify-center gap-2 shadow-lg shadow-green-200 active:scale-95 transition-transform">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Enviar por WhatsApp al grupo
+      </button>
+      <button type="button" onclick="reqGuardarSupabase()" id="btn-guardar-req" class="w-full bg-primary-container text-white py-3 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-200 active:scale-95 transition-transform">
+        <span class="ms text-lg">cloud_upload</span> Guardar en sistema
+      </button>
+      <button type="button" onclick="showEmp('form')" class="w-full bg-slate-100 text-slate-600 py-2.5 rounded-2xl font-medium text-sm">← Editar requisición</button>
+    </div>
   </div>
 </div>
 
@@ -2768,54 +2802,13 @@ function renderAlertasPrecios(desde, hasta) {
 // ============================================================
 // NAVIGATION
 // ============================================================
-async function doLogin() {
-  const email    = document.getElementById('login-email').value.trim();
-  const password = document.getElementById('login-pass').value;
-  if (!email || !password) { loginError('Ingresa correo y contraseña'); return; }
-
-  const btnEl = document.querySelector('#page-login button[onclick="doLogin()"]');
-  if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Entrando...'; }
-
-  try {
-    const resp = await fetch('/api/supabase', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'auth_login', table: 'auth', data: { email, password } })
-    });
-    const result = await resp.json();
-
-    if (!resp.ok || result.error || !result.access_token) {
-      loginError(result.error_description || result.msg || 'Credenciales incorrectas');
-      return;
-    }
-
-    // Login exitoso — guardar token en sessionStorage
-    sessionStorage.setItem('romatella_token', result.access_token);
-    sessionStorage.setItem('romatella_user', email);
-
-    hideAllPages();
-    document.getElementById('page-app').style.setProperty('display','flex','important');
-    showSec('home');
-    initDate();
-    loadFromSupabase();
-    poblarProveedoresDatalist();
-  } catch(e) {
-    loginError('Error de conexión — intenta de nuevo');
-  } finally {
-    if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = 'Entrar <span class="ms">arrow_forward</span>'; }
-  }
-}
-
-function loginError(msg) {
-  let errEl = document.getElementById('login-error');
-  if (!errEl) {
-    errEl = document.createElement('p');
-    errEl.id = 'login-error';
-    errEl.className = 'text-xs text-center text-error mt-3 font-medium';
-    document.querySelector('#page-login .space-y-4').after(errEl);
-  }
-  errEl.textContent = msg;
-  setTimeout(() => { if (errEl) errEl.textContent = ''; }, 4000);
+function doLogin() {
+  hideAllPages();
+  document.getElementById('page-app').style.setProperty('display','flex','important');
+  showSec('home');
+  initDate();
+  loadFromSupabase();
+  poblarProveedoresDatalist();
 }
 
 async function loadFromSupabase() {
@@ -2905,8 +2898,6 @@ async function loadFromSupabase() {
   }
 }
 function doLogout() {
-  sessionStorage.removeItem('romatella_token');
-  sessionStorage.removeItem('romatella_user');
   hideAllPages();
   document.getElementById('page-login').style.setProperty('display','flex','important');
 }
@@ -3519,57 +3510,21 @@ function setEstatus(e) {
 function calcVencimiento() { /* legacy — reemplazado por setCondicion */ }
 
 
-// ============================================================
-// MOTOR DE AUTO-CATEGORIZACIÓN POR NOMBRE DE PRODUCTO
-// ============================================================
-function inferirCategoria(nombre) {
-  if (!nombre) return 'Otros insumos';
-  const n = nombre.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
-  // Carnicería
-  if (/carne|molida|res|bistec|fajita|costilla|arrachera|milanesa|pollo|pechuga|muslo|pierna|chorizo|salchicha|jamon|tocino|cerdo|chuleta|lomo|barbacoa|carnitas|pastor|suadero/.test(n)) return 'Carnicería';
-  // Mariscos
-  if (/salmon|atun|camaron|calamar|pulpo|marlín|marlin|pescado|filete|surimi|ostión|mejillon|langosta|almeja|jaiba/.test(n)) return 'Mariscos';
-  // Lácteos
-  if (/leche|crema|queso|mantequilla|yogur|yogurt|manchego|oaxaca|panela|ricotta|mascarpone|brie|gouda|parmesano|grana|burrata|mozzarella|nata/.test(n)) return 'Lácteos';
-  // Frutas y Verduras
-  if (/lechuga|tomate|jitomate|cebolla|ajo|zanahoria|papa|chile|aguacate|limon|naranja|mango|fresa|espinaca|brocoli|coliflor|calabaza|pepino|nopale|cilantro|perejil|albahaca|romero|tomillo|mezcla|verdura|fruta|apio|betabel|pimiento|morron|champiñon|champiñones|hongos|ejote|haba|brocoli/.test(n)) return 'Frutas y Verduras';
-  // Vinos y Licores
-  if (/vino|botella|copa|espumoso|cava|champagne|prosecco|malbec|cabernet|merlot|chardonnay|sauvignon|riesling|pinot|rose|rosé|tempranillo|tinto|blanco|mezcal|tequila|ron|whisky|bourbon|gin|vodka|cerveza|modelo|corona|pacifico|heineken|bar|licor/.test(n)) return 'Vinos';
-  // Refrescos y bebidas no alcohólicas
-  if (/refresco|agua|mineral|coca|pepsi|sprite|fanta|squirt|jarritos|sidral|peñafiel|bonafont|ciel|jumex|del valle|jugo|néctar|te |té |limonada|agua de|soda|tonica|tônica|gatorade|powerade/.test(n)) return 'Refrescos';
-  // Panadería
-  if (/pan|baguet|bolillo|tortilla|pita|brioche|focaccia|croisant|croissant|bisquet|muffin|pasta hojaldre|masa/.test(n)) return 'Panadería';
-  // Abarrotes / despensa
-  if (/aceite|vinagre|sal |azucar|harina|arroz|pasta|sopa|lata|atun en|frijol|lenteja|garbanzo|mayonesa|mostaza|catsup|ketchup|salsa|adobo|consomé|consome|caldo|miel|mermelada|manteca|margarina|cafe |café |chocolate|cacao|vainilla|polvo|levadura|nuez|almendra|pasa|cajeta|cajeta|pimienta|comino|oregano|laurel|canela|clavo|paprika|curry/.test(n)) return 'Abarrotes';
-  // Semillas / frutos secos
-  if (/semilla|cacahuate|pistacho|nuez|almendra|avellana|ajonjoli|linaza|chia|amaranto/.test(n)) return 'Semillas';
-  // Limpieza
-  if (/detergente|jabón|jabon|cloro|pinol|fabuloso|ariel|bold|ace|limpiador|esponja|guante|bolsa basura|desinfectante|sanitizante|lysol|papel higienico|servilleta|toalla|desechable/.test(n)) return 'Limpieza';
-  return 'Otros insumos';
-}
-
-function addItem(nombre, unidad, precio, categoria) {
+function addItem(nombre, unidad, precio) {
   const div = document.createElement('div');
   div.className = 'relative';
 
   const grid = document.createElement('div');
   grid.className = 'grid grid-cols-12 gap-2 items-center';
 
-  // Producto (col-span-3)
+  // Producto (col-span-4)
   const colProd = document.createElement('div');
-  colProd.className = 'col-span-3 relative';
+  colProd.className = 'col-span-4 relative';
   const inputProd = document.createElement('input');
   inputProd.className = 'w-full px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none';
-  inputProd.placeholder = 'Producto...';
+  inputProd.placeholder = 'Buscar producto...';
   inputProd.value = nombre || '';
-  inputProd.addEventListener('input', () => {
-    buscarProducto(inputProd);
-    // Auto-categorizar si el selCat sigue en default y el nombre tiene suficientes chars
-    if (inputProd.value.length >= 3) {
-      const cat = inferirCategoria(inputProd.value);
-      if (cat !== 'Otros insumos' && selCat) selCat.value = cat;
-    }
-  });
+  inputProd.addEventListener('input', () => buscarProducto(inputProd));
   inputProd.addEventListener('focus', () => buscarProducto(inputProd));
   inputProd.addEventListener('blur', () => setTimeout(() => cerrarSugerencias(inputProd), 200));
   const sug = document.createElement('div');
@@ -3577,32 +3532,14 @@ function addItem(nombre, unidad, precio, categoria) {
   colProd.appendChild(inputProd);
   colProd.appendChild(sug);
 
-  // Categoría (col-span-3) — select inline por producto
-  const selCat = document.createElement('select');
-  selCat.className = 'col-span-3 px-2 py-2 bg-surface-container-low rounded-xl text-sm outline-none';
-  selCat.dataset.itemCat = '1';
-  const cats = salGetCats();
-  cats.forEach(c => {
+  // Unidad (col-span-2)
+  const sel = document.createElement('select');
+  sel.className = 'col-span-2 px-2 py-2 bg-surface-container-low rounded-xl text-sm outline-none';
+  ['kg', 'pza', 'lt', 'caja', 'bot'].forEach(u => {
     const opt = document.createElement('option');
-    opt.value = c; opt.textContent = c;
-    if (c === (categoria || 'Otros insumos')) opt.selected = true;
-    selCat.appendChild(opt);
-  });
-  const optNueva = document.createElement('option');
-  optNueva.value = '__nueva__'; optNueva.textContent = '+ Nueva...';
-  selCat.appendChild(optNueva);
-  selCat.addEventListener('change', () => {
-    if (selCat.value === '__nueva__') {
-      const nueva = prompt('Nombre de la nueva categoría:');
-      if (nueva && nueva.trim()) {
-        const cats2 = salGetCats();
-        if (!cats2.includes(nueva.trim())) { cats2.push(nueva.trim()); salSaveCats(cats2); }
-        const o = document.createElement('option');
-        o.value = nueva.trim(); o.textContent = nueva.trim();
-        selCat.insertBefore(o, optNueva);
-        selCat.value = nueva.trim();
-      } else { selCat.value = 'Otros insumos'; }
-    }
+    opt.value = u; opt.textContent = u;
+    if (u === (unidad || 'pza')) opt.selected = true;
+    sel.appendChild(opt);
   });
 
   // Cantidad (col-span-1)
@@ -3618,7 +3555,7 @@ function addItem(nombre, unidad, precio, categoria) {
   inputPrecio.placeholder = '$0';
   inputPrecio.value = precio || '';
 
-  // Subtotal (col-span-2) — solo lectura
+  // Subtotal (col-span-2) — solo lectura, actualización automática
   const subtotalEl = document.createElement('div');
   subtotalEl.className = 'col-span-2 text-right text-sm font-semibold text-slate-300 pr-1';
   subtotalEl.textContent = '—';
@@ -3649,9 +3586,10 @@ function addItem(nombre, unidad, precio, categoria) {
   };
   inputCant.addEventListener('input', updateSubtotal);
   inputPrecio.addEventListener('input', updateSubtotal);
+  sel.addEventListener('change', updateSubtotal);
 
   grid.appendChild(colProd);
-  grid.appendChild(selCat);
+  grid.appendChild(sel);
   grid.appendChild(inputCant);
   grid.appendChild(inputPrecio);
   grid.appendChild(subtotalEl);
@@ -3689,24 +3627,25 @@ function buscarProducto(input) {
     item.appendChild(catSpan);
     item.appendChild(precSpan);
 
-    item.addEventListener('mousedown', () => selProducto(item, p.nombre, p.unidad, p.precio, p.categoria));
+    item.addEventListener('mousedown', () => selProducto(item, p.nombre, p.unidad, p.precio));
     sug.appendChild(item);
   });
   sug.classList.remove('hidden');
 }
 
-function selProducto(el, nombre, unidad, precio, categoria) {
+function selProducto(el, nombre, unidad, precio) {
+  // Find the input that triggered this suggestion
   const sugerenciasDiv = el.closest('.sugerencias');
   const input = sugerenciasDiv?.previousElementSibling;
   if (!input) return;
+  
   const row = input.closest('.grid');
-  const selCat = row?.querySelector('select[data-item-cat]');
+  const sel = row?.querySelector('select');
   const nums = row?.querySelectorAll('input[type="number"]');
+  
   input.value = nombre;
-  // Setear categoría del producto si coincide con una opción
-  if (selCat && categoria) {
-    const match = Array.from(selCat.options).find(o => o.value === categoria);
-    if (match) selCat.value = categoria;
+  if (sel) {
+    Array.from(sel.options).forEach(o => { o.selected = o.value === unidad; });
   }
   if (nums && nums[1]) { nums[1].value = precio; }
   sugerenciasDiv.classList.add('hidden');
@@ -3739,15 +3678,14 @@ function getItems() {
   document.querySelectorAll('#items-container .relative').forEach(wrap => {
     const row = wrap.querySelector('.grid');
     if (!row) return;
-    const textInput = row.querySelector('input[placeholder="Producto..."]');
+    const textInput = row.querySelector('input[placeholder="Buscar producto..."]');
     const nums = row.querySelectorAll('input[type="number"]');
-    const selCat = row.querySelector('select[data-item-cat]');
+    const sel = row.querySelector('select');
     const nombre = textInput?.value?.trim();
     const cant = parseFloat(nums[0]?.value)||0;
     const precio = parseFloat(nums[1]?.value)||0;
-    const categoria = selCat?.value || 'Otros insumos';
     if (nombre || cant || precio) {
-      items.push({ nombre: nombre||'—', cantidad: cant, costo_unitario: precio, categoria });
+      items.push({ nombre: nombre||'—', unidad: sel?.value||'pza', cantidad: cant, costo_unitario: precio });
     }
   });
   return items;
@@ -3762,7 +3700,7 @@ function getTotal() {
 }
 function resetForm() {
   document.getElementById('f-proveedor').value = '';
-  // f-categoria eliminado: categoría se define por producto
+  document.getElementById('f-categoria').value = '';
   document.getElementById('items-container').innerHTML = '';
   document.getElementById('total-display').textContent = '$0.00';
   document.getElementById('venc-alert').classList.add('hidden');
@@ -3782,88 +3720,76 @@ async function registerCompra() {
   if (!proveedor || !fecha) { toast('Completa proveedor y fecha'); return; }
 
   const items = getItems();
-  if (!items.length) { toast('Agrega al menos un producto'); return; }
-
+  const total = getTotal();
   const vencimiento = getVencimiento();
+  const categoria = document.getElementById('f-categoria').value;
   const forma_pago = document.getElementById('f-pago').value;
   const estatus = DB.currentEstatus || 'Pendiente';
-  const totalGeneral = getTotal();
-
-  // Agrupar items por categoría — genera una compra por categoría
-  const porCategoria = {};
-  items.forEach(item => {
-    const cat = item.categoria || 'Otros insumos';
-    if (!porCategoria[cat]) porCategoria[cat] = [];
-    porCategoria[cat].push(item);
-  });
 
   toast('Guardando...');
 
   try {
-    const comprasGuardadas = [];
+    // 1. Save compra
+    const resp = await fetch('/api/supabase', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        table: 'compras',
+        action: 'insert',
+        data: {
+          fecha,
+          proveedor_nombre: proveedor,
+          folio: 'S/F',
+          categoria,
+          forma_pago,
+          estatus_pago: estatus,
+          total,
+          vencimiento: vencimiento || null,
+          notas: ''
+        }
+      })
+    });
+    const saved = await resp.json();
+    const compraId = Array.isArray(saved) ? saved[0]?.id : saved?.id;
 
-    for (const [categoria, itemsCat] of Object.entries(porCategoria)) {
-      const totalCat = itemsCat.reduce((s, i) => s + (i.cantidad * i.costo_unitario), 0);
-
-      // 1. Insertar compra por categoría
-      const resp = await fetch('/api/supabase', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({
-          table: 'compras',
-          action: 'insert',
-          data: {
-            fecha,
-            proveedor_nombre: proveedor,
-            folio: 'S/F',
-            categoria,
-            forma_pago,
-            estatus_pago: estatus,
-            total: totalCat,
-            vencimiento: vencimiento || null,
-            notas: ''
-          }
-        })
-      });
-      const saved = await resp.json();
-      const compraId = Array.isArray(saved) ? saved[0]?.id : saved?.id;
-
-      // 2. Guardar detalle + historial de precios por item
-      if (compraId) {
-        for (const item of itemsCat) {
-          if (!item.nombre) continue;
-          await fetch('/api/supabase', {
-            method: 'POST',
-            headers: {'Content-Type':'application/json'},
-            body: JSON.stringify({
-              table: 'detalle_compras',
-              action: 'insert',
-              data: {
-                compra_id: compraId,
-                nombre_producto: item.nombre,
-                cantidad: item.cantidad,
-                costo_unitario: item.costo_unitario
-              }
-            })
-          });
-          if (item.costo_unitario > 0) {
-            await saveHistorialPrecio(
-              { nombre: item.nombre, costo_unitario: item.costo_unitario },
-              { proveedor, fecha, id: compraId }
-            );
-          }
+    // 2. Save detalle_compras + historial_precios
+    if (compraId && items.length) {
+      for (const item of items) {
+        if (!item.nombre) continue;
+        await fetch('/api/supabase', {
+          method: 'POST',
+          headers: {'Content-Type':'application/json'},
+          body: JSON.stringify({
+            table: 'detalle_compras',
+            action: 'insert',
+            data: {
+              compra_id: compraId,
+              nombre_producto: item.nombre,
+              unidad: item.unidad,
+              cantidad: item.cantidad,
+              costo_unitario: item.costo_unitario
+            }
+          })
+        });
+        if (item.costo_unitario > 0) {
+          await saveHistorialPrecio(
+            { nombre: item.nombre, unidad: item.unidad, costo_unitario: item.costo_unitario },
+            { proveedor, fecha, id: compraId }
+          );
         }
       }
+    }
 
-      // 3. Agregar al DB local
-      const compra = {
-        id: compraId || Date.now(),
-        fecha, proveedor, folio: 'S/F',
-        categoria, forma_pago, estatus,
-        total: totalCat, vencimiento, items: itemsCat
-      };
-      if (!DB.compras.find(x => String(x.id) === String(compra.id))) DB.compras.push(compra);
-      comprasGuardadas.push(compra);
+    // 3. Agregar al DB local con el ID real de Supabase
+    const compra = {
+      id: compraId || Date.now(),
+      fecha, proveedor, folio: 'S/F',
+      categoria, forma_pago, estatus,
+      total, vencimiento, items
+    };
+    // Solo hacer push si el id aún no existe (evitar duplicado si Supabase ya lo devolvió)
+    if (!DB.compras.find(x => String(x.id) === String(compra.id))) {
+      DB.compras.push(compra);
     }
 
     // 4. Update proveedor
@@ -3872,19 +3798,27 @@ async function registerCompra() {
       prov = { id: Date.now()+1, nombre: proveedor, tel: '', condicion: '8 dias', saldo: 0, compras: 0 };
       DB.proveedores.push(prov);
     }
-    prov.compras = (prov.compras||0) + comprasGuardadas.length;
-    if (estatus !== 'Pagado') prov.saldo = (prov.saldo||0) + totalGeneral;
+    prov.compras = (prov.compras||0) + 1;
+    if (estatus !== 'Pagado') prov.saldo = (prov.saldo||0) + total;
 
-    const cats = Object.keys(porCategoria).join(', ');
-    toast('✓ ' + comprasGuardadas.length + ' registro(s) · ' + proveedor + ' · ' + fmt(totalGeneral));
+    toast('Compra guardada: ' + proveedor + ' ' + fmt(total));
     resetForm();
+    // Recargar desde Supabase para garantizar consistencia (evita duplicados)
     setTimeout(async () => {
       await loadFromSupabase();
       showSec('home');
     }, 800);
 
   } catch(e) {
-    toast('Error: ' + e.message);
+    // Save locally if Supabase fails
+    const compra = {
+      id: Date.now(), fecha, proveedor, folio: 'S/F',
+      categoria, forma_pago, estatus, total, vencimiento, items
+    };
+    DB.compras.push(compra);
+    toast('Guardado local (sin conexion)');
+    resetForm();
+    setTimeout(() => showSec('home'), 1200);
   }
 }
 
@@ -3896,37 +3830,38 @@ async function guardarEdicion() {
 
   const proveedor = document.getElementById('edit-proveedor').value.trim().toUpperCase();
   const fecha = document.getElementById('edit-fecha').value;
+  const categoria = document.getElementById('edit-categoria').value;
   const forma_pago = document.getElementById('edit-pago').value;
+  const total = parseFloat(document.getElementById('edit-total').value) || 0;
   const estatus = document.getElementById('edit-estatus').value;
   const vencimiento = document.getElementById('edit-vencimiento').value || null;
 
-  // Leer items del modal con su categoría individual
+  // Get items from edit form
+  const itemRows = document.getElementById('edit-items').querySelectorAll('div');
   const newItems = [];
-  document.getElementById('edit-items').querySelectorAll('.grid').forEach(row => {
-    const inputProd = row.querySelector('input:not([type="number"])');
-    const selCat    = row.querySelector('select[data-edit-cat]');
-    const nums      = row.querySelectorAll('input[type="number"]');
-    const nombre    = inputProd?.value.trim();
-    if (!nombre) return;
-    newItems.push({
-      nombre: nombre.toUpperCase(),
-      categoria: selCat?.value || inferirCategoria(nombre),
-      cantidad: parseFloat(nums[0]?.value) || 0,
-      costo_unitario: parseFloat(nums[1]?.value) || 0
-    });
+  itemRows.forEach(row => {
+    const inputs = row.querySelectorAll('input');
+    if (inputs[0]?.value.trim()) {
+      newItems.push({
+        nombre: inputs[0].value.trim().toUpperCase(),
+        unidad: inputs[1]?.value.trim() || 'pza',
+        cantidad: parseFloat(inputs[2]?.value) || 0,
+        costo_unitario: parseFloat(inputs[3]?.value) || 0
+      });
+    }
   });
 
-  // Categoría de la compra = la más frecuente entre los items
-  const catFreq = {};
-  newItems.forEach(i => { catFreq[i.categoria] = (catFreq[i.categoria]||0) + (i.cantidad * i.costo_unitario); });
-  const categoria = Object.entries(catFreq).sort((a,b)=>b[1]-a[1])[0]?.[0] || c.categoria || 'Otros insumos';
-  const total = newItems.reduce((s,i) => s + i.cantidad * i.costo_unitario, 0) || parseFloat(document.getElementById('edit-total')?.value) || 0;
-
   // Update local DB
-  c.proveedor = proveedor; c.fecha = fecha; c.categoria = categoria;
-  c.forma_pago = forma_pago; c.total = total; c.estatus = estatus;
-  c.vencimiento = vencimiento; c.items = newItems;
+  c.proveedor = proveedor;
+  c.fecha = fecha;
+  c.categoria = categoria;
+  c.forma_pago = forma_pago;
+  c.total = total;
+  c.estatus = estatus;
+  c.vencimiento = vencimiento;
+  c.items = newItems;
 
+  // Update Supabase - compra header
   try {
     await fetch('/api/supabase', {
       method: 'POST',
@@ -3936,6 +3871,7 @@ async function guardarEdicion() {
         data: { proveedor_nombre: proveedor, fecha, categoria, forma_pago, total, estatus_pago: estatus, vencimiento: vencimiento || null }
       })
     });
+    // Delete old items and reinsert
     if (newItems.length > 0) {
       await fetch('/api/supabase', {
         method: 'POST',
@@ -3946,14 +3882,8 @@ async function guardarEdicion() {
         await fetch('/api/supabase', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ table: 'detalle_compras', action: 'insert', data: { compra_id: id, nombre_producto: item.nombre, cantidad: item.cantidad, costo_unitario: item.costo_unitario } })
+          body: JSON.stringify({ table: 'detalle_compras', action: 'insert', data: { compra_id: id, nombre_producto: item.nombre, unidad: item.unidad, cantidad: item.cantidad, costo_unitario: item.costo_unitario } })
         });
-        if (item.costo_unitario > 0) {
-          await saveHistorialPrecio(
-            { nombre: item.nombre, costo_unitario: item.costo_unitario },
-            { proveedor, fecha, id }
-          );
-        }
       }
     }
     closeModal('modal-editar');
@@ -4050,7 +3980,10 @@ async function handleFileUpload(event) {
         document.getElementById('f-fecha').value = parts[2] + '-' + parts[1].padStart(2,'0') + '-' + parts[0].padStart(2,'0');
       }
     }
-    // categoria global eliminada — cada item tiene su propia categoría
+    if (data.categoria) {
+      const sel = document.getElementById('f-categoria');
+      if (sel) sel.value = data.categoria;
+    }
     if (data.forma_pago) {
       const sel = document.getElementById('f-pago');
       if (sel) { sel.value = data.forma_pago; calcVencimiento(); }
@@ -5457,98 +5390,275 @@ function exportarCSV() {
 })();
 
 // ============================================================
-// FORMULARIO DE REQUISICIÓN
+// REQUISICIÓN — CHECKLIST COMPLETO
 // ============================================================
 (function() {
-  let areaSeleccionada = '';
-  let prioridadSeleccionada = 'Normal';
 
-  window.selArea = function(btn, area) {
-    areaSeleccionada = area;
-    document.querySelectorAll('.area-btn').forEach(b => {
-      b.className = 'area-btn py-4 rounded-2xl bg-white border border-slate-200 text-sm font-medium text-slate-700 hover:border-primary/40 hover:bg-blue-50 transition-all';
-    });
-    btn.className = 'area-btn py-4 rounded-2xl border-2 border-primary-container bg-blue-50 text-primary text-sm font-semibold transition-all';
+  const BARRA = {
+    'Refrescos y agua': ['Agua Mineral 2L','Agua Tónica','Botella agua 500ml','Coca Cola 235ml','Coca Cola Regular','Coca Cola Zero','Manzanita 2L','Peñafiel 355ml','Peñafiel 600ml','Sprite 600ml','Sprite 2L','Squirt 2L','Topo Chico 600ml'],
+    'Cervezas': ['Corona','Modelo Especial','Negra Modelo','Sin Alcohol Modelo','Stella Artois','Victoria'],
+    'Vino tinto': ['Apapcho','Cal y Canto','Gran Passione Tinto','Vino Clericot'],
+    'Vino blanco': ['Desvarío','Soave'],
+    'Vino rosado y espumoso': ['Rincones Rosé','Cinzano Espumoso','Gran Passione Espumoso','Kirkland'],
+    'Destilados': ['Absolut','Aperol','Bacardí','Baileys','Campari','Centenario Plata','Cinzano Vermouth','Controy','Frangelico','Grey Goose','Licor del 43','Maestro Dobel','Mezcal Joven 38','Red Label','Stoli','Tanqueray','Torres 5','Vaccari'],
+    'Pulpas y frutas barra': ['Pulpa Fresa','Pulpa Frutos Rojos','Pulpa Maracuyá','Hierbabuena','Limón','Naranja'],
+    'Abarrotes barra': ['Azúcar','Baguette','Galletas Salmas','Mantequilla','Stevia','Café','Café Descafeinado','Té Fresa Vainilla','Té Frutos del Bosque'],
+    'Desechables barra': ['Bolsa Asa Ch','Bolsa Asa Med','Bolsa Basura','Bolsa Botes Baño','Bolsa Papel Pan','Cuchara','Cuchillo','Hamburgesero','Servilleta Larga','Tapa 16 Oz','Tenedor','Vaso 16 Oz','Vaso 2 Oz'],
+    'Papelería': ['Bolígrafos','Cinta Masking','Grapas','Rollos Impresora','Rollos Terminales PDV'],
+    'Limpieza barra': ['Desengrasante','Fabuloso','Jabón para manos','Papel de baño','Sanitas','Windex']
   };
 
-  window.selPrioridad = function(btn, pri) {
-    prioridadSeleccionada = pri;
-    ['Normal','Urgente'].forEach(p => {
-      const b = document.getElementById('pri-' + p.toLowerCase());
-      if (!b) return;
-      if (p === pri) {
-        b.className = 'py-3.5 rounded-2xl border ' + (p === 'Urgente' ? 'border-red-400 bg-red-50 text-red-700' : 'border-primary-container bg-blue-50 text-primary') + ' text-sm font-semibold';
-      } else {
-        b.className = 'py-3.5 rounded-2xl border border-slate-200 text-slate-600 text-sm font-semibold';
-      }
-    });
+  const COCINA = {
+    'Carnicería': ['Carne Carpaccio','Carne Molida Res','Pollo Porción','Pollo Scaloppine','Tocino'],
+    'Mariscos': ['Almejas','Aros Calamar','Atún','Camarón Grande','Mejillones','Nuggets','Pulpo','Salmón'],
+    'Quesos y lácteos': ['Crema','Pepperoni','Queso Gouda','Queso Mozzarella','Queso Parmesano'],
+    'Verduras y frutas cocina': ['Ajo','Albahaca','Apio','Arándano Fresco','Berenjena','Brócoli','Calabaza','Cebolla Blanca','Cebolla Morada','Champiñón','Chile Habanero','Cremini','Espárrago','Fresa a Granel','Fresa Cajita','Hierbabuena','Huevo','Jitomate Bola','Jitomate Cherry','Jitomate Salsa Pomodoro','Limón','Limón Eureka','Manzana Amarilla','Mantequilla Desy','Naranja','Papa Cambray','Perejil','Pimiento Morrón','Romero','Setas','Zanahoria'],
+    'Costco y Sams': ['Aceite Oliva','Aceite Regular','Aceitunas Negras','Aceitunas Verdes','Arúgula','Chocolate Hershey','Helado Vainilla','Jamón Serrano','Jitomate Deshidratado','Leche Entera','Lechugas','Manteca Vegetal','Mascarpone','Philadelphia','Puré Tomate','Queso Azul','Queso Chihuahua','Queso de Cabra','Queso Gouda','Queso Mozzarella Fresco','Queso Ricotta','Vodka Cocina'],
+    'Superama y abarrotes': ['Alcaparras','Anchoas','Arroz Risotto','Encendedores','Fettuccine','Galletas para Salame','Gas para Rellenar','Grenetina','Harina Hot Cake','Mayonesa','Microdin','Mostaza','Pan Bimbo','Papel Cocina','Pasta Lasagna','Penne','Polvo Camarón','Salsa Soya','Spaghetti','Tortiglioni','Vinagre Balsámico','Vino Blanco Cocina'],
+    'Semillas y materias primas': ['Ajonjolí Blanco','Ajonjolí Negro','Almendra','Almendra Fileteada','Arándano Deshidratado','Azúcar','Chile de Árbol','Chile Guajillo','Chile Negro','Chocolate Semi Amargo','Gotas de Chocolate','Harina','Miel','Nuez de la India','Nuez Granillo','Pan Molido','Pimienta en Grano','Pistacho','Sal de Grano','Sal Fina','Semilla Girasol','Vainilla'],
+    'Productos italianos': ['Savoiardi'],
+    'Gas': ['Gas (tanque)'],
+    'Limpieza cocina': ['Bolsa Basura 90x120','Cloro','Esponjas Trastes','Fibra de Metal','Jabón Trastes','Jabón Roma','Papel Transparente','Bolsa Kilo 20x30','Cristal Chico Postre','Cristal Grande','Desechable c/Tapa','Redondo Sopa c/Tapa']
   };
 
-  window.enviarReq = function() {
-    const nombre   = document.getElementById('req-nombre')?.value.trim();
-    const producto = document.getElementById('req-producto')?.value.trim();
-    const cantidad = parseFloat(document.getElementById('req-cantidad')?.value) || 1;
-    const unidad   = document.getElementById('req-unidad')?.value || 'pza';
-    const notas    = document.getElementById('req-notas')?.value.trim() || '';
+  let tabActual = 'barra';
+  let reqState = { barra: {}, cocina: {} };
 
-    if (!nombre)   { alert('Escribe tu nombre'); return; }
-    if (!areaSeleccionada) { alert('Selecciona el área'); return; }
-    if (!producto) { alert('Escribe el producto que necesitas'); return; }
-
-    const req = {
-      id: Date.now(),
-      nombre, area: areaSeleccionada,
-      producto, cantidad, unidad,
-      urgencia: prioridadSeleccionada,
-      notas,
-      estatus: 'Pendiente',
-      fecha: new Date().toISOString()
-    };
-
-    if (!DB.requisiciones) DB.requisiciones = [];
-    DB.requisiciones.unshift(req);
-
-    // Actualizar badge
-    const pendCount = DB.requisiciones.filter(r => r.estatus === 'Pendiente').length;
-    ['req-badge','mob-req-badge'].forEach(id => {
-      const b = document.getElementById(id);
-      if (b) b.textContent = pendCount;
+  function initTab(t) {
+    const data = t === 'barra' ? BARRA : COCINA;
+    Object.values(data).flat().forEach(item => {
+      if (!reqState[t][item]) reqState[t][item] = { qty: 0, noStock: false };
     });
+  }
 
-    // Mostrar pantalla de confirmación
-    const detail = document.getElementById('req-confirm-detail');
-    if (detail) {
-      detail.innerHTML = '';
-      const rows = [
-        ['Solicitante', nombre],
-        ['Área', areaSeleccionada],
-        ['Producto', producto],
-        ['Cantidad', cantidad + ' ' + unidad],
-        ['Prioridad', prioridadSeleccionada],
-      ];
-      if (notas) rows.push(['Notas', notas]);
-      rows.forEach(([label, val]) => {
-        const row = el('div', { cls: 'flex justify-between py-1.5 border-b border-slate-50' }, [
-          el('span', { cls: 'text-xs text-slate-400', text: label }),
-          el('span', { cls: 'text-sm font-medium', text: val })
-        ]);
-        detail.appendChild(row);
+  function enc(s) { return s.replace(/[^a-zA-Z0-9]/g, '_'); }
+
+  function renderChecklist() {
+    const data = tabActual === 'barra' ? BARRA : COCINA;
+    const body = document.getElementById('req-checklist-body');
+    if (!body) return;
+    body.innerHTML = '';
+    Object.entries(data).forEach(([section, items]) => {
+      const secDiv = document.createElement('div');
+      secDiv.className = 'border-b border-slate-100';
+      const secTitle = document.createElement('div');
+      secTitle.className = 'px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400 bg-surface-container-low sticky top-28 z-10';
+      secTitle.textContent = section;
+      secDiv.appendChild(secTitle);
+      items.forEach(item => {
+        const s = reqState[tabActual][item] || { qty: 0, noStock: false };
+        const id = enc(item);
+        const row = document.createElement('div');
+        row.id = 'rrow-' + id;
+        row.className = 'flex items-center px-4 py-2.5 border-b border-slate-50 gap-3 bg-white';
+        const safeItem = item.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        row.innerHTML = `
+          <span class="flex-1 text-sm text-slate-800 leading-tight">${item}</span>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <button type="button" onclick="reqQty('${id}','${safeItem}',-1)"
+              class="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center text-slate-600 text-lg leading-none hover:bg-slate-100 active:scale-95 transition-transform">−</button>
+            <span id="rqty-${id}" class="w-7 text-center text-sm font-bold ${s.qty > 0 ? 'text-primary' : 'text-slate-900'}">${s.qty}</span>
+            <button type="button" onclick="reqQty('${id}','${safeItem}',1)"
+              class="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center text-slate-600 text-lg leading-none hover:bg-slate-100 active:scale-95 transition-transform">+</button>
+            <button type="button" id="rns-${id}" onclick="reqNoStock('${id}','${safeItem}')"
+              class="text-xs px-2 py-1 rounded-full border transition-all ${s.noStock ? 'bg-red-50 border-red-200 text-red-600 font-semibold' : 'border-slate-200 text-slate-400'}">0</button>
+          </div>`;
+        secDiv.appendChild(row);
       });
+      body.appendChild(secDiv);
+    });
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const items = reqState[tabActual] || {};
+    const total = Object.keys(items).length;
+    const filled = Object.values(items).filter(v => v.qty > 0 || v.noStock).length;
+    const bar = document.getElementById('req-prog-bar');
+    if (bar) bar.style.width = (total ? (filled / total * 100) : 0).toFixed(0) + '%';
+    const badge = document.getElementById('req-encargado-badge');
+    const nombre = document.getElementById('req-nombre')?.value.trim();
+    if (badge && nombre) badge.textContent = nombre;
+  }
+
+  window.reqSwitchTab = function(t) {
+    tabActual = t;
+    initTab(t);
+    ['barra','cocina'].forEach(tab => {
+      const btn = document.getElementById('rtab-' + tab);
+      if (!btn) return;
+      btn.className = tab === t
+        ? 'flex-1 py-3 text-sm font-semibold text-primary border-b-2 border-primary-container'
+        : 'flex-1 py-3 text-sm font-medium text-slate-400 border-b-2 border-transparent';
+    });
+    renderChecklist();
+  };
+
+  window.reqQty = function(id, item, delta) {
+    if (!reqState[tabActual][item]) reqState[tabActual][item] = { qty: 0, noStock: false };
+    reqState[tabActual][item].qty = Math.max(0, (reqState[tabActual][item].qty || 0) + delta);
+    reqState[tabActual][item].noStock = false;
+    const qEl = document.getElementById('rqty-' + id);
+    const nsEl = document.getElementById('rns-' + id);
+    const qty = reqState[tabActual][item].qty;
+    if (qEl) { qEl.textContent = qty; qEl.className = 'w-7 text-center text-sm font-bold ' + (qty > 0 ? 'text-primary' : 'text-slate-900'); }
+    if (nsEl) nsEl.className = 'text-xs px-2 py-1 rounded-full border border-slate-200 text-slate-400 transition-all';
+    updateProgress();
+  };
+
+  window.reqNoStock = function(id, item) {
+    if (!reqState[tabActual][item]) reqState[tabActual][item] = { qty: 0, noStock: false };
+    const val = !reqState[tabActual][item].noStock;
+    reqState[tabActual][item].noStock = val;
+    reqState[tabActual][item].qty = 0;
+    const qEl = document.getElementById('rqty-' + id);
+    const nsEl = document.getElementById('rns-' + id);
+    if (qEl) { qEl.textContent = '0'; qEl.className = 'w-7 text-center text-sm font-bold text-slate-900'; }
+    if (nsEl) nsEl.className = 'text-xs px-2 py-1 rounded-full border transition-all ' +
+      (val ? 'bg-red-50 border-red-200 text-red-600 font-semibold' : 'border-slate-200 text-slate-400');
+    updateProgress();
+  };
+
+  window.reqResetTab = function() {
+    if (!confirm('¿Limpiar la lista de ' + tabActual + '?')) return;
+    reqState[tabActual] = {};
+    initTab(tabActual);
+    renderChecklist();
+  };
+
+  window.reqEnviar = function() {
+    const nombre = document.getElementById('req-nombre')?.value.trim();
+    if (!nombre) { alert('Escribe tu nombre antes de continuar'); document.getElementById('req-nombre')?.focus(); return; }
+
+    const solicitados = [];
+    const sinStock = [];
+    ['barra','cocina'].forEach(t => {
+      Object.entries(reqState[t] || {}).forEach(([item, v]) => {
+        if (v.noStock) sinStock.push({ item, area: t });
+        else if (v.qty > 0) solicitados.push({ item, qty: v.qty, area: t });
+      });
+    });
+
+    if (!solicitados.length && !sinStock.length) { alert('Llena al menos un artículo antes de enviar.'); return; }
+
+    const now = new Date();
+    const fechaStr = now.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
+
+    const setEl = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+    setEl('conf-nombre', nombre);
+    setEl('conf-fecha', fechaStr);
+    setEl('conf-stat-total', solicitados.length);
+    setEl('conf-stat-sinstock', sinStock.length);
+    const totalItems = Object.values({...reqState.barra,...reqState.cocina}).length;
+    setEl('conf-stat-sintocar', totalItems - solicitados.length - sinStock.length);
+
+    const areasUsadas = [...new Set([...solicitados.map(x => x.area),...sinStock.map(x => x.area)])];
+    const confAreas = document.getElementById('conf-areas');
+    if (confAreas) confAreas.innerHTML = areasUsadas.map(a =>
+      `<span class="text-xs font-semibold px-2.5 py-1 rounded-full ${a === 'barra' ? 'bg-blue-50 text-primary' : 'bg-green-50 text-green-700'}">${a === 'barra' ? '🍹 Barra' : '🍳 Cocina'}</span>`
+    ).join('');
+
+    const itemsWrap = document.getElementById('conf-items-wrap');
+    if (itemsWrap) itemsWrap.innerHTML = solicitados.length === 0
+      ? '<p class="text-sm text-slate-400 italic">Sin artículos con cantidad</p>'
+      : solicitados.map(x =>
+          `<div class="flex items-center justify-between bg-white border border-slate-100 rounded-xl px-3 py-2.5">
+            <div class="flex items-center gap-2">
+              <span class="text-sm text-slate-800">${x.item}</span>
+              <span class="text-xs px-1.5 py-0.5 rounded-full font-medium ${x.area === 'barra' ? 'bg-blue-50 text-primary' : 'bg-green-50 text-green-700'}">${x.area}</span>
+            </div>
+            <span class="text-sm font-bold text-slate-900 ml-2">${x.qty}</span>
+          </div>`
+        ).join('');
+
+    const ssWrap = document.getElementById('conf-sinstock-wrap');
+    const ssList = document.getElementById('conf-sinstock-list');
+    if (ssWrap && ssList) {
+      if (sinStock.length > 0) {
+        ssWrap.classList.remove('hidden');
+        ssList.innerHTML = sinStock.map(x =>
+          `<div class="flex items-center justify-between bg-red-50 border border-red-100 rounded-xl px-3 py-2.5">
+            <span class="text-sm text-red-700">${x.item}</span>
+            <span class="text-xs font-bold text-red-500 uppercase tracking-wide">Sin stock</span>
+          </div>`
+        ).join('');
+      } else { ssWrap.classList.add('hidden'); }
     }
 
-    // Limpiar formulario
-    if (document.getElementById('req-nombre')) document.getElementById('req-nombre').value = '';
-    if (document.getElementById('req-producto')) document.getElementById('req-producto').value = '';
-    if (document.getElementById('req-notas')) document.getElementById('req-notas').value = '';
-    if (document.getElementById('req-cantidad')) document.getElementById('req-cantidad').value = '1';
-    areaSeleccionada = '';
-    prioridadSeleccionada = 'Normal';
-    document.querySelectorAll('.area-btn').forEach(b => {
-      b.className = 'area-btn py-4 rounded-2xl bg-white border border-slate-200 text-sm font-medium text-slate-700 hover:border-primary/40 hover:bg-blue-50 transition-all';
-    });
+    // Resetear botón guardar
+    const btnG = document.getElementById('btn-guardar-req');
+    if (btnG) { btnG.disabled = false; btnG.className = 'w-full bg-primary-container text-white py-3 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-200 active:scale-95 transition-transform'; btnG.innerHTML = '<span class="ms text-lg">cloud_upload</span> Guardar en sistema'; }
 
+    window._reqPayload = { nombre, fecha: now.toISOString(), solicitados, sinStock };
     showEmp('confirm');
   };
+
+  window.reqEnviarWhatsApp = function() {
+    const p = window._reqPayload;
+    if (!p) return;
+    const fechaStr = new Date(p.fecha).toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
+    let msg = `*Requisición Romatella*\n${p.nombre} · ${fechaStr}\n`;
+
+    const porArea = { barra: [], cocina: [] };
+    p.solicitados.forEach(x => { if (porArea[x.area]) porArea[x.area].push(x); });
+
+    if (porArea.barra.length) {
+      msg += `\n🍹 *Barra*\n` + porArea.barra.map(x => `• ${x.item}: *${x.qty}*`).join('\n');
+    }
+    if (porArea.cocina.length) {
+      msg += `\n\n🍳 *Cocina*\n` + porArea.cocina.map(x => `• ${x.item}: *${x.qty}*`).join('\n');
+    }
+    if (p.sinStock.length) {
+      const ssBarra = p.sinStock.filter(x => x.area === 'barra');
+      const ssCocina = p.sinStock.filter(x => x.area === 'cocina');
+      msg += `\n\n⚠️ *Sin stock:*`;
+      if (ssBarra.length) msg += `\n🍹 ` + ssBarra.map(x => x.item).join(', ');
+      if (ssCocina.length) msg += `\n🍳 ` + ssCocina.map(x => x.item).join(', ');
+    }
+    msg += `\n\n_Enviado desde Romatella Admin_`;
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+  };
+
+  window.reqGuardarSupabase = async function() {
+    const p = window._reqPayload;
+    if (!p) return;
+    const btn = document.getElementById('btn-guardar-req');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="ms" style="animation:spin 1s linear infinite">refresh</span> Guardando…'; }
+    const req = {
+      nombre: p.nombre,
+      fecha: p.fecha,
+      items: JSON.stringify(p.solicitados),
+      sin_stock: JSON.stringify(p.sinStock),
+      estatus: 'Pendiente'
+    };
+    try {
+      const { error } = await SB.from('requisiciones').insert(req);
+      if (error) throw error;
+      if (!DB.requisiciones) DB.requisiciones = [];
+      DB.requisiciones.unshift({ ...req, id: Date.now(), area: 'Múltiple', producto: p.solicitados.length + ' artículos', urgencia: 'Normal' });
+      const pendCount = DB.requisiciones.filter(r => r.estatus === 'Pendiente').length;
+      ['req-badge','mob-req-badge'].forEach(id => { const b = document.getElementById(id); if (b) b.textContent = pendCount; });
+      if (btn) { btn.innerHTML = '<span class="ms">check_circle</span> ¡Guardado!'; btn.classList.replace('bg-primary-container','bg-green-500'); }
+      toast('✓ Requisición guardada en sistema');
+    } catch(e) {
+      if (btn) { btn.disabled = false; btn.innerHTML = '<span class="ms text-lg">cloud_upload</span> Guardar en sistema'; }
+      toast('Error al guardar: ' + (e.message || e));
+    }
+  };
+
+  // Hook showEmp para inicializar al abrir
+  const _origShowEmp = window.showEmp;
+  window.showEmp = function(page) {
+    if (page === 'form') {
+      if (Object.keys(reqState.barra).length === 0) { initTab('barra'); initTab('cocina'); }
+      tabActual = 'barra';
+      const dl = document.getElementById('req-date-label');
+      if (dl) dl.textContent = new Date().toLocaleDateString('es-MX', { weekday:'short', day:'numeric', month:'short' });
+      reqSwitchTab('barra');
+    }
+    _origShowEmp(page);
+  };
+
 })();
 
 // ============================================================
@@ -5969,6 +6079,9 @@ function abrirEditar(id) {
   document.getElementById('edit-total').value = c.total || 0;
   document.getElementById('edit-vencimiento').value = c.vencimiento || '';
 
+  const catSel = document.getElementById('edit-categoria');
+  if (catSel) Array.from(catSel.options).forEach(o => { o.selected = o.value === c.categoria; });
+
   const pagoSel = document.getElementById('edit-pago');
   if (pagoSel) Array.from(pagoSel.options).forEach(o => { o.selected = o.value === c.forma_pago; });
 
@@ -5979,93 +6092,29 @@ function abrirEditar(id) {
   const editItems = document.getElementById('edit-items');
   if (editItems) {
     editItems.innerHTML = '';
-    (c.items || []).forEach(item => addEditItem(item));
-    // Si no hay items, añadir uno vacío
-    if (!(c.items || []).length) addEditItem();
+    (c.items || []).forEach(item => {
+      const row = el('div', { cls: 'grid grid-cols-4 gap-2 items-center' }, [
+        el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', value: item.nombre || '', placeholder: 'Producto' }),
+        el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', value: item.unidad || 'pza', placeholder: 'Unidad' }),
+        el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', type: 'number', value: item.cantidad || 0, placeholder: '0' }),
+        el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', type: 'number', value: item.costo_unitario || 0, placeholder: '$0' })
+      ]);
+      editItems.appendChild(row);
+    });
   }
 
   document.getElementById('modal-editar').classList.remove('hidden');
 }
 
-function addEditItem(item) {
+function addEditItem() {
   const editItems = document.getElementById('edit-items');
   if (!editItems) return;
-
-  const nombre = item?.nombre || '';
-  const catGuardada = item?.categoria || inferirCategoria(nombre);
-  const cant = item?.cantidad ?? '';
-  const precio = item?.costo_unitario ?? '';
-
-  // Producto input
-  const inputProd = document.createElement('input');
-  inputProd.className = 'col-span-4 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none';
-  inputProd.placeholder = 'Producto';
-  inputProd.value = nombre;
-
-  // Categoría select
-  const selCat = document.createElement('select');
-  selCat.className = 'col-span-3 px-2 py-2 bg-surface-container-low rounded-xl text-xs outline-none';
-  selCat.dataset.editCat = '1';
-  const cats = salGetCats();
-  cats.forEach(c => {
-    const opt = document.createElement('option');
-    opt.value = c; opt.textContent = c;
-    if (c === catGuardada) opt.selected = true;
-    selCat.appendChild(opt);
-  });
-  const optNueva = document.createElement('option');
-  optNueva.value = '__nueva__'; optNueva.textContent = '+ Nueva...';
-  selCat.appendChild(optNueva);
-  selCat.addEventListener('change', () => {
-    if (selCat.value === '__nueva__') {
-      const nueva = prompt('Nueva categoría:');
-      if (nueva?.trim()) {
-        const cats2 = salGetCats();
-        if (!cats2.includes(nueva.trim())) { cats2.push(nueva.trim()); salSaveCats(cats2); }
-        const o = document.createElement('option');
-        o.value = nueva.trim(); o.textContent = nueva.trim();
-        selCat.insertBefore(o, optNueva);
-        selCat.value = nueva.trim();
-      } else selCat.value = catGuardada || 'Otros insumos';
-    }
-  });
-
-  // Auto-categorizar al escribir nombre
-  inputProd.addEventListener('input', () => {
-    if (inputProd.value.length >= 3) {
-      // Buscar en catálogo primero
-      const match = DB.productos.find(p => p.nombre.toLowerCase() === inputProd.value.toLowerCase());
-      const cat = match?.categoria || inferirCategoria(inputProd.value);
-      if (cat && cat !== 'Otros insumos') selCat.value = cat;
-    }
-  });
-
-  // Cantidad
-  const inputCant = document.createElement('input');
-  inputCant.type = 'number'; inputCant.min = '0';
-  inputCant.className = 'col-span-2 px-2 py-2 bg-surface-container-low rounded-xl text-xs outline-none';
-  inputCant.placeholder = '0'; inputCant.value = cant;
-
-  // Precio
-  const inputPrecio = document.createElement('input');
-  inputPrecio.type = 'number'; inputPrecio.min = '0'; inputPrecio.step = '0.01';
-  inputPrecio.className = 'col-span-2 px-2 py-2 bg-surface-container-low rounded-xl text-xs outline-none';
-  inputPrecio.placeholder = '$0'; inputPrecio.value = precio;
-
-  // Borrar
-  const delBtn = document.createElement('button');
-  delBtn.type = 'button';
-  delBtn.className = 'col-span-1 text-slate-300 hover:text-error flex justify-center';
-  delBtn.innerHTML = '<span class="ms text-base">delete</span>';
-  delBtn.addEventListener('click', () => row.remove());
-
-  const row = document.createElement('div');
-  row.className = 'grid grid-cols-12 gap-1 items-center';
-  row.appendChild(inputProd);
-  row.appendChild(selCat);
-  row.appendChild(inputCant);
-  row.appendChild(inputPrecio);
-  row.appendChild(delBtn);
+  const row = el('div', { cls: 'grid grid-cols-4 gap-2 items-center' }, [
+    el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', placeholder: 'Producto' }),
+    el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', value: 'pza', placeholder: 'Unidad' }),
+    el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', type: 'number', value: '1', placeholder: '0' }),
+    el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', type: 'number', value: '0', placeholder: '$0' })
+  ]);
   editItems.appendChild(row);
 }
 
@@ -6568,18 +6617,6 @@ function initCondicionFechas() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  // Restaurar sesión si el usuario ya estaba logueado
-  const token = sessionStorage.getItem('romatella_token');
-  if (token) {
-    hideAllPages();
-    document.getElementById('page-app').style.setProperty('display','flex','important');
-    showSec('home');
-    initDate();
-    loadFromSupabase();
-    poblarProveedoresDatalist();
-    return;
-  }
-
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('f-fecha').value = today;
   document.getElementById('pay-fecha').value = today;
@@ -6597,6 +6634,14 @@ function popularSelectsCategorias(catSeleccionada) {
   const opts = cats.map(c => `<option value="${c}">${c}</option>`).join('');
   const optsConNueva = opts + '<option value="__nueva__">+ Nueva categoría...</option>';
 
+  // f-categoria (nueva compra)
+  const fc = document.getElementById('f-categoria');
+  if (fc) { fc.innerHTML = '<option value="">Seleccionar...</option>' + optsConNueva; if(catSeleccionada) fc.value = catSeleccionada; }
+
+  // edit-categoria (edición de compra)
+  const ec = document.getElementById('edit-categoria');
+  if (ec) { ec.innerHTML = opts + optsConNueva; if(catSeleccionada) ec.value = catSeleccionada; }
+
   // hist-cat-select (filtro historial)
   const hc = document.getElementById('hist-cat-select');
   if (hc) { hc.innerHTML = '<option value="">Todas las categorías</option>' + opts; }
@@ -6609,11 +6654,76 @@ function checkNuevaCatCompra(sel) {
     const cats = salGetCats();
     if (!cats.includes(nueva.trim())) { cats.push(nueva.trim()); salSaveCats(cats); }
     popularSelectsCategorias(nueva.trim());
-    // Restaurar valor en el select que disparó el cambio
     if (document.getElementById(sel.id)) document.getElementById(sel.id).value = nueva.trim();
   } else {
     sel.value = '';
   }
+}
+
+// ============================================================
+// EXPORTAR REQUISICIONES — PDF
+// ============================================================
+function reqExportPDF() {
+  const reqs = DB.requisiciones || [];
+  if (!reqs.length) { toast('Sin requisiciones para exportar'); return; }
+  const w = window.open('', '_blank');
+  if (!w) { toast('Permite ventanas emergentes para exportar PDF'); return; }
+  const fecha = new Date().toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+  let rows = '';
+  reqs.forEach(r => {
+    const items = (() => { try { return JSON.parse(r.items || '[]'); } catch { return []; } })();
+    const sinStock = (() => { try { return JSON.parse(r.sin_stock || '[]'); } catch { return []; } })();
+    const fStr = r.fecha ? new Date(r.fecha).toLocaleDateString('es-MX') : '—';
+    const allItems = [
+      ...items.map(x => ({ area: x.area, item: x.item, qty: x.qty, ss: false })),
+      ...sinStock.map(x => ({ area: x.area, item: x.item, qty: 0, ss: true }))
+    ];
+    if (!allItems.length) {
+      rows += `<tr><td>${fStr}</td><td>${r.nombre||'—'}</td><td>—</td><td>${r.producto||'—'}</td><td>${r.cantidad||'—'}</td><td></td></tr>`;
+    } else {
+      allItems.forEach((x, i) => {
+        rows += `<tr>
+          <td>${i === 0 ? fStr : ''}</td>
+          <td>${i === 0 ? (r.nombre||'—') : ''}</td>
+          <td><span class="pill ${x.area||''}">${x.area === 'barra' ? '🍹 Barra' : '🍳 Cocina'}</span></td>
+          <td>${x.item}</td>
+          <td class="${x.ss ? 'sinstock' : 'qty'}">${x.ss ? 'SIN STOCK' : x.qty}</td>
+        </tr>`;
+      });
+      rows += `<tr class="sep"><td colspan="5"></td></tr>`;
+    }
+  });
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Requisiciones Romatella</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;font-size:11px;color:#1a1c1d;padding:28px 32px}
+    .header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;border-bottom:2px solid #1a1c1d;padding-bottom:14px}
+    .logo{font-size:22px;font-weight:700;letter-spacing:.02em}.logo span{color:#9b3f00}
+    .meta{text-align:right;font-size:10px;color:#666;line-height:1.7}
+    table{width:100%;border-collapse:collapse;margin-top:4px}
+    th{background:#1a1c1d;color:#fff;padding:7px 10px;text-align:left;font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+    td{padding:5px 10px;font-size:11px;border-bottom:1px solid #f0f0f2;vertical-align:middle}
+    tr.sep td{padding:3px;border:none;background:#f3f3f5}
+    .qty{font-weight:700;color:#1a1c1d}
+    .sinstock{font-weight:700;color:#ba1a1a;font-size:10px;letter-spacing:.04em}
+    .pill{font-size:9px;padding:2px 7px;border-radius:99px;font-weight:600;display:inline-block}
+    .pill.barra{background:#e8f0fb;color:#0059b5}.pill.cocina{background:#e8f5e9;color:#2e7d32}
+    .btn-print{display:inline-flex;align-items:center;gap:8px;margin-bottom:16px;padding:9px 20px;background:#0059b5;color:white;border:none;border-radius:10px;cursor:pointer;font-size:12px;font-weight:600}
+    .footer{margin-top:24px;font-size:9px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:10px}
+    @media print{.btn-print{display:none}body{padding:16px}}
+  </style></head><body>
+  <div class="header">
+    <div><div class="logo"><span>R</span>omatella</div><div style="font-size:10px;color:#888;margin-top:3px">Requisición de insumos</div></div>
+    <div class="meta">${fecha}<br>${reqs.length} requisición${reqs.length!==1?'es':''}</div>
+  </div>
+  <button class="btn-print" onclick="window.print()">🖨️ Guardar como PDF / Imprimir</button>
+  <table>
+    <thead><tr><th>Fecha</th><th>Encargado</th><th>Área</th><th>Artículo</th><th>Cantidad</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+  <div class="footer">Romatella Admin · Generado el ${fecha}</div>
+  </body></html>`);
+  w.document.close();
 }
 </script>
 </body>
