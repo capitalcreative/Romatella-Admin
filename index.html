@@ -62,11 +62,11 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
       <div class="space-y-4">
         <div>
           <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Correo</label>
-          <input type="email" id="login-email" placeholder="harel@romatella.com" class="w-full px-4 py-3 bg-surface-container-low rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+          <input type="email" id="login-email" placeholder="harel@romatella.com" onkeydown="if(event.key==='Enter') doLogin()" class="w-full px-4 py-3 bg-surface-container-low rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
         </div>
         <div>
           <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Contraseña</label>
-          <input type="password" id="login-pass" placeholder="••••••••" class="w-full px-4 py-3 bg-surface-container-low rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
+          <input type="password" id="login-pass" placeholder="••••••••" onkeydown="if(event.key==='Enter') doLogin()" class="w-full px-4 py-3 bg-surface-container-low rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
         </div>
         <button type="button" onclick="doLogin()" class="w-full bg-primary-container text-white py-3.5 rounded-2xl font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-blue-200 hover:opacity-90 transition-opacity">
           Entrar <span class="ms">arrow_forward</span>
@@ -2768,13 +2768,54 @@ function renderAlertasPrecios(desde, hasta) {
 // ============================================================
 // NAVIGATION
 // ============================================================
-function doLogin() {
-  hideAllPages();
-  document.getElementById('page-app').style.setProperty('display','flex','important');
-  showSec('home');
-  initDate();
-  loadFromSupabase();
-  poblarProveedoresDatalist();
+async function doLogin() {
+  const email    = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-pass').value;
+  if (!email || !password) { loginError('Ingresa correo y contraseña'); return; }
+
+  const btnEl = document.querySelector('#page-login button[onclick="doLogin()"]');
+  if (btnEl) { btnEl.disabled = true; btnEl.textContent = 'Entrando...'; }
+
+  try {
+    const resp = await fetch('/api/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'auth_login', table: 'auth', data: { email, password } })
+    });
+    const result = await resp.json();
+
+    if (!resp.ok || result.error || !result.access_token) {
+      loginError(result.error_description || result.msg || 'Credenciales incorrectas');
+      return;
+    }
+
+    // Login exitoso — guardar token en sessionStorage
+    sessionStorage.setItem('romatella_token', result.access_token);
+    sessionStorage.setItem('romatella_user', email);
+
+    hideAllPages();
+    document.getElementById('page-app').style.setProperty('display','flex','important');
+    showSec('home');
+    initDate();
+    loadFromSupabase();
+    poblarProveedoresDatalist();
+  } catch(e) {
+    loginError('Error de conexión — intenta de nuevo');
+  } finally {
+    if (btnEl) { btnEl.disabled = false; btnEl.innerHTML = 'Entrar <span class="ms">arrow_forward</span>'; }
+  }
+}
+
+function loginError(msg) {
+  let errEl = document.getElementById('login-error');
+  if (!errEl) {
+    errEl = document.createElement('p');
+    errEl.id = 'login-error';
+    errEl.className = 'text-xs text-center text-error mt-3 font-medium';
+    document.querySelector('#page-login .space-y-4').after(errEl);
+  }
+  errEl.textContent = msg;
+  setTimeout(() => { if (errEl) errEl.textContent = ''; }, 4000);
 }
 
 async function loadFromSupabase() {
@@ -2864,6 +2905,8 @@ async function loadFromSupabase() {
   }
 }
 function doLogout() {
+  sessionStorage.removeItem('romatella_token');
+  sessionStorage.removeItem('romatella_user');
   hideAllPages();
   document.getElementById('page-login').style.setProperty('display','flex','important');
 }
@@ -6525,6 +6568,18 @@ function initCondicionFechas() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+  // Restaurar sesión si el usuario ya estaba logueado
+  const token = sessionStorage.getItem('romatella_token');
+  if (token) {
+    hideAllPages();
+    document.getElementById('page-app').style.setProperty('display','flex','important');
+    showSec('home');
+    initDate();
+    loadFromSupabase();
+    poblarProveedoresDatalist();
+    return;
+  }
+
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('f-fecha').value = today;
   document.getElementById('pay-fecha').value = today;
