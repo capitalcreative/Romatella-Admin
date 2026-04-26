@@ -1298,10 +1298,11 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           </div>
           <!-- Info de la salida -->
           <div class="bg-slate-50 rounded-2xl p-4 mb-4">
-            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Salida de caja Loyverse</p>
+            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Concepto en Loyverse</p>
             <p class="font-semibold text-slate-900" id="sal-modal-desc">—</p>
             <p class="text-2xl font-bold text-slate-900 mt-1" id="sal-modal-monto">$0</p>
             <p class="text-xs text-slate-400 mt-1" id="sal-modal-fecha">—</p>
+            <p class="text-xs text-amber-600 mt-2">⚠ Los PAY_OUT de Loyverse no tienen desglose de productos — solo el monto y el concepto que escribió el cajero.</p>
           </div>
           <!-- Proveedor -->
           <div class="mb-3">
@@ -2115,6 +2116,8 @@ function setSalidasPeriodo(tipo) {
   const hastaEl = document.getElementById('sal-hasta');
   if (desdeEl) desdeEl.value = desde;
   if (hastaEl) hastaEl.value = hasta;
+  // Limpiar caché para forzar nueva llamada a Loyverse con el nuevo rango
+  SAL_SHIFTS_CACHE = { desde: null, hasta: null, data: null };
   cargarSalidas();
 }
 
@@ -2175,6 +2178,9 @@ function salPersistir() {
   try { localStorage.setItem('sal_registradas', JSON.stringify([...SAL_REGISTRADAS])); } catch(e) {}
 }
 
+// Cache de shifts para no repetir la llamada a Loyverse si el rango no cambió
+let SAL_SHIFTS_CACHE = { desde: null, hasta: null, data: null };
+
 async function cargarSalidas() {
   const desde = document.getElementById('sal-desde')?.value;
   const hasta  = document.getElementById('sal-hasta')?.value;
@@ -2183,34 +2189,41 @@ async function cargarSalidas() {
   document.getElementById('sal-lista').innerHTML = `
     <div class="flex items-center justify-center py-12 gap-3 text-slate-400">
       <span class="ms" style="animation:spin 1s linear infinite;display:inline-block">sync</span>
-      <span class="text-sm">Cargando salidas de Loyverse...</span>
+      <span class="text-sm">Cargando salidas...</span>
     </div>`;
 
   try {
-    const resp = await fetch('/api/loyverse?endpoint=shifts&date_from='
-      + encodeURIComponent(desde + 'T00:00:00.000Z')
-      + '&date_to=' + encodeURIComponent(hasta + 'T23:59:59.000Z'));
-    const data = await resp.json();
-    const shifts = data.shifts || [];
+    let shifts;
+    // Reutilizar caché si el rango no cambió
+    if (SAL_SHIFTS_CACHE.desde === desde && SAL_SHIFTS_CACHE.hasta === hasta && SAL_SHIFTS_CACHE.data) {
+      shifts = SAL_SHIFTS_CACHE.data;
+    } else {
+      const resp = await fetch('/api/loyverse?endpoint=shifts&date_from='
+        + encodeURIComponent(desde + 'T00:00:00.000Z')
+        + '&date_to=' + encodeURIComponent(hasta + 'T23:59:59.000Z'));
+      const data = await resp.json();
+      shifts = data.shifts || [];
+      SAL_SHIFTS_CACHE = { desde, hasta, data: shifts };
+    }
 
-    // Extraer todos los PAY_OUT del período
     SAL_DATA = [];
     shifts.forEach(s => {
       (s.cash_movements||[]).forEach(m => {
         if (m.type !== 'PAY_OUT') return;
         const fecha = (m.created_at || s.opened_at || '').substring(0,10);
         if (fecha < desde || fecha > hasta) return;
+        const concepto = m.comment && m.comment.trim() ? m.comment.trim() : null;
         SAL_DATA.push({
           id:          m.id || (s.id + '_' + m.created_at),
           fecha,
           hora:        new Date(m.created_at || s.opened_at).toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'}),
-          descripcion: m.comment || 'Sin descripción',
+          descripcion: concepto || 'Sin descripción',
+          concepto,
           monto:       Math.abs(m.money_amount || 0),
         });
       });
     });
 
-    // Ordenar por fecha desc
     SAL_DATA.sort((a,b) => b.fecha > a.fecha ? 1 : -1);
     renderSalidas();
   } catch(e) {
@@ -2295,14 +2308,27 @@ function renderSalidas() {
 function abrirModalSalida(id) {
   const sal = SAL_DATA.find(s => s.id === id);
   if (!sal) return;
-  document.getElementById('sal-modal-desc').textContent  = sal.descripcion;
-  document.getElementById('sal-modal-monto').textContent = '$' + fmt(sal.monto);
+
+  // Mostrar concepto de Loyverse (puede ser vacío)
+  const descEl = document.getElementById('sal-modal-desc');
+  descEl.textContent = sal.concepto || '— Sin concepto en Loyverse —';
+  descEl.className = sal.concepto
+    ? 'font-semibold text-slate-900'
+    : 'font-medium text-slate-400 italic';
+
+  document.getElementById('sal-modal-monto').textContent = fmt(sal.monto);
   document.getElementById('sal-modal-fecha').textContent = sal.fecha + ' · ' + sal.hora;
-  document.getElementById('sal-modal-proveedor').value   = sal.descripcion.toUpperCase();
-  document.getElementById('modal-salida').dataset.salId  = id;
+
+  // Proveedor: si hay concepto usarlo, si no dejar vacío para que el usuario lo escriba
+  const provInput = document.getElementById('sal-modal-proveedor');
+  provInput.value = sal.concepto ? sal.concepto.toUpperCase() : '';
+  provInput.placeholder = sal.concepto ? '' : 'Escribe el proveedor (ej: SAMS, KRILL...)';
+
+  document.getElementById('modal-salida').dataset.salId    = id;
   document.getElementById('modal-salida').dataset.salMonto = sal.monto;
-  // Iniciar con una línea autodetectada
-  const desc = sal.descripcion.toLowerCase();
+
+  // Auto-detectar categoría por descripción
+  const desc = (sal.concepto || '').toLowerCase();
   const catAuto = desc.includes('pan') || desc.includes('baguet') ? 'Panadería'
     : desc.includes('carn') || desc.includes('pollo') ? 'Carnicería'
     : desc.includes('mar') || desc.includes('calam') ? 'Mariscos'
@@ -2310,8 +2336,10 @@ function abrirModalSalida(id) {
     : desc.includes('hielo') || desc.includes('coca') || desc.includes('refresc') ? 'Refrescos'
     : desc.includes('limpieza') || desc.includes('deterg') ? 'Limpieza'
     : desc.includes('nomina') || desc.includes('nómina') ? 'Nómina'
+    : desc.includes('renta') ? 'Renta'
+    : desc.includes('music') || desc.includes('música') ? 'Música'
     : 'Otros insumos';
-  // Renderizar líneas con una inicial que ocupa el monto total
+
   salRenderLineas([{ cat: catAuto, monto: sal.monto }]);
   document.getElementById('modal-salida').classList.remove('hidden');
 }
@@ -2403,7 +2431,7 @@ function salActualizarTotal() {
   const totalEl = document.getElementById('sal-modal-total-lineas');
   const diffEl  = document.getElementById('sal-modal-diff');
   const monto   = parseFloat(document.getElementById('modal-salida').dataset.salMonto) || 0;
-  if (totalEl) totalEl.textContent = '$' + fmt(suma);
+  if (totalEl) totalEl.textContent = fmt(suma);
   if (diffEl)  diffEl.classList.toggle('hidden', Math.abs(suma - monto) < 0.5);
 }
 
