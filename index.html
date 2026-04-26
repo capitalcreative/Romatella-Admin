@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
 <title>Romatella Admin</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
@@ -5552,21 +5552,37 @@ function exportarCSV() {
         const id = enc(item);
         const row = document.createElement('div');
         row.id = 'rrow-' + id;
-        row.className = 'flex items-center px-4 py-2.5 border-b border-slate-50 gap-3 bg-white';
+        row.className = 'flex items-center px-4 py-3 border-b border-slate-50 gap-3 bg-white transition-colors';
         const safeItem = item.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const isActive = s.qty > 0;
+        const isNoStock = s.noStock;
         row.innerHTML = `
-          <span class="flex-1 text-sm text-slate-800 leading-tight">${item}</span>
-          <div class="flex items-center gap-1 shrink-0">
+          <span class="flex-1 text-sm text-slate-800 leading-snug pr-2">${item}</span>
+          <div class="flex items-center gap-2 shrink-0">
             <button type="button" onclick="reqQty('${id}','${safeItem}',-0.5)"
-              class="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 text-base leading-none hover:bg-slate-100 active:scale-95 transition-transform">−</button>
-            <input type="number" id="rqty-${id}" value="${s.qty}" min="0" step="0.5"
+              style="width:40px;height:40px;min-width:40px;font-size:20px;touch-action:manipulation"
+              class="rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 leading-none bg-white active:bg-slate-100 active:scale-95 transition-transform select-none">−</button>
+            <input
+              type="text"
+              inputmode="decimal"
+              id="rqty-${id}"
+              value="${isActive ? fmtQty(s.qty) : ''}"
+              placeholder="0"
+              min="0"
+              autocomplete="off"
+              onfocus="reqFocus('${id}','${safeItem}')"
+              onblur="reqBlur('${id}','${safeItem}')"
               oninput="reqQtyInput('${id}','${safeItem}',this.value)"
-              class="w-12 text-center text-sm font-bold border-0 outline-none bg-transparent ${s.qty > 0 ? 'text-primary' : 'text-slate-400'}"
-              style="appearance:textfield;-moz-appearance:textfield"/>
+              style="width:44px;height:40px;font-size:16px;text-align:center;font-weight:700;border:1.5px solid ${isActive ? '#0071e3' : '#e2e8f0'};border-radius:10px;background:${isActive ? '#eff6ff' : '#f8fafc'};color:${isActive ? '#0059b5' : '#94a3b8'};outline:none;touch-action:manipulation;-webkit-appearance:none"
+            />
             <button type="button" onclick="reqQty('${id}','${safeItem}',0.5)"
-              class="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 text-base leading-none hover:bg-slate-100 active:scale-95 transition-transform">+</button>
+              style="width:40px;height:40px;min-width:40px;font-size:20px;touch-action:manipulation"
+              class="rounded-xl flex items-center justify-center leading-none active:scale-95 transition-transform select-none ${isActive ? 'bg-primary-container text-white border border-primary-container' : 'bg-white border border-slate-200 text-slate-500 active:bg-slate-100'}">+</button>
             <button type="button" id="rns-${id}" onclick="reqNoStock('${id}','${safeItem}')"
-              class="text-xs px-2 py-1 rounded-full border transition-all ml-0.5 ${s.noStock ? 'bg-red-50 border-red-200 text-red-600 font-semibold' : 'border-slate-200 text-slate-400'}">0</button>
+              style="width:40px;height:40px;min-width:40px;font-size:11px;font-weight:600;touch-action:manipulation"
+              class="rounded-xl border flex items-center justify-center transition-all select-none ${isNoStock ? 'bg-red-50 border-red-300 text-red-600' : 'bg-white border-slate-200 text-slate-300'}">
+              ${isNoStock ? '✕' : '—'}
+            </button>
           </div>`;
         secDiv.appendChild(row);
       });
@@ -5604,6 +5620,17 @@ function exportarCSV() {
     return n % 1 === 0 ? String(n) : n.toFixed(1);
   }
 
+  function styleQtyInput(el, btnPlus, active) {
+    if (!el) return;
+    el.style.border = '1.5px solid ' + (active ? '#0071e3' : '#e2e8f0');
+    el.style.background = active ? '#eff6ff' : '#f8fafc';
+    el.style.color = active ? '#0059b5' : '#94a3b8';
+    if (btnPlus) {
+      btnPlus.className = 'rounded-xl flex items-center justify-center leading-none active:scale-95 transition-transform select-none ' +
+        (active ? 'bg-primary-container text-white border border-primary-container' : 'bg-white border border-slate-200 text-slate-500 active:bg-slate-100');
+    }
+  }
+
   window.reqQty = function(id, item, delta) {
     if (!reqState[tabActual][item]) reqState[tabActual][item] = { qty: 0, noStock: false };
     const current = parseFloat(reqState[tabActual][item].qty) || 0;
@@ -5612,11 +5639,14 @@ function exportarCSV() {
     reqState[tabActual][item].noStock = false;
     const qEl = document.getElementById('rqty-' + id);
     const nsEl = document.getElementById('rns-' + id);
+    const row = document.getElementById('rrow-' + id);
+    const btnPlus = row ? row.querySelectorAll('button')[1] : null;
     if (qEl) {
-      qEl.value = fmtQty(next);
-      qEl.className = 'w-12 text-center text-sm font-bold border-0 outline-none bg-transparent ' + (next > 0 ? 'text-primary' : 'text-slate-400');
+      qEl.value = next > 0 ? fmtQty(next) : '';
+      qEl.placeholder = '0';
+      styleQtyInput(qEl, btnPlus, next > 0);
     }
-    if (nsEl) nsEl.className = 'text-xs px-2 py-1 rounded-full border border-slate-200 text-slate-400 transition-all ml-0.5';
+    if (nsEl) { nsEl.className = 'rounded-xl border bg-white border-slate-200 text-slate-300 flex items-center justify-center transition-all select-none'; nsEl.textContent = '—'; }
     updateProgress();
   };
 
@@ -5627,8 +5657,38 @@ function exportarCSV() {
     reqState[tabActual][item].noStock = false;
     const qEl = document.getElementById('rqty-' + id);
     const nsEl = document.getElementById('rns-' + id);
-    if (qEl) qEl.className = 'w-12 text-center text-sm font-bold border-0 outline-none bg-transparent ' + (n > 0 ? 'text-primary' : 'text-slate-400');
-    if (nsEl) nsEl.className = 'text-xs px-2 py-1 rounded-full border border-slate-200 text-slate-400 transition-all ml-0.5';
+    const row = document.getElementById('rrow-' + id);
+    const btnPlus = row ? row.querySelectorAll('button')[1] : null;
+    styleQtyInput(qEl, btnPlus, n > 0);
+    if (nsEl) { nsEl.className = 'rounded-xl border bg-white border-slate-200 text-slate-300 flex items-center justify-center transition-all select-none'; nsEl.textContent = '—'; }
+    updateProgress();
+  };
+
+  // Al hacer focus: si el valor es 0/vacío, limpiar para escribir directo
+  window.reqFocus = function(id, item) {
+    const qEl = document.getElementById('rqty-' + id);
+    if (!qEl) return;
+    const current = parseFloat(reqState[tabActual]?.[item]?.qty) || 0;
+    if (current === 0) qEl.value = '';
+    // Seleccionar todo para reemplazar fácilmente
+    setTimeout(() => qEl.select(), 10);
+  };
+
+  // Al perder focus: si quedó vacío, poner 0 visual (placeholder) y actualizar state
+  window.reqBlur = function(id, item) {
+    const qEl = document.getElementById('rqty-' + id);
+    if (!qEl) return;
+    const raw = qEl.value.trim();
+    const n = Math.max(0, parseFloat(raw) || 0);
+    if (!reqState[tabActual]) reqState[tabActual] = {};
+    if (!reqState[tabActual][item]) reqState[tabActual][item] = { qty: 0, noStock: false };
+    reqState[tabActual][item].qty = Math.round(n * 100) / 100;
+    reqState[tabActual][item].noStock = false;
+    qEl.value = n > 0 ? fmtQty(n) : '';
+    qEl.placeholder = '0';
+    const row = document.getElementById('rrow-' + id);
+    const btnPlus = row ? row.querySelectorAll('button')[1] : null;
+    styleQtyInput(qEl, btnPlus, n > 0);
     updateProgress();
   };
 
@@ -5639,9 +5699,16 @@ function exportarCSV() {
     reqState[tabActual][item].qty = 0;
     const qEl = document.getElementById('rqty-' + id);
     const nsEl = document.getElementById('rns-' + id);
-    if (qEl) { qEl.value = '0'; qEl.className = 'w-12 text-center text-sm font-bold border-0 outline-none bg-transparent text-slate-400'; }
-    if (nsEl) nsEl.className = 'text-xs px-2 py-1 rounded-full border transition-all ml-0.5 ' +
-      (val ? 'bg-red-50 border-red-200 text-red-600 font-semibold' : 'border-slate-200 text-slate-400');
+    const row = document.getElementById('rrow-' + id);
+    const btnPlus = row ? row.querySelectorAll('button')[1] : null;
+    if (qEl) { qEl.value = ''; qEl.placeholder = '0'; styleQtyInput(qEl, btnPlus, false); }
+    if (nsEl) {
+      nsEl.className = 'rounded-xl border flex items-center justify-center transition-all select-none ' +
+        (val ? 'bg-red-50 border-red-300 text-red-600' : 'bg-white border-slate-200 text-slate-300');
+      nsEl.textContent = val ? '✕' : '—';
+    }
+    // Highlight la fila entera si no hay stock
+    if (row) row.style.background = val ? '#fff5f5' : '';
     updateProgress();
   };
 
