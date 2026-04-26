@@ -459,13 +459,6 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
                   <datalist id="proveedores-list"></datalist>
                 </div>
 
-                <div>
-                  <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Categoría</label>
-                  <select id="f-categoria" onchange="checkNuevaCatCompra(this)" class="w-full px-4 py-3 bg-surface-container-low rounded-xl text-sm outline-none">
-                    <option value="">Seleccionar...</option>
-                  </select>
-                </div>
-
                 <!-- Forma de pago: CÓMO se paga -->
                 <div>
                   <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Forma de Pago</label>
@@ -527,7 +520,7 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
                   </button>
                 </div>
                 <div class="grid grid-cols-12 gap-2 text-xs text-slate-400 uppercase tracking-wider mb-2 px-1">
-                  <span class="col-span-4">Producto</span><span class="col-span-2">Unidad</span><span class="col-span-1">Cant.</span><span class="col-span-2">P. Unit.</span><span class="col-span-2 text-right">Subtotal</span><span class="col-span-1"></span>
+                  <span class="col-span-3">Producto</span><span class="col-span-3">Categoría</span><span class="col-span-1">Cant.</span><span class="col-span-2">P. Unit.</span><span class="col-span-2 text-right">Subtotal</span><span class="col-span-1"></span>
                 </div>
                 <div id="items-container" class="space-y-2"></div>
               </div>
@@ -3487,19 +3480,19 @@ function setEstatus(e) {
 function calcVencimiento() { /* legacy — reemplazado por setCondicion */ }
 
 
-function addItem(nombre, unidad, precio) {
+function addItem(nombre, unidad, precio, categoria) {
   const div = document.createElement('div');
   div.className = 'relative';
 
   const grid = document.createElement('div');
   grid.className = 'grid grid-cols-12 gap-2 items-center';
 
-  // Producto (col-span-4)
+  // Producto (col-span-3)
   const colProd = document.createElement('div');
-  colProd.className = 'col-span-4 relative';
+  colProd.className = 'col-span-3 relative';
   const inputProd = document.createElement('input');
   inputProd.className = 'w-full px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none';
-  inputProd.placeholder = 'Buscar producto...';
+  inputProd.placeholder = 'Producto...';
   inputProd.value = nombre || '';
   inputProd.addEventListener('input', () => buscarProducto(inputProd));
   inputProd.addEventListener('focus', () => buscarProducto(inputProd));
@@ -3509,14 +3502,32 @@ function addItem(nombre, unidad, precio) {
   colProd.appendChild(inputProd);
   colProd.appendChild(sug);
 
-  // Unidad (col-span-2)
-  const sel = document.createElement('select');
-  sel.className = 'col-span-2 px-2 py-2 bg-surface-container-low rounded-xl text-sm outline-none';
-  ['kg', 'pza', 'lt', 'caja', 'bot'].forEach(u => {
+  // Categoría (col-span-3) — select inline por producto
+  const selCat = document.createElement('select');
+  selCat.className = 'col-span-3 px-2 py-2 bg-surface-container-low rounded-xl text-sm outline-none';
+  selCat.dataset.itemCat = '1';
+  const cats = salGetCats();
+  cats.forEach(c => {
     const opt = document.createElement('option');
-    opt.value = u; opt.textContent = u;
-    if (u === (unidad || 'pza')) opt.selected = true;
-    sel.appendChild(opt);
+    opt.value = c; opt.textContent = c;
+    if (c === (categoria || 'Otros insumos')) opt.selected = true;
+    selCat.appendChild(opt);
+  });
+  const optNueva = document.createElement('option');
+  optNueva.value = '__nueva__'; optNueva.textContent = '+ Nueva...';
+  selCat.appendChild(optNueva);
+  selCat.addEventListener('change', () => {
+    if (selCat.value === '__nueva__') {
+      const nueva = prompt('Nombre de la nueva categoría:');
+      if (nueva && nueva.trim()) {
+        const cats2 = salGetCats();
+        if (!cats2.includes(nueva.trim())) { cats2.push(nueva.trim()); salSaveCats(cats2); }
+        const o = document.createElement('option');
+        o.value = nueva.trim(); o.textContent = nueva.trim();
+        selCat.insertBefore(o, optNueva);
+        selCat.value = nueva.trim();
+      } else { selCat.value = 'Otros insumos'; }
+    }
   });
 
   // Cantidad (col-span-1)
@@ -3532,7 +3543,7 @@ function addItem(nombre, unidad, precio) {
   inputPrecio.placeholder = '$0';
   inputPrecio.value = precio || '';
 
-  // Subtotal (col-span-2) — solo lectura, actualización automática
+  // Subtotal (col-span-2) — solo lectura
   const subtotalEl = document.createElement('div');
   subtotalEl.className = 'col-span-2 text-right text-sm font-semibold text-slate-300 pr-1';
   subtotalEl.textContent = '—';
@@ -3563,10 +3574,9 @@ function addItem(nombre, unidad, precio) {
   };
   inputCant.addEventListener('input', updateSubtotal);
   inputPrecio.addEventListener('input', updateSubtotal);
-  sel.addEventListener('change', updateSubtotal);
 
   grid.appendChild(colProd);
-  grid.appendChild(sel);
+  grid.appendChild(selCat);
   grid.appendChild(inputCant);
   grid.appendChild(inputPrecio);
   grid.appendChild(subtotalEl);
@@ -3604,25 +3614,24 @@ function buscarProducto(input) {
     item.appendChild(catSpan);
     item.appendChild(precSpan);
 
-    item.addEventListener('mousedown', () => selProducto(item, p.nombre, p.unidad, p.precio));
+    item.addEventListener('mousedown', () => selProducto(item, p.nombre, p.unidad, p.precio, p.categoria));
     sug.appendChild(item);
   });
   sug.classList.remove('hidden');
 }
 
-function selProducto(el, nombre, unidad, precio) {
-  // Find the input that triggered this suggestion
+function selProducto(el, nombre, unidad, precio, categoria) {
   const sugerenciasDiv = el.closest('.sugerencias');
   const input = sugerenciasDiv?.previousElementSibling;
   if (!input) return;
-  
   const row = input.closest('.grid');
-  const sel = row?.querySelector('select');
+  const selCat = row?.querySelector('select[data-item-cat]');
   const nums = row?.querySelectorAll('input[type="number"]');
-  
   input.value = nombre;
-  if (sel) {
-    Array.from(sel.options).forEach(o => { o.selected = o.value === unidad; });
+  // Setear categoría del producto si coincide con una opción
+  if (selCat && categoria) {
+    const match = Array.from(selCat.options).find(o => o.value === categoria);
+    if (match) selCat.value = categoria;
   }
   if (nums && nums[1]) { nums[1].value = precio; }
   sugerenciasDiv.classList.add('hidden');
@@ -3655,14 +3664,15 @@ function getItems() {
   document.querySelectorAll('#items-container .relative').forEach(wrap => {
     const row = wrap.querySelector('.grid');
     if (!row) return;
-    const textInput = row.querySelector('input[placeholder="Buscar producto..."]');
+    const textInput = row.querySelector('input[placeholder="Producto..."]');
     const nums = row.querySelectorAll('input[type="number"]');
-    const sel = row.querySelector('select');
+    const selCat = row.querySelector('select[data-item-cat]');
     const nombre = textInput?.value?.trim();
     const cant = parseFloat(nums[0]?.value)||0;
     const precio = parseFloat(nums[1]?.value)||0;
+    const categoria = selCat?.value || 'Otros insumos';
     if (nombre || cant || precio) {
-      items.push({ nombre: nombre||'—', unidad: sel?.value||'pza', cantidad: cant, costo_unitario: precio });
+      items.push({ nombre: nombre||'—', cantidad: cant, costo_unitario: precio, categoria });
     }
   });
   return items;
@@ -3677,7 +3687,7 @@ function getTotal() {
 }
 function resetForm() {
   document.getElementById('f-proveedor').value = '';
-  document.getElementById('f-categoria').value = '';
+  // f-categoria eliminado: categoría se define por producto
   document.getElementById('items-container').innerHTML = '';
   document.getElementById('total-display').textContent = '$0.00';
   document.getElementById('venc-alert').classList.add('hidden');
@@ -3697,76 +3707,88 @@ async function registerCompra() {
   if (!proveedor || !fecha) { toast('Completa proveedor y fecha'); return; }
 
   const items = getItems();
-  const total = getTotal();
+  if (!items.length) { toast('Agrega al menos un producto'); return; }
+
   const vencimiento = getVencimiento();
-  const categoria = document.getElementById('f-categoria').value;
   const forma_pago = document.getElementById('f-pago').value;
   const estatus = DB.currentEstatus || 'Pendiente';
+  const totalGeneral = getTotal();
+
+  // Agrupar items por categoría — genera una compra por categoría
+  const porCategoria = {};
+  items.forEach(item => {
+    const cat = item.categoria || 'Otros insumos';
+    if (!porCategoria[cat]) porCategoria[cat] = [];
+    porCategoria[cat].push(item);
+  });
 
   toast('Guardando...');
 
   try {
-    // 1. Save compra
-    const resp = await fetch('/api/supabase', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        table: 'compras',
-        action: 'insert',
-        data: {
-          fecha,
-          proveedor_nombre: proveedor,
-          folio: 'S/F',
-          categoria,
-          forma_pago,
-          estatus_pago: estatus,
-          total,
-          vencimiento: vencimiento || null,
-          notas: ''
-        }
-      })
-    });
-    const saved = await resp.json();
-    const compraId = Array.isArray(saved) ? saved[0]?.id : saved?.id;
+    const comprasGuardadas = [];
 
-    // 2. Save detalle_compras + historial_precios
-    if (compraId && items.length) {
-      for (const item of items) {
-        if (!item.nombre) continue;
-        await fetch('/api/supabase', {
-          method: 'POST',
-          headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({
-            table: 'detalle_compras',
-            action: 'insert',
-            data: {
-              compra_id: compraId,
-              nombre_producto: item.nombre,
-              unidad: item.unidad,
-              cantidad: item.cantidad,
-              costo_unitario: item.costo_unitario
-            }
-          })
-        });
-        if (item.costo_unitario > 0) {
-          await saveHistorialPrecio(
-            { nombre: item.nombre, unidad: item.unidad, costo_unitario: item.costo_unitario },
-            { proveedor, fecha, id: compraId }
-          );
+    for (const [categoria, itemsCat] of Object.entries(porCategoria)) {
+      const totalCat = itemsCat.reduce((s, i) => s + (i.cantidad * i.costo_unitario), 0);
+
+      // 1. Insertar compra por categoría
+      const resp = await fetch('/api/supabase', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          table: 'compras',
+          action: 'insert',
+          data: {
+            fecha,
+            proveedor_nombre: proveedor,
+            folio: 'S/F',
+            categoria,
+            forma_pago,
+            estatus_pago: estatus,
+            total: totalCat,
+            vencimiento: vencimiento || null,
+            notas: ''
+          }
+        })
+      });
+      const saved = await resp.json();
+      const compraId = Array.isArray(saved) ? saved[0]?.id : saved?.id;
+
+      // 2. Guardar detalle + historial de precios por item
+      if (compraId) {
+        for (const item of itemsCat) {
+          if (!item.nombre) continue;
+          await fetch('/api/supabase', {
+            method: 'POST',
+            headers: {'Content-Type':'application/json'},
+            body: JSON.stringify({
+              table: 'detalle_compras',
+              action: 'insert',
+              data: {
+                compra_id: compraId,
+                nombre_producto: item.nombre,
+                cantidad: item.cantidad,
+                costo_unitario: item.costo_unitario
+              }
+            })
+          });
+          if (item.costo_unitario > 0) {
+            await saveHistorialPrecio(
+              { nombre: item.nombre, costo_unitario: item.costo_unitario },
+              { proveedor, fecha, id: compraId }
+            );
+          }
         }
       }
-    }
 
-    // 3. Agregar al DB local con el ID real de Supabase
-    const compra = {
-      id: compraId || Date.now(),
-      fecha, proveedor, folio: 'S/F',
-      categoria, forma_pago, estatus,
-      total, vencimiento, items
-    };
-    // Solo hacer push si el id aún no existe (evitar duplicado si Supabase ya lo devolvió)
-    if (!DB.compras.find(x => String(x.id) === String(compra.id))) {
-      DB.compras.push(compra);
+      // 3. Agregar al DB local
+      const compra = {
+        id: compraId || Date.now(),
+        fecha, proveedor, folio: 'S/F',
+        categoria, forma_pago, estatus,
+        total: totalCat, vencimiento, items: itemsCat
+      };
+      if (!DB.compras.find(x => String(x.id) === String(compra.id))) DB.compras.push(compra);
+      comprasGuardadas.push(compra);
     }
 
     // 4. Update proveedor
@@ -3775,27 +3797,19 @@ async function registerCompra() {
       prov = { id: Date.now()+1, nombre: proveedor, tel: '', condicion: '8 dias', saldo: 0, compras: 0 };
       DB.proveedores.push(prov);
     }
-    prov.compras = (prov.compras||0) + 1;
-    if (estatus !== 'Pagado') prov.saldo = (prov.saldo||0) + total;
+    prov.compras = (prov.compras||0) + comprasGuardadas.length;
+    if (estatus !== 'Pagado') prov.saldo = (prov.saldo||0) + totalGeneral;
 
-    toast('Compra guardada: ' + proveedor + ' ' + fmt(total));
+    const cats = Object.keys(porCategoria).join(', ');
+    toast('✓ ' + comprasGuardadas.length + ' registro(s) · ' + proveedor + ' · ' + fmt(totalGeneral));
     resetForm();
-    // Recargar desde Supabase para garantizar consistencia (evita duplicados)
     setTimeout(async () => {
       await loadFromSupabase();
       showSec('home');
     }, 800);
 
   } catch(e) {
-    // Save locally if Supabase fails
-    const compra = {
-      id: Date.now(), fecha, proveedor, folio: 'S/F',
-      categoria, forma_pago, estatus, total, vencimiento, items
-    };
-    DB.compras.push(compra);
-    toast('Guardado local (sin conexion)');
-    resetForm();
-    setTimeout(() => showSec('home'), 1200);
+    toast('Error: ' + e.message);
   }
 }
 
@@ -3957,10 +3971,7 @@ async function handleFileUpload(event) {
         document.getElementById('f-fecha').value = parts[2] + '-' + parts[1].padStart(2,'0') + '-' + parts[0].padStart(2,'0');
       }
     }
-    if (data.categoria) {
-      const sel = document.getElementById('f-categoria');
-      if (sel) sel.value = data.categoria;
-    }
+    // categoria global eliminada — cada item tiene su propia categoría
     if (data.forma_pago) {
       const sel = document.getElementById('f-pago');
       if (sel) { sel.value = data.forma_pago; calcVencimiento(); }
@@ -6433,10 +6444,6 @@ function popularSelectsCategorias(catSeleccionada) {
   const cats = salGetCats();
   const opts = cats.map(c => `<option value="${c}">${c}</option>`).join('');
   const optsConNueva = opts + '<option value="__nueva__">+ Nueva categoría...</option>';
-
-  // f-categoria (nueva compra)
-  const fc = document.getElementById('f-categoria');
-  if (fc) { fc.innerHTML = '<option value="">Seleccionar...</option>' + optsConNueva; if(catSeleccionada) fc.value = catSeleccionada; }
 
   // edit-categoria (edición de compra)
   const ec = document.getElementById('edit-categoria');
