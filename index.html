@@ -461,12 +461,8 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
 
                 <div>
                   <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Categoría</label>
-                  <select id="f-categoria" class="w-full px-4 py-3 bg-surface-container-low rounded-xl text-sm outline-none">
+                  <select id="f-categoria" onchange="checkNuevaCatCompra(this)" class="w-full px-4 py-3 bg-surface-container-low rounded-xl text-sm outline-none">
                     <option value="">Seleccionar...</option>
-                    <option>Carnicería</option><option>Mariscos</option><option>Abarrotes</option>
-                    <option>Lácteos</option><option>Frutas y Verduras</option><option>Vinos</option>
-                    <option>Licores</option><option>Refrescos</option><option>Panadería</option>
-                    <option>Limpieza</option><option>Semillas</option><option>Otros insumos</option>
                   </select>
                 </div>
 
@@ -603,12 +599,8 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           <label class="text-xs text-slate-400">Hasta:</label>
           <input type="date" id="hist-hasta" onchange="filtrarHistorial('custom')" class="px-3 py-1.5 bg-surface-container-low rounded-xl text-xs outline-none"/>
         </div>
-        <select onchange="filtrarHistorial('categoria',this.value)" class="px-3 py-1.5 bg-surface-container-low rounded-xl text-xs outline-none">
+        <select id="hist-cat-select" onchange="filtrarHistorial('categoria',this.value)" class="px-3 py-1.5 bg-surface-container-low rounded-xl text-xs outline-none">
           <option value="">Todas las categorías</option>
-          <option>Carnicería</option><option>Mariscos</option><option>Abarrotes</option>
-          <option>Lácteos</option><option>Walmart</option><option>Costco</option>
-          <option>Mercado</option><option>Panadería</option><option>Vinos</option>
-          <option>Licores</option><option>Refrescos</option><option>Materias Primas</option><option>Semillas</option>
         </select>
       </div>
       <!-- Summary -->
@@ -1032,11 +1024,7 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Categoría</label>
-              <select id="edit-categoria" class="w-full px-4 py-3 bg-surface-container-low rounded-xl text-sm outline-none">
-                <option>Carnicería</option><option>Mariscos</option><option>Abarrotes</option>
-                <option>Lácteos</option><option>Frutas y Verduras</option><option>Vinos</option>
-                <option>Licores</option><option>Refrescos</option><option>Panadería</option>
-                <option>Limpieza</option><option>Semillas</option><option>Otros insumos</option>
+              <select id="edit-categoria" onchange="checkNuevaCatCompra(this)" class="w-full px-4 py-3 bg-surface-container-low rounded-xl text-sm outline-none">
               </select>
             </div>
             <div>
@@ -1303,35 +1291,37 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
 
       <!-- Modal registrar salida como compra -->
       <div id="modal-salida" class="hidden fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl">
-          <div class="flex items-center justify-between mb-5">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-lg shadow-2xl" style="max-height:90vh;overflow-y:auto">
+          <div class="flex items-center justify-between mb-4">
             <h3 class="font-bold text-slate-900">Registrar como compra</h3>
             <button type="button" onclick="closeModal('modal-salida')" class="ms text-slate-400 hover:text-slate-600">close</button>
           </div>
-          <div class="space-y-4">
-            <div class="bg-slate-50 rounded-2xl p-4">
-              <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Salida de caja</p>
-              <p class="font-semibold text-slate-900" id="sal-modal-desc">—</p>
-              <p class="text-2xl font-bold text-slate-900 mt-1" id="sal-modal-monto">$0</p>
-              <p class="text-xs text-slate-400 mt-1" id="sal-modal-fecha">—</p>
+          <!-- Info de la salida -->
+          <div class="bg-slate-50 rounded-2xl p-4 mb-4">
+            <p class="text-xs text-slate-400 uppercase tracking-wider mb-1">Salida de caja Loyverse</p>
+            <p class="font-semibold text-slate-900" id="sal-modal-desc">—</p>
+            <p class="text-2xl font-bold text-slate-900 mt-1" id="sal-modal-monto">$0</p>
+            <p class="text-xs text-slate-400 mt-1" id="sal-modal-fecha">—</p>
+          </div>
+          <!-- Proveedor -->
+          <div class="mb-3">
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Proveedor</label>
+            <input type="text" id="sal-modal-proveedor" list="proveedores-list" placeholder="Ej: SAMS, KRILL, AYALA..." class="w-full px-4 py-3 bg-surface-container-low rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20 uppercase"/>
+          </div>
+          <!-- Desglose por categoría -->
+          <div class="mb-3">
+            <div class="flex items-center justify-between mb-2">
+              <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Desglose por categoría</label>
+              <button type="button" onclick="salAgregarLinea()" class="text-xs font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                <span class="ms text-sm">add</span>Agregar línea
+              </button>
             </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Proveedor</label>
-              <input type="text" id="sal-modal-proveedor" list="proveedores-list" placeholder="Ej: PANADERIA" class="w-full px-4 py-3 bg-surface-container-low rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20 uppercase"/>
+            <div id="sal-modal-lineas" class="space-y-2"></div>
+            <div class="flex justify-between items-center mt-2 pt-2 border-t border-slate-100">
+              <span class="text-xs text-slate-400">Total desglosado</span>
+              <span class="text-sm font-bold text-slate-900" id="sal-modal-total-lineas">$0</span>
             </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Categoría</label>
-              <select id="sal-modal-categoria" class="w-full px-4 py-3 bg-surface-container-low rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20">
-                <option>Abarrotes</option><option>Carnicería</option><option>Mariscos</option>
-                <option>Lácteos</option><option>Frutas y Verduras</option><option>Vinos</option>
-                <option>Licores</option><option>Refrescos</option><option>Panadería</option>
-                <option>Limpieza</option><option>Semillas</option><option>Otros insumos</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Notas (opcional)</label>
-              <input type="text" id="sal-modal-notas" placeholder="Detalle adicional..." class="w-full px-4 py-3 bg-surface-container-low rounded-2xl text-sm outline-none focus:ring-2 focus:ring-primary/20"/>
-            </div>
+            <p class="text-xs text-amber-600 mt-1 hidden" id="sal-modal-diff">⚠ La suma no coincide con el monto de la salida</p>
           </div>
           <div class="flex gap-3 mt-5">
             <button type="button" onclick="closeModal('modal-salida')" class="flex-1 py-3 border border-slate-200 rounded-2xl text-sm font-semibold text-slate-600 hover:bg-slate-50">Cancelar</button>
@@ -2305,24 +2295,116 @@ function renderSalidas() {
 function abrirModalSalida(id) {
   const sal = SAL_DATA.find(s => s.id === id);
   if (!sal) return;
-  document.getElementById('sal-modal-desc').textContent   = sal.descripcion;
-  document.getElementById('sal-modal-monto').textContent  = '$' + fmt(sal.monto);
-  document.getElementById('sal-modal-fecha').textContent  = sal.fecha + ' · ' + sal.hora;
-  document.getElementById('sal-modal-proveedor').value    = sal.descripcion.toUpperCase();
-  document.getElementById('sal-modal-notas').value        = '';
-  document.getElementById('modal-salida').dataset.salId   = id;
-  // Auto-detectar categoría por descripción
+  document.getElementById('sal-modal-desc').textContent  = sal.descripcion;
+  document.getElementById('sal-modal-monto').textContent = '$' + fmt(sal.monto);
+  document.getElementById('sal-modal-fecha').textContent = sal.fecha + ' · ' + sal.hora;
+  document.getElementById('sal-modal-proveedor').value   = sal.descripcion.toUpperCase();
+  document.getElementById('modal-salida').dataset.salId  = id;
+  document.getElementById('modal-salida').dataset.salMonto = sal.monto;
+  // Iniciar con una línea autodetectada
   const desc = sal.descripcion.toLowerCase();
-  const cat  = desc.includes('pan') || desc.includes('baguet') ? 'Panadería'
-             : desc.includes('carn') || desc.includes('pollo') ? 'Carnicería'
-             : desc.includes('mar') || desc.includes('calam') ? 'Mariscos'
-             : desc.includes('vino') || desc.includes('licor') ? 'Vinos'
-             : desc.includes('hielo') || desc.includes('coca') || desc.includes('refresc') ? 'Refrescos'
-             : desc.includes('limpieza') || desc.includes('deterg') ? 'Limpieza'
-             : desc.includes('flor') ? 'Otros insumos'
-             : 'Otros insumos';
-  document.getElementById('sal-modal-categoria').value = cat;
+  const catAuto = desc.includes('pan') || desc.includes('baguet') ? 'Panadería'
+    : desc.includes('carn') || desc.includes('pollo') ? 'Carnicería'
+    : desc.includes('mar') || desc.includes('calam') ? 'Mariscos'
+    : desc.includes('vino') || desc.includes('licor') ? 'Vinos'
+    : desc.includes('hielo') || desc.includes('coca') || desc.includes('refresc') ? 'Refrescos'
+    : desc.includes('limpieza') || desc.includes('deterg') ? 'Limpieza'
+    : desc.includes('nomina') || desc.includes('nómina') ? 'Nómina'
+    : 'Otros insumos';
+  // Renderizar líneas con una inicial que ocupa el monto total
+  salRenderLineas([{ cat: catAuto, monto: sal.monto }]);
   document.getElementById('modal-salida').classList.remove('hidden');
+}
+
+// Categorías editables almacenadas en localStorage
+function salGetCats() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('romatella_cats') || 'null');
+    if (saved && saved.length) return saved;
+  } catch(e) {}
+  return ['Abarrotes','Carnicería','Mariscos','Lácteos','Frutas y Verduras',
+          'Vinos','Licores','Refrescos','Panadería','Limpieza',
+          'Semillas','Nómina','Renta','Música','Gastos Fijos','Otros insumos'];
+}
+function salSaveCats(cats) {
+  try { localStorage.setItem('romatella_cats', JSON.stringify(cats)); } catch(e) {}
+}
+
+function salCatOptions(selected) {
+  const cats = salGetCats();
+  return cats.map(c => `<option value="${c}" ${c===selected?'selected':''}>${c}</option>`).join('');
+}
+
+function salRenderLineas(lineas) {
+  const cont = document.getElementById('sal-modal-lineas');
+  if (!cont) return;
+  cont.innerHTML = lineas.map((l, i) => `
+    <div class="flex gap-2 items-center" id="sal-linea-${i}">
+      <select onchange="salActualizarTotal()" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none">
+        ${salCatOptions(l.cat)}
+        <option value="__nueva__">+ Nueva categoría...</option>
+      </select>
+      <input type="number" value="${l.monto}" min="0" step="0.01" onchange="salActualizarTotal()"
+        class="w-28 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none text-right" placeholder="$0"/>
+      ${i > 0 ? `<button type="button" onclick="salQuitarLinea(${i})" class="ms text-slate-400 hover:text-red-500">remove_circle</button>` : '<div class="w-6"></div>'}
+    </div>`).join('');
+  salActualizarTotal();
+}
+
+function salAgregarLinea() {
+  const lineas = salLeerLineas();
+  lineas.push({ cat: 'Otros insumos', monto: 0 });
+  salRenderLineas(lineas);
+}
+
+function salQuitarLinea(i) {
+  const lineas = salLeerLineas();
+  lineas.splice(i, 1);
+  salRenderLineas(lineas);
+}
+
+function salLeerLineas() {
+  const cont = document.getElementById('sal-modal-lineas');
+  if (!cont) return [];
+  return [...cont.querySelectorAll('[id^="sal-linea-"]')].map(row => {
+    const sel = row.querySelector('select');
+    const inp = row.querySelector('input[type="number"]');
+    // Detectar si eligió "Nueva categoría"
+    if (sel && sel.value === '__nueva__') {
+      const nueva = prompt('Nombre de la nueva categoría:');
+      if (nueva && nueva.trim()) {
+        const cats = salGetCats();
+        if (!cats.includes(nueva.trim())) { cats.push(nueva.trim()); salSaveCats(cats); }
+        sel.innerHTML = salCatOptions(nueva.trim());
+        return { cat: nueva.trim(), monto: parseFloat(inp?.value) || 0 };
+      }
+      sel.value = 'Otros insumos';
+    }
+    return { cat: sel?.value || 'Otros insumos', monto: parseFloat(inp?.value) || 0 };
+  });
+}
+
+function salActualizarTotal() {
+  // Detectar nueva categoría en selects
+  document.querySelectorAll('#sal-modal-lineas select').forEach(sel => {
+    if (sel.value === '__nueva__') {
+      const nueva = prompt('Nombre de la nueva categoría:');
+      if (nueva && nueva.trim()) {
+        const cats = salGetCats();
+        if (!cats.includes(nueva.trim())) { cats.push(nueva.trim()); salSaveCats(cats); }
+        sel.innerHTML = salCatOptions(nueva.trim());
+      } else {
+        sel.value = 'Otros insumos';
+      }
+    }
+  });
+  const lineas = salLeerLineas();
+  const suma = lineas.reduce((a, l) => a + l.monto, 0);
+  const totalEl = document.getElementById('sal-modal-total-lineas');
+  const diffEl  = document.getElementById('sal-modal-diff');
+  const monto   = parseFloat(document.getElementById('modal-salida').dataset.salMonto) || 0;
+  if (totalEl) totalEl.textContent = '$' + fmt(suma);
+  if (diffEl)  diffEl.classList.toggle('hidden', Math.abs(suma - monto) < 0.5);
 }
 
 function anularSalida(id) {
@@ -2334,49 +2416,49 @@ function anularSalida(id) {
 }
 
 async function confirmarSalida() {
-  const id         = document.getElementById('modal-salida').dataset.salId;
-  const sal        = SAL_DATA.find(s => s.id === id);
-  const proveedor  = document.getElementById('sal-modal-proveedor').value.trim().toUpperCase();
-  const categoria  = document.getElementById('sal-modal-categoria').value;
-  const notas      = document.getElementById('sal-modal-notas').value.trim();
-
+  const id       = document.getElementById('modal-salida').dataset.salId;
+  const sal      = SAL_DATA.find(s => s.id === id);
+  const proveedor = document.getElementById('sal-modal-proveedor').value.trim().toUpperCase();
   if (!proveedor) { toast('Ingresa el proveedor'); return; }
   if (!sal) return;
 
+  const lineas = salLeerLineas().filter(l => l.monto > 0);
+  if (!lineas.length) { toast('Agrega al menos una línea con monto'); return; }
+
   try {
-    const resp = await fetch('/api/supabase', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        table: 'compras', action: 'insert',
-        data: {
-          fecha:           sal.fecha,
-          proveedor_nombre: proveedor,
-          folio:           'CAJA',
-          categoria,
-          forma_pago:      'Efectivo',
-          estatus_pago:    'Pagado',
-          total:           sal.monto,
-          vencimiento:     null,
-          notas:           notas || sal.descripcion
-        }
-      })
-    });
-    const saved = await resp.json();
-    const compraId = Array.isArray(saved) ? saved[0]?.id : saved?.id;
+    // Insertar una compra por cada línea de categoría
+    for (const linea of lineas) {
+      const resp = await fetch('/api/supabase', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          table: 'compras', action: 'insert',
+          data: {
+            fecha:            sal.fecha,
+            proveedor_nombre: proveedor,
+            folio:            'CAJA',
+            categoria:        linea.cat,
+            forma_pago:       'Efectivo',
+            estatus_pago:     'Pagado',
+            total:            linea.monto,
+            vencimiento:      null,
+            notas:            sal.descripcion
+          }
+        })
+      });
+      const saved = await resp.json();
+      const compraId = Array.isArray(saved) ? saved[0]?.id : saved?.id;
+      const compra = { id: compraId || Date.now(), fecha: sal.fecha, proveedor,
+        folio:'CAJA', categoria: linea.cat, forma_pago:'Efectivo', estatus:'Pagado',
+        total: linea.monto, vencimiento: null, items: [] };
+      if (!DB.compras.find(x => String(x.id) === String(compra.id))) DB.compras.push(compra);
+    }
 
-    // Agregar al DB local
-    const compra = { id: compraId || Date.now(), fecha: sal.fecha, proveedor,
-      folio:'CAJA', categoria, forma_pago:'Efectivo', estatus:'Pagado',
-      total: sal.monto, vencimiento: null, items: [] };
-    if (!DB.compras.find(x => String(x.id) === String(compra.id))) DB.compras.push(compra);
-
-    // Marcar como registrada
     SAL_REGISTRADAS.add(id);
     salPersistir();
     closeModal('modal-salida');
     renderSalidas();
-    toast('✓ Registrado: ' + proveedor + ' $' + fmt(sal.monto));
+    toast('✓ ' + lineas.length + ' compra(s) registrada(s) · ' + proveedor);
   } catch(e) {
     toast('Error: ' + e.message);
   }
@@ -6290,7 +6372,41 @@ document.addEventListener('DOMContentLoaded', () => {
   setFormaPago('Efectivo', null);
   setCondicion('inmediato', null);
   initCondicionFechas();
+  // Popular todos los selects de categoría con las categorías guardadas
+  popularSelectsCategorias();
 });
+
+function popularSelectsCategorias(catSeleccionada) {
+  const cats = salGetCats();
+  const opts = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+  const optsConNueva = opts + '<option value="__nueva__">+ Nueva categoría...</option>';
+
+  // f-categoria (nueva compra)
+  const fc = document.getElementById('f-categoria');
+  if (fc) { fc.innerHTML = '<option value="">Seleccionar...</option>' + optsConNueva; if(catSeleccionada) fc.value = catSeleccionada; }
+
+  // edit-categoria (edición de compra)
+  const ec = document.getElementById('edit-categoria');
+  if (ec) { ec.innerHTML = opts + optsConNueva; if(catSeleccionada) ec.value = catSeleccionada; }
+
+  // hist-cat-select (filtro historial)
+  const hc = document.getElementById('hist-cat-select');
+  if (hc) { hc.innerHTML = '<option value="">Todas las categorías</option>' + opts; }
+}
+
+function checkNuevaCatCompra(sel) {
+  if (sel.value !== '__nueva__') return;
+  const nueva = prompt('Nombre de la nueva categoría:');
+  if (nueva && nueva.trim()) {
+    const cats = salGetCats();
+    if (!cats.includes(nueva.trim())) { cats.push(nueva.trim()); salSaveCats(cats); }
+    popularSelectsCategorias(nueva.trim());
+    // Restaurar valor en el select que disparó el cambio
+    if (document.getElementById(sel.id)) document.getElementById(sel.id).value = nueva.trim();
+  } else {
+    sel.value = '';
+  }
+}
 </script>
 </body>
 </html>
