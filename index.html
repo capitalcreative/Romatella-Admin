@@ -1014,18 +1014,11 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
               <input id="edit-fecha" type="date" class="w-full px-4 py-3 bg-surface-container-low rounded-xl text-sm outline-none"/>
             </div>
           </div>
-          <div class="grid grid-cols-2 gap-3">
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Categoría</label>
-              <select id="edit-categoria" onchange="checkNuevaCatCompra(this)" class="w-full px-4 py-3 bg-surface-container-low rounded-xl text-sm outline-none">
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Forma de pago</label>
-              <select id="edit-pago" class="w-full px-4 py-3 bg-surface-container-low rounded-xl text-sm outline-none">
-                <option>Efectivo</option><option>Banamex</option><option>Mercado Pago</option>
-              </select>
-            </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Forma de pago</label>
+            <select id="edit-pago" class="w-full px-4 py-3 bg-surface-container-low rounded-xl text-sm outline-none">
+              <option>Efectivo</option><option>Banamex</option><option>Mercado Pago</option>
+            </select>
           </div>
           <div class="grid grid-cols-2 gap-3">
             <div>
@@ -1051,6 +1044,9 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
               <button type="button" onclick="addEditItem()" class="text-xs text-primary-container font-semibold flex items-center gap-1">
                 <span class="ms text-sm">add</span>Agregar
               </button>
+            </div>
+            <div class="grid grid-cols-12 gap-1 text-xs text-slate-400 uppercase tracking-wider mb-1 px-1">
+              <span class="col-span-4">Producto</span><span class="col-span-3">Categoría</span><span class="col-span-2">Cant.</span><span class="col-span-2">P.Unit</span><span class="col-span-1"></span>
             </div>
             <div id="edit-items" class="space-y-2"></div>
           </div>
@@ -3480,6 +3476,35 @@ function setEstatus(e) {
 function calcVencimiento() { /* legacy — reemplazado por setCondicion */ }
 
 
+// ============================================================
+// MOTOR DE AUTO-CATEGORIZACIÓN POR NOMBRE DE PRODUCTO
+// ============================================================
+function inferirCategoria(nombre) {
+  if (!nombre) return 'Otros insumos';
+  const n = nombre.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  // Carnicería
+  if (/carne|molida|res|bistec|fajita|costilla|arrachera|milanesa|pollo|pechuga|muslo|pierna|chorizo|salchicha|jamon|tocino|cerdo|chuleta|lomo|barbacoa|carnitas|pastor|suadero/.test(n)) return 'Carnicería';
+  // Mariscos
+  if (/salmon|atun|camaron|calamar|pulpo|marlín|marlin|pescado|filete|surimi|ostión|mejillon|langosta|almeja|jaiba/.test(n)) return 'Mariscos';
+  // Lácteos
+  if (/leche|crema|queso|mantequilla|yogur|yogurt|manchego|oaxaca|panela|ricotta|mascarpone|brie|gouda|parmesano|grana|burrata|mozzarella|nata/.test(n)) return 'Lácteos';
+  // Frutas y Verduras
+  if (/lechuga|tomate|jitomate|cebolla|ajo|zanahoria|papa|chile|aguacate|limon|naranja|mango|fresa|espinaca|brocoli|coliflor|calabaza|pepino|nopale|cilantro|perejil|albahaca|romero|tomillo|mezcla|verdura|fruta|apio|betabel|pimiento|morron|champiñon|champiñones|hongos|ejote|haba|brocoli/.test(n)) return 'Frutas y Verduras';
+  // Vinos y Licores
+  if (/vino|botella|copa|espumoso|cava|champagne|prosecco|malbec|cabernet|merlot|chardonnay|sauvignon|riesling|pinot|rose|rosé|tempranillo|tinto|blanco|mezcal|tequila|ron|whisky|bourbon|gin|vodka|cerveza|modelo|corona|pacifico|heineken|bar|licor/.test(n)) return 'Vinos';
+  // Refrescos y bebidas no alcohólicas
+  if (/refresco|agua|mineral|coca|pepsi|sprite|fanta|squirt|jarritos|sidral|peñafiel|bonafont|ciel|jumex|del valle|jugo|néctar|te |té |limonada|agua de|soda|tonica|tônica|gatorade|powerade/.test(n)) return 'Refrescos';
+  // Panadería
+  if (/pan|baguet|bolillo|tortilla|pita|brioche|focaccia|croisant|croissant|bisquet|muffin|pasta hojaldre|masa/.test(n)) return 'Panadería';
+  // Abarrotes / despensa
+  if (/aceite|vinagre|sal |azucar|harina|arroz|pasta|sopa|lata|atun en|frijol|lenteja|garbanzo|mayonesa|mostaza|catsup|ketchup|salsa|adobo|consomé|consome|caldo|miel|mermelada|manteca|margarina|cafe |café |chocolate|cacao|vainilla|polvo|levadura|nuez|almendra|pasa|cajeta|cajeta|pimienta|comino|oregano|laurel|canela|clavo|paprika|curry/.test(n)) return 'Abarrotes';
+  // Semillas / frutos secos
+  if (/semilla|cacahuate|pistacho|nuez|almendra|avellana|ajonjoli|linaza|chia|amaranto/.test(n)) return 'Semillas';
+  // Limpieza
+  if (/detergente|jabón|jabon|cloro|pinol|fabuloso|ariel|bold|ace|limpiador|esponja|guante|bolsa basura|desinfectante|sanitizante|lysol|papel higienico|servilleta|toalla|desechable/.test(n)) return 'Limpieza';
+  return 'Otros insumos';
+}
+
 function addItem(nombre, unidad, precio, categoria) {
   const div = document.createElement('div');
   div.className = 'relative';
@@ -3494,7 +3519,14 @@ function addItem(nombre, unidad, precio, categoria) {
   inputProd.className = 'w-full px-3 py-2 bg-surface-container-low rounded-xl text-sm outline-none';
   inputProd.placeholder = 'Producto...';
   inputProd.value = nombre || '';
-  inputProd.addEventListener('input', () => buscarProducto(inputProd));
+  inputProd.addEventListener('input', () => {
+    buscarProducto(inputProd);
+    // Auto-categorizar si el selCat sigue en default y el nombre tiene suficientes chars
+    if (inputProd.value.length >= 3) {
+      const cat = inferirCategoria(inputProd.value);
+      if (cat !== 'Otros insumos' && selCat) selCat.value = cat;
+    }
+  });
   inputProd.addEventListener('focus', () => buscarProducto(inputProd));
   inputProd.addEventListener('blur', () => setTimeout(() => cerrarSugerencias(inputProd), 200));
   const sug = document.createElement('div');
@@ -3821,38 +3853,37 @@ async function guardarEdicion() {
 
   const proveedor = document.getElementById('edit-proveedor').value.trim().toUpperCase();
   const fecha = document.getElementById('edit-fecha').value;
-  const categoria = document.getElementById('edit-categoria').value;
   const forma_pago = document.getElementById('edit-pago').value;
-  const total = parseFloat(document.getElementById('edit-total').value) || 0;
   const estatus = document.getElementById('edit-estatus').value;
   const vencimiento = document.getElementById('edit-vencimiento').value || null;
 
-  // Get items from edit form
-  const itemRows = document.getElementById('edit-items').querySelectorAll('div');
+  // Leer items del modal con su categoría individual
   const newItems = [];
-  itemRows.forEach(row => {
-    const inputs = row.querySelectorAll('input');
-    if (inputs[0]?.value.trim()) {
-      newItems.push({
-        nombre: inputs[0].value.trim().toUpperCase(),
-        unidad: inputs[1]?.value.trim() || 'pza',
-        cantidad: parseFloat(inputs[2]?.value) || 0,
-        costo_unitario: parseFloat(inputs[3]?.value) || 0
-      });
-    }
+  document.getElementById('edit-items').querySelectorAll('.grid').forEach(row => {
+    const inputProd = row.querySelector('input:not([type="number"])');
+    const selCat    = row.querySelector('select[data-edit-cat]');
+    const nums      = row.querySelectorAll('input[type="number"]');
+    const nombre    = inputProd?.value.trim();
+    if (!nombre) return;
+    newItems.push({
+      nombre: nombre.toUpperCase(),
+      categoria: selCat?.value || inferirCategoria(nombre),
+      cantidad: parseFloat(nums[0]?.value) || 0,
+      costo_unitario: parseFloat(nums[1]?.value) || 0
+    });
   });
 
-  // Update local DB
-  c.proveedor = proveedor;
-  c.fecha = fecha;
-  c.categoria = categoria;
-  c.forma_pago = forma_pago;
-  c.total = total;
-  c.estatus = estatus;
-  c.vencimiento = vencimiento;
-  c.items = newItems;
+  // Categoría de la compra = la más frecuente entre los items
+  const catFreq = {};
+  newItems.forEach(i => { catFreq[i.categoria] = (catFreq[i.categoria]||0) + (i.cantidad * i.costo_unitario); });
+  const categoria = Object.entries(catFreq).sort((a,b)=>b[1]-a[1])[0]?.[0] || c.categoria || 'Otros insumos';
+  const total = newItems.reduce((s,i) => s + i.cantidad * i.costo_unitario, 0) || parseFloat(document.getElementById('edit-total')?.value) || 0;
 
-  // Update Supabase - compra header
+  // Update local DB
+  c.proveedor = proveedor; c.fecha = fecha; c.categoria = categoria;
+  c.forma_pago = forma_pago; c.total = total; c.estatus = estatus;
+  c.vencimiento = vencimiento; c.items = newItems;
+
   try {
     await fetch('/api/supabase', {
       method: 'POST',
@@ -3862,7 +3893,6 @@ async function guardarEdicion() {
         data: { proveedor_nombre: proveedor, fecha, categoria, forma_pago, total, estatus_pago: estatus, vencimiento: vencimiento || null }
       })
     });
-    // Delete old items and reinsert
     if (newItems.length > 0) {
       await fetch('/api/supabase', {
         method: 'POST',
@@ -3873,8 +3903,14 @@ async function guardarEdicion() {
         await fetch('/api/supabase', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
-          body: JSON.stringify({ table: 'detalle_compras', action: 'insert', data: { compra_id: id, nombre_producto: item.nombre, unidad: item.unidad, cantidad: item.cantidad, costo_unitario: item.costo_unitario } })
+          body: JSON.stringify({ table: 'detalle_compras', action: 'insert', data: { compra_id: id, nombre_producto: item.nombre, cantidad: item.cantidad, costo_unitario: item.costo_unitario } })
         });
+        if (item.costo_unitario > 0) {
+          await saveHistorialPrecio(
+            { nombre: item.nombre, costo_unitario: item.costo_unitario },
+            { proveedor, fecha, id }
+          );
+        }
       }
     }
     closeModal('modal-editar');
@@ -5890,9 +5926,6 @@ function abrirEditar(id) {
   document.getElementById('edit-total').value = c.total || 0;
   document.getElementById('edit-vencimiento').value = c.vencimiento || '';
 
-  const catSel = document.getElementById('edit-categoria');
-  if (catSel) Array.from(catSel.options).forEach(o => { o.selected = o.value === c.categoria; });
-
   const pagoSel = document.getElementById('edit-pago');
   if (pagoSel) Array.from(pagoSel.options).forEach(o => { o.selected = o.value === c.forma_pago; });
 
@@ -5903,29 +5936,93 @@ function abrirEditar(id) {
   const editItems = document.getElementById('edit-items');
   if (editItems) {
     editItems.innerHTML = '';
-    (c.items || []).forEach(item => {
-      const row = el('div', { cls: 'grid grid-cols-4 gap-2 items-center' }, [
-        el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', value: item.nombre || '', placeholder: 'Producto' }),
-        el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', value: item.unidad || 'pza', placeholder: 'Unidad' }),
-        el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', type: 'number', value: item.cantidad || 0, placeholder: '0' }),
-        el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', type: 'number', value: item.costo_unitario || 0, placeholder: '$0' })
-      ]);
-      editItems.appendChild(row);
-    });
+    (c.items || []).forEach(item => addEditItem(item));
+    // Si no hay items, añadir uno vacío
+    if (!(c.items || []).length) addEditItem();
   }
 
   document.getElementById('modal-editar').classList.remove('hidden');
 }
 
-function addEditItem() {
+function addEditItem(item) {
   const editItems = document.getElementById('edit-items');
   if (!editItems) return;
-  const row = el('div', { cls: 'grid grid-cols-4 gap-2 items-center' }, [
-    el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', placeholder: 'Producto' }),
-    el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', value: 'pza', placeholder: 'Unidad' }),
-    el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', type: 'number', value: '1', placeholder: '0' }),
-    el('input', { cls: 'col-span-1 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none', type: 'number', value: '0', placeholder: '$0' })
-  ]);
+
+  const nombre = item?.nombre || '';
+  const catGuardada = item?.categoria || inferirCategoria(nombre);
+  const cant = item?.cantidad ?? '';
+  const precio = item?.costo_unitario ?? '';
+
+  // Producto input
+  const inputProd = document.createElement('input');
+  inputProd.className = 'col-span-4 px-3 py-2 bg-surface-container-low rounded-xl text-xs outline-none';
+  inputProd.placeholder = 'Producto';
+  inputProd.value = nombre;
+
+  // Categoría select
+  const selCat = document.createElement('select');
+  selCat.className = 'col-span-3 px-2 py-2 bg-surface-container-low rounded-xl text-xs outline-none';
+  selCat.dataset.editCat = '1';
+  const cats = salGetCats();
+  cats.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c;
+    if (c === catGuardada) opt.selected = true;
+    selCat.appendChild(opt);
+  });
+  const optNueva = document.createElement('option');
+  optNueva.value = '__nueva__'; optNueva.textContent = '+ Nueva...';
+  selCat.appendChild(optNueva);
+  selCat.addEventListener('change', () => {
+    if (selCat.value === '__nueva__') {
+      const nueva = prompt('Nueva categoría:');
+      if (nueva?.trim()) {
+        const cats2 = salGetCats();
+        if (!cats2.includes(nueva.trim())) { cats2.push(nueva.trim()); salSaveCats(cats2); }
+        const o = document.createElement('option');
+        o.value = nueva.trim(); o.textContent = nueva.trim();
+        selCat.insertBefore(o, optNueva);
+        selCat.value = nueva.trim();
+      } else selCat.value = catGuardada || 'Otros insumos';
+    }
+  });
+
+  // Auto-categorizar al escribir nombre
+  inputProd.addEventListener('input', () => {
+    if (inputProd.value.length >= 3) {
+      // Buscar en catálogo primero
+      const match = DB.productos.find(p => p.nombre.toLowerCase() === inputProd.value.toLowerCase());
+      const cat = match?.categoria || inferirCategoria(inputProd.value);
+      if (cat && cat !== 'Otros insumos') selCat.value = cat;
+    }
+  });
+
+  // Cantidad
+  const inputCant = document.createElement('input');
+  inputCant.type = 'number'; inputCant.min = '0';
+  inputCant.className = 'col-span-2 px-2 py-2 bg-surface-container-low rounded-xl text-xs outline-none';
+  inputCant.placeholder = '0'; inputCant.value = cant;
+
+  // Precio
+  const inputPrecio = document.createElement('input');
+  inputPrecio.type = 'number'; inputPrecio.min = '0'; inputPrecio.step = '0.01';
+  inputPrecio.className = 'col-span-2 px-2 py-2 bg-surface-container-low rounded-xl text-xs outline-none';
+  inputPrecio.placeholder = '$0'; inputPrecio.value = precio;
+
+  // Borrar
+  const delBtn = document.createElement('button');
+  delBtn.type = 'button';
+  delBtn.className = 'col-span-1 text-slate-300 hover:text-error flex justify-center';
+  delBtn.innerHTML = '<span class="ms text-base">delete</span>';
+  delBtn.addEventListener('click', () => row.remove());
+
+  const row = document.createElement('div');
+  row.className = 'grid grid-cols-12 gap-1 items-center';
+  row.appendChild(inputProd);
+  row.appendChild(selCat);
+  row.appendChild(inputCant);
+  row.appendChild(inputPrecio);
+  row.appendChild(delBtn);
   editItems.appendChild(row);
 }
 
@@ -6444,10 +6541,6 @@ function popularSelectsCategorias(catSeleccionada) {
   const cats = salGetCats();
   const opts = cats.map(c => `<option value="${c}">${c}</option>`).join('');
   const optsConNueva = opts + '<option value="__nueva__">+ Nueva categoría...</option>';
-
-  // edit-categoria (edición de compra)
-  const ec = document.getElementById('edit-categoria');
-  if (ec) { ec.innerHTML = opts + optsConNueva; if(catSeleccionada) ec.value = catSeleccionada; }
 
   // hist-cat-select (filtro historial)
   const hc = document.getElementById('hist-cat-select');
