@@ -123,6 +123,10 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
       <div onclick="showSec('pnl')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-pnl">
         <span class="ms text-lg">bar_chart</span>P&L Semanal
       </div>
+      <div onclick="showSec('requisiciones')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-requisiciones">
+        <span class="ms text-lg">checklist</span>Requisiciones
+        <span id="req-badge" class="ml-auto text-xs bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+      </div>
     </nav>
     <button type="button" onclick="doLogout()" class="mx-2 mb-2 text-slate-400 py-2 px-3 rounded-xl text-sm flex items-center gap-2 hover:bg-slate-100 transition-colors">
       <span class="ms text-lg">logout</span>Cerrar sesión
@@ -193,6 +197,10 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         </div>
         <div onclick="mobileNav('pnl')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
           <span class="ms text-lg">bar_chart</span>P&L Semanal
+        </div>
+        <div onclick="mobileNav('requisiciones')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
+          <span class="ms text-lg">checklist</span>Requisiciones
+          <span id="mob-req-badge" class="ml-auto text-xs bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
         </div>
       </nav>
       <button type="button" onclick="doLogout()" class="mx-2 mb-2 text-slate-400 py-2.5 px-3 rounded-xl text-sm flex items-center gap-2 hover:bg-slate-100 transition-colors">
@@ -407,9 +415,7 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         </table>
       </div>
 
-      <!-- Hidden badges for nav -->
-      <span id="req-badge" class="hidden"></span>
-      <span id="mob-req-badge" class="hidden"></span>
+      <!-- badges movidos al nav -->
 
       <!-- LINK ENCARGADOS -->
       <div class="bg-white rounded-2xl p-4 border border-slate-100 shadow-sm mt-4">
@@ -2938,14 +2944,58 @@ async function loadFromSupabase() {
     renderCuentasNuevo();
     poblarProveedoresDatalist();
     loadHistorialPrecios();
-    // Activar "esta semana" por defecto en el dashboard
     const btnSemana = document.getElementById('dash-btn-semana');
     if (btnSemana) setDashPeriodo('semana', btnSemana);
     toast('✓ ' + DB.compras.length + ' compras cargadas');
+
+    // Cargar requisiciones desde Supabase
+    loadRequisicionesSupabase();
+
   } catch(e) {
     renderDashboard();
   } finally {
     DB._loading = false;
+  }
+}
+
+async function loadRequisicionesSupabase() {
+  try {
+    const resp = await fetch('/api/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table: 'requisiciones', action: 'select' })
+    });
+    const data = await resp.json();
+    if (!Array.isArray(data)) return;
+
+    DB.requisiciones = data.map(r => ({
+      id: r.id,
+      nombre: r.nombre || '—',
+      fecha: r.fecha || r.created_at,
+      items: r.items || '[]',
+      sin_stock: r.sin_stock || '[]',
+      estatus: r.estatus || 'Pendiente',
+      // campos legacy para compatibilidad con renderRequisiciones
+      area: 'Múltiple',
+      producto: (() => { try { const it = JSON.parse(r.items||'[]'); return it.length + ' artículos'; } catch { return '—'; } })(),
+      urgencia: 'Normal'
+    }));
+
+    // Actualizar badge con pendientes
+    const pendCount = DB.requisiciones.filter(r => r.estatus === 'Pendiente').length;
+    ['req-badge','mob-req-badge'].forEach(id => {
+      const b = document.getElementById(id);
+      if (!b) return;
+      if (pendCount > 0) { b.textContent = pendCount; b.classList.remove('hidden'); }
+      else { b.classList.add('hidden'); }
+    });
+
+    // Si ya estamos en la sección, re-renderizar
+    if (document.getElementById('sec-requisiciones')?.classList.contains('active')) {
+      renderRequisiciones('pendientes');
+    }
+  } catch(e) {
+    console.warn('No se pudieron cargar requisiciones:', e);
   }
 }
 function doLogout() {
@@ -2985,7 +3035,7 @@ function showSec(name) {
   if (name === 'inventario') { cargarUltimoInventario().then(() => invCambiarFecha()); }
   if (name === 'salidas') { initSalidas(); }
   if (name === 'pnl')     { initPnL(); }
-  if (name === 'requisiciones') renderRequisiciones('pendientes');
+  if (name === 'requisiciones') { loadRequisicionesSupabase(); renderRequisiciones('pendientes'); }
   if (name === 'productos') renderProductos();
 }
 function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
@@ -6518,41 +6568,126 @@ function filterReq(filtro, btnEl) {
   grid.innerHTML = '';
 
   if (!reqs.length) {
-    grid.appendChild(el('div', { cls: 'col-span-full text-center py-12 text-slate-300', text: 'Sin requisiciones ' + filtro }));
+    const empty = document.createElement('div');
+    empty.className = 'col-span-full text-center py-16';
+    empty.innerHTML = '<span class="ms text-5xl text-slate-200">checklist</span><p class="text-slate-300 mt-3 text-sm">Sin requisiciones ' + filtro + '</p>';
+    grid.appendChild(empty);
     return;
   }
 
   reqs.forEach(r => {
-    const urgBadge = r.urgencia === 'Urgente'
-      ? el('span', { cls: 'text-xs font-bold px-2 py-0.5 rounded-full bg-red-50 text-red-600', text: '! Urgente' })
-      : el('span', { cls: 'text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-500', text: 'Normal' });
+    const items = (() => { try { return JSON.parse(r.items || '[]'); } catch { return []; } })();
+    const sinStock = (() => { try { return JSON.parse(r.sin_stock || '[]'); } catch { return []; } })();
+    const fechaStr = r.fecha ? new Date(r.fecha).toLocaleDateString('es-MX', { weekday:'short', day:'numeric', month:'short' }) : '—';
 
-    const aprobarBtn = el('button', { cls: 'flex-1 py-2 rounded-xl bg-green-50 text-green-700 text-xs font-semibold border border-green-200 hover:bg-green-100', type: 'button', text: 'Aprobar' });
-    aprobarBtn.addEventListener('click', () => {
-      r.estatus = 'Aprobada';
-      renderRequisiciones();
-      toast('✓ Requisición aprobada');
-    });
+    const estatusCls = r.estatus === 'Aprobada'
+      ? 'text-xs font-semibold px-2 py-0.5 rounded-full bg-green-50 text-green-700'
+      : r.estatus === 'Rechazada'
+      ? 'text-xs font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-600'
+      : 'text-xs font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700';
 
-    const rechazarBtn = el('button', { cls: 'flex-1 py-2 rounded-xl bg-red-50 text-red-600 text-xs font-semibold border border-red-200 hover:bg-red-100', type: 'button', text: 'Rechazar' });
-    rechazarBtn.addEventListener('click', () => {
-      r.estatus = 'Rechazada';
-      renderRequisiciones();
-      toast('Requisición rechazada');
-    });
+    const card = document.createElement('div');
+    card.className = 'bg-white rounded-2xl shadow-sm border border-slate-100 flex flex-col';
 
-    const card = el('div', { cls: 'bg-white rounded-2xl p-4 shadow-sm border border-slate-100' }, [
-      el('div', { cls: 'flex items-start justify-between mb-3' }, [
-        el('div', {}, [
-          el('p', { cls: 'font-semibold text-slate-900 text-sm', text: r.producto || '—' }),
-          el('p', { cls: 'text-xs text-slate-400 mt-0.5', text: (r.cantidad || 0) + ' ' + (r.unidad || '') + ' · ' + (r.area || '—') })
-        ]),
-        urgBadge
-      ]),
-      el('p', { cls: 'text-xs text-slate-500 mb-1', text: 'Solicitó: ' + (r.nombre || '—') }),
-      r.notas ? el('p', { cls: 'text-xs text-slate-400 italic mb-3', text: r.notas }) : null,
-      filtro === 'pendientes' ? el('div', { cls: 'flex gap-2 mt-3' }, [aprobarBtn, rechazarBtn]) : null
-    ]);
+    // Header
+    const header = document.createElement('div');
+    header.className = 'p-4 border-b border-slate-50';
+    header.innerHTML = `
+      <div class="flex items-start justify-between gap-2">
+        <div>
+          <p class="font-semibold text-slate-900 text-sm">${r.nombre || '—'}</p>
+          <p class="text-xs text-slate-400 mt-0.5">${fechaStr}</p>
+        </div>
+        <span class="${estatusCls}">${r.estatus}</span>
+      </div>
+      <div class="flex gap-2 mt-2">
+        ${items.length ? `<span class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-primary font-medium">${items.length} artículos</span>` : ''}
+        ${sinStock.length ? `<span class="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-medium">${sinStock.length} sin stock</span>` : ''}
+      </div>`;
+    card.appendChild(header);
+
+    // Lista de artículos (máx 5 visibles)
+    if (items.length > 0) {
+      const lista = document.createElement('div');
+      lista.className = 'px-4 py-2 flex-1';
+      const visibles = items.slice(0, 5);
+      visibles.forEach(x => {
+        const row = document.createElement('div');
+        row.className = 'flex justify-between items-center py-1 border-b border-slate-50 last:border-0';
+        row.innerHTML = `
+          <span class="text-xs text-slate-700 truncate flex-1">${x.item}</span>
+          <div class="flex items-center gap-1.5 shrink-0 ml-2">
+            <span class="text-xs px-1.5 py-0.5 rounded-full ${x.area === 'barra' ? 'bg-blue-50 text-primary' : 'bg-green-50 text-green-700'}">${x.area}</span>
+            <span class="text-xs font-bold text-slate-900 w-6 text-right">${x.qty}</span>
+          </div>`;
+        lista.appendChild(row);
+      });
+      if (items.length > 5) {
+        const more = document.createElement('p');
+        more.className = 'text-xs text-slate-300 pt-1 text-center';
+        more.textContent = '+ ' + (items.length - 5) + ' más...';
+        lista.appendChild(more);
+      }
+      card.appendChild(lista);
+    }
+
+    // Sin stock mini-lista
+    if (sinStock.length > 0) {
+      const ssDiv = document.createElement('div');
+      ssDiv.className = 'px-4 pb-2';
+      ssDiv.innerHTML = '<p class="text-xs font-semibold text-red-400 mb-1">Sin stock:</p>' +
+        sinStock.slice(0,3).map(x => `<span class="inline-block text-xs bg-red-50 text-red-600 rounded-full px-2 py-0.5 mr-1 mb-1">${x.item}</span>`).join('') +
+        (sinStock.length > 3 ? `<span class="text-xs text-slate-300">+${sinStock.length-3} más</span>` : '');
+      card.appendChild(ssDiv);
+    }
+
+    // Botones acción
+    if (filtro === 'pendientes') {
+      const footer = document.createElement('div');
+      footer.className = 'flex gap-2 p-3 border-t border-slate-50';
+
+      const aprobarBtn = document.createElement('button');
+      aprobarBtn.type = 'button';
+      aprobarBtn.className = 'flex-1 py-2 rounded-xl bg-green-50 text-green-700 text-xs font-semibold border border-green-200 hover:bg-green-100';
+      aprobarBtn.textContent = '✓ Aprobar';
+      aprobarBtn.addEventListener('click', async () => {
+        aprobarBtn.disabled = true;
+        aprobarBtn.textContent = 'Guardando…';
+        try {
+          await fetch('/api/supabase', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'update', table: 'requisiciones', id: r.id, data: { estatus: 'Aprobada' } })
+          });
+        } catch(e) {}
+        r.estatus = 'Aprobada';
+        filterReq(DB.reqFiltro || 'pendientes');
+        toast('✓ Requisición aprobada');
+      });
+
+      const rechazarBtn = document.createElement('button');
+      rechazarBtn.type = 'button';
+      rechazarBtn.className = 'flex-1 py-2 rounded-xl bg-red-50 text-red-600 text-xs font-semibold border border-red-200 hover:bg-red-100';
+      rechazarBtn.textContent = 'Rechazar';
+      rechazarBtn.addEventListener('click', async () => {
+        rechazarBtn.disabled = true;
+        rechazarBtn.textContent = 'Guardando…';
+        try {
+          await fetch('/api/supabase', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'update', table: 'requisiciones', id: r.id, data: { estatus: 'Rechazada' } })
+          });
+        } catch(e) {}
+        r.estatus = 'Rechazada';
+        filterReq(DB.reqFiltro || 'pendientes');
+        toast('Requisición rechazada');
+      });
+
+      footer.appendChild(aprobarBtn);
+      footer.appendChild(rechazarBtn);
+      card.appendChild(footer);
+    }
 
     grid.appendChild(card);
   });
