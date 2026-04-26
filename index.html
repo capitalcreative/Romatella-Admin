@@ -2127,7 +2127,8 @@ function salDesactivarBotones() {
 }
 
 function setSalidasPeriodo(tipo, btnEl) {
-  const { desde, hasta } = getRangoSemana(tipo);
+  const rangoTipo = tipo === 'semana' ? 'actual' : 'pasada';
+  const { desde, hasta } = getRangoSemana(rangoTipo);
   const desdeEl = document.getElementById('sal-desde');
   const hastaEl = document.getElementById('sal-hasta');
   if (desdeEl) desdeEl.value = desde;
