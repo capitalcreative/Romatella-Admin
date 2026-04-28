@@ -4418,9 +4418,6 @@ async function renderVentas() {
 
   try {
     const receipts = await fetchReceipts(desde.value, hasta.value);
-    const data = { receipts };
-
-    const receipts = data.receipts || [];
     loading.classList.add('hidden');
     loading.style.display = 'none';
     contentDiv.classList.remove('hidden');
