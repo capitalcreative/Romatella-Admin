@@ -4596,8 +4596,16 @@ function setVentasPeriodo(tipo, btn) {
 }
 
 async function renderCaja() {
-  const desde = document.getElementById('ventas-desde').value || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-  const hasta = document.getElementById('ventas-hasta').value || new Date().toISOString().split('T')[0];
+  // Obtener fechas exactamente igual que renderVentas para garantizar caché hit
+  const desdeEl = document.getElementById('ventas-desde');
+  const hastaEl = document.getElementById('ventas-hasta');
+  if (!desdeEl.value || !hastaEl.value) {
+    const { desde: sd, hasta: sh } = getRangoSemana('actual');
+    if (!desdeEl.value) desdeEl.value = sd;
+    if (!hastaEl.value) hastaEl.value = sh;
+  }
+  const desde = desdeEl.value;
+  const hasta  = hastaEl.value;
 
   const cajaCont = document.getElementById('ventas-caja');
   if (cajaCont) cajaCont.innerHTML = `<div class="flex items-center justify-center py-16 gap-3 text-slate-400"><span class="ms" style="animation:spin 1s linear infinite;display:inline-block">sync</span><span class="text-sm">Cargando movimientos...</span></div>`;
@@ -4606,16 +4614,13 @@ async function renderCaja() {
     const shifts = await fetchShifts(desde, hasta);
 
     // Los movimientos reales están en cash_movements[] de cada shift
-    // cash_movements tiene: type (PAY_IN/PAY_OUT), money_amount, comment, created_at
     const allMovements = [];
     let totalEntradas = 0, totalSalidas = 0;
 
-    const cajaDesde = document.getElementById('ventas-desde')?.value || desde;
-    const cajaHasta = document.getElementById('ventas-hasta')?.value || hasta;
     shifts.forEach(s => {
       (s.cash_movements || []).filter(m => {
         const md = (m.created_at || s.opened_at || '').substring(0,10);
-        return md >= cajaDesde && md <= cajaHasta;
+        return md >= desde && md <= hasta;
       }).forEach(m => {
         const esEntrada = m.type === 'PAY_IN';
         const monto = m.money_amount || 0;
@@ -4664,8 +4669,15 @@ async function renderCaja() {
 }
 
 async function renderCortes() {
-  const desde = document.getElementById('ventas-desde').value || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
-  const hasta = document.getElementById('ventas-hasta').value || new Date().toISOString().split('T')[0];
+  const desdeEl = document.getElementById('ventas-desde');
+  const hastaEl = document.getElementById('ventas-hasta');
+  if (!desdeEl.value || !hastaEl.value) {
+    const { desde: sd, hasta: sh } = getRangoSemana('actual');
+    if (!desdeEl.value) desdeEl.value = sd;
+    if (!hastaEl.value) hastaEl.value = sh;
+  }
+  const desde = desdeEl.value;
+  const hasta  = hastaEl.value;
 
   const tbody = document.getElementById('cortes-list');
   if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center"><span class="ms text-slate-300" style="animation:spin 1s linear infinite;display:inline-block;font-size:24px">sync</span><p class="text-slate-400 text-sm mt-2">Cargando cortes...</p></td></tr>';
