@@ -1639,6 +1639,11 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
 // ============================================================
 // GLOBAL STATE — single source of truth
 // ============================================================
+
+// Caché de llamadas a Loyverse — declarados al inicio para evitar Temporal Dead Zone
+let RECEIPTS_CACHE_GLOBAL = { desde: null, hasta: null, data: null, loading: false, waiters: [] };
+let SHIFTS_CACHE_GLOBAL   = { desde: null, hasta: null, data: null, loading: false, waiters: [] };
+
 const DB = {
   compras: [],
   productos: [
@@ -2252,9 +2257,7 @@ async function sincronizarInventarioLoyverse(btn) {
 // ============================================================
 let SAL_DATA = []; // salidas cargadas de Loyverse
 
-// Caché GLOBAL de receipts — compartido entre Ventas, P&L e Inventario
-let RECEIPTS_CACHE_GLOBAL = { desde: null, hasta: null, data: null, loading: false, waiters: [] };
-
+// fetchReceipts: caché en memoria para evitar llamadas duplicadas a Loyverse
 async function fetchReceipts(desde, hasta) {
   if (RECEIPTS_CACHE_GLOBAL.desde === desde && RECEIPTS_CACHE_GLOBAL.hasta === hasta && RECEIPTS_CACHE_GLOBAL.data) {
     return RECEIPTS_CACHE_GLOBAL.data;
@@ -2275,9 +2278,7 @@ async function fetchReceipts(desde, hasta) {
   return receipts;
 }
 
-// Caché GLOBAL de shifts — compartido entre Salidas, Caja y Cortes para evitar llamadas duplicadas
-let SHIFTS_CACHE_GLOBAL = { desde: null, hasta: null, data: null, loading: false, waiters: [] };
-
+// fetchShifts: caché en memoria compartido entre Salidas, Caja y Cortes
 async function fetchShifts(desde, hasta) {
   // Si ya está en caché con el mismo rango, devolver inmediatamente
   if (SHIFTS_CACHE_GLOBAL.desde === desde && SHIFTS_CACHE_GLOBAL.hasta === hasta && SHIFTS_CACHE_GLOBAL.data) {
