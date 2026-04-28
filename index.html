@@ -4416,6 +4416,9 @@ async function renderVentas() {
     if (!hasta.value) hasta.value = sh;
   }
 
+  // Pre-cargar shifts en paralelo (sin await) para que Caja y Cortes carguen instantáneo
+  fetchShifts(desde.value, hasta.value).catch(() => {});
+
   try {
     const receipts = await fetchReceipts(desde.value, hasta.value);
     loading.classList.add('hidden');
