@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Romatella Admin</title>
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
@@ -558,7 +558,7 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
                   </button>
                 </div>
                 <div class="grid grid-cols-12 gap-2 text-xs text-slate-400 uppercase tracking-wider mb-2 px-1">
-                  <span class="col-span-4">Producto</span><span class="col-span-2">Unidad</span><span class="col-span-1">Cant.</span><span class="col-span-2">P. Unit.</span><span class="col-span-2 text-right">Subtotal</span><span class="col-span-1"></span>
+                  <span class="col-span-4">Producto</span><span class="col-span-3">Categoría</span><span class="col-span-1">Und</span><span class="col-span-1">Cant.</span><span class="col-span-2">P. Unit.</span><span class="col-span-1 text-right">Sub</span>
                 </div>
                 <div id="items-container" class="space-y-2"></div>
               </div>
@@ -612,6 +612,10 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           <button type="button" id="hist-vista-prov-btn" onclick="setHistVista('proveedor',this)"
             class="px-3 py-1.5 rounded-lg text-slate-500 text-xs font-semibold flex items-center gap-1 hover:bg-white/60 transition-colors">
             <span class="ms text-sm">store</span>Por Proveedor
+          </button>
+          <button type="button" id="hist-vista-fecha-btn" onclick="setHistVista('fecha',this)"
+            class="px-3 py-1.5 rounded-lg text-slate-500 text-xs font-semibold flex items-center gap-1 hover:bg-white/60 transition-colors">
+            <span class="ms text-sm">calendar_today</span>Por Fecha
           </button>
         </div>
       </div>
@@ -673,6 +677,11 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
       <!-- Vista por proveedor (acordeón) -->
       <div id="hist-vista-proveedor" class="hidden space-y-3">
         <!-- Se rellena con renderHistorialPorProveedor() -->
+      </div>
+
+      <!-- Vista por fecha (desglose de productos por día) -->
+      <div id="hist-vista-fecha" class="hidden space-y-4">
+        <!-- Se rellena con renderHistorialPorFecha() -->
       </div>
     </section>
 
@@ -3611,9 +3620,9 @@ function setEstatus(e) {
 function calcVencimiento() { /* legacy — reemplazado por setCondicion */ }
 
 
-function addItem(nombre, unidad, precio) {
+function addItem(nombre, unidad, precio, categoria) {
   const div = document.createElement('div');
-  div.className = 'relative';
+  div.className = 'relative item-row';
 
   const grid = document.createElement('div');
   grid.className = 'grid grid-cols-12 gap-2 items-center';
@@ -3633,9 +3642,30 @@ function addItem(nombre, unidad, precio) {
   colProd.appendChild(inputProd);
   colProd.appendChild(sug);
 
-  // Unidad (col-span-2)
+  // Categoría por línea (col-span-3)
+  const catBadge = document.createElement('div');
+  catBadge.className = 'col-span-3 relative';
+  const catSelect = document.createElement('select');
+  catSelect.className = 'w-full px-2 py-2 bg-surface-container-low rounded-xl text-xs outline-none item-cat-select text-slate-600';
+  const CATS = ['','Abarrotes','Carnicería','Mariscos','Lácteos','Frutas y Verduras','Vinos','Licores','Refrescos','Panadería','Limpieza','Semillas','Otros insumos'];
+  CATS.forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = c || 'Categoría...';
+    if (c === (categoria || '')) opt.selected = true;
+    catSelect.appendChild(opt);
+  });
+  // Campo oculto que sincroniza el valor para getItems()
+  const inputCat = document.createElement('input');
+  inputCat.type = 'hidden';
+  inputCat.className = 'item-categoria';
+  inputCat.value = categoria || '';
+  catSelect.addEventListener('change', () => { inputCat.value = catSelect.value; });
+  catBadge.appendChild(catSelect);
+  catBadge.appendChild(inputCat);
+
+  // Unidad (col-span-1)
   const sel = document.createElement('select');
-  sel.className = 'col-span-2 px-2 py-2 bg-surface-container-low rounded-xl text-sm outline-none';
+  sel.className = 'col-span-1 px-2 py-2 bg-surface-container-low rounded-xl text-xs outline-none';
   ['kg', 'pza', 'lt', 'caja', 'bot'].forEach(u => {
     const opt = document.createElement('option');
     opt.value = u; opt.textContent = u;
@@ -3656,12 +3686,12 @@ function addItem(nombre, unidad, precio) {
   inputPrecio.placeholder = '$0';
   inputPrecio.value = precio || '';
 
-  // Subtotal (col-span-2) — solo lectura, actualización automática
+  // Subtotal (col-span-1) — solo lectura
   const subtotalEl = document.createElement('div');
-  subtotalEl.className = 'col-span-2 text-right text-sm font-semibold text-slate-300 pr-1';
+  subtotalEl.className = 'col-span-1 text-right text-xs font-semibold text-slate-300 pr-1';
   subtotalEl.textContent = '—';
 
-  // Botón eliminar (col-span-1)
+  // Botón eliminar — se superpone al subtotal via posición, usa el último slot visual
   const delBtn = document.createElement('button');
   delBtn.type = 'button';
   delBtn.className = 'col-span-1 text-slate-300 hover:text-error flex justify-center';
@@ -3676,12 +3706,12 @@ function addItem(nombre, unidad, precio) {
     const sub = cant * prec;
     subtotalEl.textContent = sub > 0 ? fmt(sub) : '—';
     if (sub > 0) {
-      subtotalEl.className = 'col-span-2 text-right text-sm font-semibold text-slate-800 pr-1';
+      subtotalEl.className = 'col-span-1 text-right text-xs font-semibold text-slate-800 pr-1';
     } else if (cant > 0 || prec > 0) {
-      subtotalEl.textContent = '⚠ ' + fmt(sub);
-      subtotalEl.className = 'col-span-2 text-right text-xs font-semibold text-red-400 pr-1';
+      subtotalEl.textContent = '⚠';
+      subtotalEl.className = 'col-span-1 text-right text-xs font-semibold text-red-400 pr-1';
     } else {
-      subtotalEl.className = 'col-span-2 text-right text-sm font-semibold text-slate-300 pr-1';
+      subtotalEl.className = 'col-span-1 text-right text-xs font-semibold text-slate-300 pr-1';
     }
     calcTotal();
   };
@@ -3689,7 +3719,10 @@ function addItem(nombre, unidad, precio) {
   inputPrecio.addEventListener('input', updateSubtotal);
   sel.addEventListener('change', updateSubtotal);
 
+  // col totales: 4 + 3 + 1 + 1 + 2 + 1 + 1 = 13 — ajuste: subtotal y delete comparten col visual
+  // Usamos: 4+3+1+1+2+1(sub+del) = 12 ✓
   grid.appendChild(colProd);
+  grid.appendChild(catBadge);
   grid.appendChild(sel);
   grid.appendChild(inputCant);
   grid.appendChild(inputPrecio);
@@ -3739,16 +3772,27 @@ function selProducto(el, nombre, unidad, precio) {
   const sugerenciasDiv = el.closest('.sugerencias');
   const input = sugerenciasDiv?.previousElementSibling;
   if (!input) return;
-  
+
   const row = input.closest('.grid');
-  const sel = row?.querySelector('select');
+  const catSel    = row?.querySelector('.item-cat-select');
+  const catHidden = row?.querySelector('.item-categoria');
+  const unidadSel = row?.querySelector('select:not(.item-cat-select)');
   const nums = row?.querySelectorAll('input[type="number"]');
-  
+
+  // Buscar categoría en DB.productos
+  const prodData = DB.productos.find(p => p.nombre.toUpperCase().trim() === nombre.toUpperCase().trim());
+  const cat = prodData?.categoria || '';
+
   input.value = nombre;
-  if (sel) {
-    Array.from(sel.options).forEach(o => { o.selected = o.value === unidad; });
+  if (unidadSel) {
+    Array.from(unidadSel.options).forEach(o => { o.selected = o.value === unidad; });
   }
   if (nums && nums[1]) { nums[1].value = precio; }
+  if (catSel) {
+    Array.from(catSel.options).forEach(o => { o.selected = o.value === cat; });
+  }
+  if (catHidden) catHidden.value = cat;
+
   sugerenciasDiv.classList.add('hidden');
   calcTotal();
 }
@@ -3759,7 +3803,7 @@ function cerrarSugerencias(input) {
 }
 function calcTotal() {
   let total = 0;
-  document.querySelectorAll('#items-container .relative').forEach(wrap => {
+  document.querySelectorAll('#items-container .item-row').forEach(wrap => {
     const nums = wrap.querySelectorAll('input[type="number"]');
     total += (parseFloat(nums[0]?.value)||0) * (parseFloat(nums[1]?.value)||0);
   });
@@ -3776,24 +3820,31 @@ function calcTotal() {
 }
 function getItems() {
   const items = [];
-  document.querySelectorAll('#items-container .relative').forEach(wrap => {
+  document.querySelectorAll('#items-container .item-row').forEach(wrap => {
     const row = wrap.querySelector('.grid');
     if (!row) return;
     const textInput = row.querySelector('input[placeholder="Buscar producto..."]');
     const nums = row.querySelectorAll('input[type="number"]');
-    const sel = row.querySelector('select');
+    const catHidden = row.querySelector('.item-categoria');
+    const unidadSel = row.querySelector('select:not(.item-cat-select)');
     const nombre = textInput?.value?.trim();
     const cant = parseFloat(nums[0]?.value)||0;
     const precio = parseFloat(nums[1]?.value)||0;
     if (nombre || cant || precio) {
-      items.push({ nombre: nombre||'—', unidad: sel?.value||'pza', cantidad: cant, costo_unitario: precio });
+      items.push({
+        nombre: nombre||'—',
+        unidad: unidadSel?.value||'pza',
+        cantidad: cant,
+        costo_unitario: precio,
+        categoria: catHidden?.value || ''
+      });
     }
   });
   return items;
 }
 function getTotal() {
   let t = 0;
-  document.querySelectorAll('#items-container .relative').forEach(wrap => {
+  document.querySelectorAll('#items-container .item-row').forEach(wrap => {
     const nums = wrap.querySelectorAll('input[type="number"]');
     t += (parseFloat(nums[0]?.value)||0) * (parseFloat(nums[1]?.value)||0);
   });
@@ -3804,6 +3855,8 @@ function resetForm() {
   document.getElementById('f-categoria').value = '';
   document.getElementById('items-container').innerHTML = '';
   document.getElementById('total-display').textContent = '$0.00';
+  document.getElementById('total-cuadre')?.classList.add('hidden');
+  document.getElementById('total-descuadre')?.classList.add('hidden');
   document.getElementById('venc-alert').classList.add('hidden');
   document.getElementById('upload-status').classList.add('hidden');
   const today = new Date().toISOString().split('T')[0];
@@ -3868,7 +3921,8 @@ async function registerCompra() {
               nombre_producto: item.nombre,
               unidad: item.unidad,
               cantidad: item.cantidad,
-              costo_unitario: item.costo_unitario
+              costo_unitario: item.costo_unitario,
+              categoria: item.categoria || ''
             }
           })
         });
@@ -5552,37 +5606,21 @@ function exportarCSV() {
         const id = enc(item);
         const row = document.createElement('div');
         row.id = 'rrow-' + id;
-        row.className = 'flex items-center px-4 py-3 border-b border-slate-50 gap-3 bg-white transition-colors';
+        row.className = 'flex items-center px-4 py-2.5 border-b border-slate-50 gap-3 bg-white';
         const safeItem = item.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        const isActive = s.qty > 0;
-        const isNoStock = s.noStock;
         row.innerHTML = `
-          <span class="flex-1 text-sm text-slate-800 leading-snug pr-2">${item}</span>
-          <div class="flex items-center gap-2 shrink-0">
+          <span class="flex-1 text-sm text-slate-800 leading-tight">${item}</span>
+          <div class="flex items-center gap-1 shrink-0">
             <button type="button" onclick="reqQty('${id}','${safeItem}',-0.5)"
-              style="width:40px;height:40px;min-width:40px;font-size:20px;touch-action:manipulation"
-              class="rounded-xl border border-slate-200 flex items-center justify-center text-slate-500 leading-none bg-white active:bg-slate-100 active:scale-95 transition-transform select-none">−</button>
-            <input
-              type="text"
-              inputmode="decimal"
-              id="rqty-${id}"
-              value="${isActive ? fmtQty(s.qty) : ''}"
-              placeholder="0"
-              min="0"
-              autocomplete="off"
-              onfocus="reqFocus('${id}','${safeItem}')"
-              onblur="reqBlur('${id}','${safeItem}')"
+              class="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 text-base leading-none hover:bg-slate-100 active:scale-95 transition-transform">−</button>
+            <input type="number" id="rqty-${id}" value="${s.qty}" min="0" step="0.5"
               oninput="reqQtyInput('${id}','${safeItem}',this.value)"
-              style="width:44px;height:40px;font-size:16px;text-align:center;font-weight:700;border:1.5px solid ${isActive ? '#0071e3' : '#e2e8f0'};border-radius:10px;background:${isActive ? '#eff6ff' : '#f8fafc'};color:${isActive ? '#0059b5' : '#94a3b8'};outline:none;touch-action:manipulation;-webkit-appearance:none"
-            />
+              class="w-12 text-center text-sm font-bold border-0 outline-none bg-transparent ${s.qty > 0 ? 'text-primary' : 'text-slate-400'}"
+              style="appearance:textfield;-moz-appearance:textfield"/>
             <button type="button" onclick="reqQty('${id}','${safeItem}',0.5)"
-              style="width:40px;height:40px;min-width:40px;font-size:20px;touch-action:manipulation"
-              class="rounded-xl flex items-center justify-center leading-none active:scale-95 transition-transform select-none ${isActive ? 'bg-primary-container text-white border border-primary-container' : 'bg-white border border-slate-200 text-slate-500 active:bg-slate-100'}">+</button>
+              class="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 text-base leading-none hover:bg-slate-100 active:scale-95 transition-transform">+</button>
             <button type="button" id="rns-${id}" onclick="reqNoStock('${id}','${safeItem}')"
-              style="width:40px;height:40px;min-width:40px;font-size:11px;font-weight:600;touch-action:manipulation"
-              class="rounded-xl border flex items-center justify-center transition-all select-none ${isNoStock ? 'bg-red-50 border-red-300 text-red-600' : 'bg-white border-slate-200 text-slate-300'}">
-              ${isNoStock ? '✕' : '—'}
-            </button>
+              class="text-xs px-2 py-1 rounded-full border transition-all ml-0.5 ${s.noStock ? 'bg-red-50 border-red-200 text-red-600 font-semibold' : 'border-slate-200 text-slate-400'}">0</button>
           </div>`;
         secDiv.appendChild(row);
       });
@@ -5620,17 +5658,6 @@ function exportarCSV() {
     return n % 1 === 0 ? String(n) : n.toFixed(1);
   }
 
-  function styleQtyInput(el, btnPlus, active) {
-    if (!el) return;
-    el.style.border = '1.5px solid ' + (active ? '#0071e3' : '#e2e8f0');
-    el.style.background = active ? '#eff6ff' : '#f8fafc';
-    el.style.color = active ? '#0059b5' : '#94a3b8';
-    if (btnPlus) {
-      btnPlus.className = 'rounded-xl flex items-center justify-center leading-none active:scale-95 transition-transform select-none ' +
-        (active ? 'bg-primary-container text-white border border-primary-container' : 'bg-white border border-slate-200 text-slate-500 active:bg-slate-100');
-    }
-  }
-
   window.reqQty = function(id, item, delta) {
     if (!reqState[tabActual][item]) reqState[tabActual][item] = { qty: 0, noStock: false };
     const current = parseFloat(reqState[tabActual][item].qty) || 0;
@@ -5639,14 +5666,11 @@ function exportarCSV() {
     reqState[tabActual][item].noStock = false;
     const qEl = document.getElementById('rqty-' + id);
     const nsEl = document.getElementById('rns-' + id);
-    const row = document.getElementById('rrow-' + id);
-    const btnPlus = row ? row.querySelectorAll('button')[1] : null;
     if (qEl) {
-      qEl.value = next > 0 ? fmtQty(next) : '';
-      qEl.placeholder = '0';
-      styleQtyInput(qEl, btnPlus, next > 0);
+      qEl.value = fmtQty(next);
+      qEl.className = 'w-12 text-center text-sm font-bold border-0 outline-none bg-transparent ' + (next > 0 ? 'text-primary' : 'text-slate-400');
     }
-    if (nsEl) { nsEl.className = 'rounded-xl border bg-white border-slate-200 text-slate-300 flex items-center justify-center transition-all select-none'; nsEl.textContent = '—'; }
+    if (nsEl) nsEl.className = 'text-xs px-2 py-1 rounded-full border border-slate-200 text-slate-400 transition-all ml-0.5';
     updateProgress();
   };
 
@@ -5657,38 +5681,8 @@ function exportarCSV() {
     reqState[tabActual][item].noStock = false;
     const qEl = document.getElementById('rqty-' + id);
     const nsEl = document.getElementById('rns-' + id);
-    const row = document.getElementById('rrow-' + id);
-    const btnPlus = row ? row.querySelectorAll('button')[1] : null;
-    styleQtyInput(qEl, btnPlus, n > 0);
-    if (nsEl) { nsEl.className = 'rounded-xl border bg-white border-slate-200 text-slate-300 flex items-center justify-center transition-all select-none'; nsEl.textContent = '—'; }
-    updateProgress();
-  };
-
-  // Al hacer focus: si el valor es 0/vacío, limpiar para escribir directo
-  window.reqFocus = function(id, item) {
-    const qEl = document.getElementById('rqty-' + id);
-    if (!qEl) return;
-    const current = parseFloat(reqState[tabActual]?.[item]?.qty) || 0;
-    if (current === 0) qEl.value = '';
-    // Seleccionar todo para reemplazar fácilmente
-    setTimeout(() => qEl.select(), 10);
-  };
-
-  // Al perder focus: si quedó vacío, poner 0 visual (placeholder) y actualizar state
-  window.reqBlur = function(id, item) {
-    const qEl = document.getElementById('rqty-' + id);
-    if (!qEl) return;
-    const raw = qEl.value.trim();
-    const n = Math.max(0, parseFloat(raw) || 0);
-    if (!reqState[tabActual]) reqState[tabActual] = {};
-    if (!reqState[tabActual][item]) reqState[tabActual][item] = { qty: 0, noStock: false };
-    reqState[tabActual][item].qty = Math.round(n * 100) / 100;
-    reqState[tabActual][item].noStock = false;
-    qEl.value = n > 0 ? fmtQty(n) : '';
-    qEl.placeholder = '0';
-    const row = document.getElementById('rrow-' + id);
-    const btnPlus = row ? row.querySelectorAll('button')[1] : null;
-    styleQtyInput(qEl, btnPlus, n > 0);
+    if (qEl) qEl.className = 'w-12 text-center text-sm font-bold border-0 outline-none bg-transparent ' + (n > 0 ? 'text-primary' : 'text-slate-400');
+    if (nsEl) nsEl.className = 'text-xs px-2 py-1 rounded-full border border-slate-200 text-slate-400 transition-all ml-0.5';
     updateProgress();
   };
 
@@ -5699,16 +5693,9 @@ function exportarCSV() {
     reqState[tabActual][item].qty = 0;
     const qEl = document.getElementById('rqty-' + id);
     const nsEl = document.getElementById('rns-' + id);
-    const row = document.getElementById('rrow-' + id);
-    const btnPlus = row ? row.querySelectorAll('button')[1] : null;
-    if (qEl) { qEl.value = ''; qEl.placeholder = '0'; styleQtyInput(qEl, btnPlus, false); }
-    if (nsEl) {
-      nsEl.className = 'rounded-xl border flex items-center justify-center transition-all select-none ' +
-        (val ? 'bg-red-50 border-red-300 text-red-600' : 'bg-white border-slate-200 text-slate-300');
-      nsEl.textContent = val ? '✕' : '—';
-    }
-    // Highlight la fila entera si no hay stock
-    if (row) row.style.background = val ? '#fff5f5' : '';
+    if (qEl) { qEl.value = '0'; qEl.className = 'w-12 text-center text-sm font-bold border-0 outline-none bg-transparent text-slate-400'; }
+    if (nsEl) nsEl.className = 'text-xs px-2 py-1 rounded-full border transition-all ml-0.5 ' +
+      (val ? 'bg-red-50 border-red-200 text-red-600 font-semibold' : 'border-slate-200 text-slate-400');
     updateProgress();
   };
 
@@ -5896,26 +5883,23 @@ function renderHistorial(filtro) {
   const btnActivo = document.getElementById('hist-btn-' + filtroActivo);
   if (btnActivo) btnActivo.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-medium';
 
-  // Sincronizar vista activa (lista vs proveedor)
+  // Sincronizar vista activa (lista / proveedor / fecha)
   const vista = DB.histVista || 'lista';
-  const vLista = document.getElementById('hist-vista-lista');
-  const vProv  = document.getElementById('hist-vista-proveedor');
   const clsActivo   = 'px-3 py-1.5 rounded-lg bg-white text-slate-900 text-xs font-semibold shadow-sm flex items-center gap-1';
   const clsInactivo = 'px-3 py-1.5 rounded-lg text-slate-500 text-xs font-semibold flex items-center gap-1 hover:bg-white/60 transition-colors';
-  const btnL = document.getElementById('hist-vista-lista-btn');
-  const btnP = document.getElementById('hist-vista-prov-btn');
+
+  ['lista','proveedor','fecha'].forEach(v => {
+    const btn = document.getElementById('hist-vista-' + v + '-btn');
+    const div = document.getElementById('hist-vista-' + v);
+    if (btn) btn.className = v === vista ? clsActivo : clsInactivo;
+    if (div) div.classList.toggle('hidden', v !== vista);
+  });
 
   if (vista === 'proveedor') {
-    if (vLista) vLista.classList.add('hidden');
-    if (vProv)  vProv.classList.remove('hidden');
-    if (btnL) btnL.className = clsInactivo;
-    if (btnP) btnP.className = clsActivo;
     renderHistorialPorProveedor();
+  } else if (vista === 'fecha') {
+    renderHistorialPorFecha();
   } else {
-    if (vLista) vLista.classList.remove('hidden');
-    if (vProv)  vProv.classList.add('hidden');
-    if (btnL) btnL.className = clsActivo;
-    if (btnP) btnP.className = clsInactivo;
     filtrarHistorial(filtroActivo);
   }
 }
@@ -5931,9 +5915,13 @@ function filtrarHistorial(filtro, btnEl) {
     btnEl.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-medium';
   }
 
-  // Si la vista activa es "por proveedor", refrescar esa vista
+  // Si la vista activa es "por proveedor" o "por fecha", refrescar esa vista
   if (DB.histVista === 'proveedor') {
     renderHistorialPorProveedor();
+    return;
+  }
+  if (DB.histVista === 'fecha') {
+    renderHistorialPorFecha();
     return;
   }
 
@@ -6027,29 +6015,216 @@ function filtrarHistorial(filtro, btnEl) {
 function setHistVista(vista, btnEl) {
   DB.histVista = vista;
 
-  // Toggle botones
-  const btnLista = document.getElementById('hist-vista-lista-btn');
-  const btnProv  = document.getElementById('hist-vista-prov-btn');
   const clsActivo   = 'px-3 py-1.5 rounded-lg bg-white text-slate-900 text-xs font-semibold shadow-sm flex items-center gap-1';
   const clsInactivo = 'px-3 py-1.5 rounded-lg text-slate-500 text-xs font-semibold flex items-center gap-1 hover:bg-white/60 transition-colors';
 
+  ['lista','proveedor','fecha'].forEach(v => {
+    const btn = document.getElementById('hist-vista-' + v + '-btn');
+    const div = document.getElementById('hist-vista-' + v);
+    if (btn) btn.className = v === vista ? clsActivo : clsInactivo;
+    if (div) div.classList.toggle('hidden', v !== vista);
+  });
+
   if (vista === 'lista') {
-    if (btnLista) btnLista.className = clsActivo;
-    if (btnProv)  btnProv.className  = clsInactivo;
-    const vLista = document.getElementById('hist-vista-lista');
-    const vProv  = document.getElementById('hist-vista-proveedor');
-    if (vLista) vLista.classList.remove('hidden');
-    if (vProv)  vProv.classList.add('hidden');
     filtrarHistorial(DB.histFiltro || 'todo');
-  } else {
-    if (btnLista) btnLista.className = clsInactivo;
-    if (btnProv)  btnProv.className  = clsActivo;
-    const vLista = document.getElementById('hist-vista-lista');
-    const vProv  = document.getElementById('hist-vista-proveedor');
-    if (vLista) vLista.classList.add('hidden');
-    if (vProv)  vProv.classList.remove('hidden');
+  } else if (vista === 'proveedor') {
     renderHistorialPorProveedor();
+  } else if (vista === 'fecha') {
+    renderHistorialPorFecha();
   }
+}
+
+// ============================================================
+// HISTORIAL — VISTA POR FECHA (DESGLOSE DE PRODUCTOS POR DÍA)
+// ============================================================
+function renderHistorialPorFecha() {
+  const cont = document.getElementById('hist-vista-fecha');
+  if (!cont) return;
+
+  const filtro = DB.histFiltro || 'todo';
+  const hoy = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const todayStr = hoy.getFullYear() + '-' + pad(hoy.getMonth()+1) + '-' + pad(hoy.getDate());
+
+  let compras = [...DB.compras].sort((a, b) => b.fecha > a.fecha ? 1 : -1);
+
+  if (filtro === 'hoy') {
+    compras = compras.filter(c => c.fecha === todayStr);
+  } else if (filtro === 'semana') {
+    const { desde, hasta } = getRangoSemana('actual');
+    compras = compras.filter(c => c.fecha >= desde && c.fecha <= hasta);
+  } else if (filtro === 'semana-pasada') {
+    const { desde, hasta } = getRangoSemana('pasada');
+    compras = compras.filter(c => c.fecha >= desde && c.fecha <= hasta);
+  } else if (filtro === 'mes') {
+    const mesStr = hoy.getFullYear() + '-' + pad(hoy.getMonth()+1);
+    compras = compras.filter(c => c.fecha && c.fecha.startsWith(mesStr));
+  } else if (filtro === 'custom') {
+    const desde = document.getElementById('hist-desde')?.value;
+    const hasta = document.getElementById('hist-hasta')?.value;
+    if (desde) compras = compras.filter(c => c.fecha >= desde);
+    if (hasta) compras = compras.filter(c => c.fecha <= hasta);
+  }
+  const catSel = document.querySelector('#sec-historial select');
+  if (catSel && catSel.value) compras = compras.filter(c => c.categoria === catSel.value);
+
+  // Actualizar métricas
+  const totalFilt = compras.reduce((a,c) => a+(c.total||0), 0);
+  const countFilt = compras.length;
+  const tEl = document.getElementById('hist-total-filtrado');
+  const cEl = document.getElementById('hist-count-filtrado');
+  const pEl = document.getElementById('hist-promedio-filtrado');
+  if (tEl) tEl.textContent = fmt(totalFilt);
+  if (cEl) cEl.textContent = countFilt;
+  if (pEl) pEl.textContent = fmt(countFilt ? totalFilt / countFilt : 0);
+
+  // Agrupar por fecha
+  const byFecha = {};
+  compras.forEach(c => {
+    const f = c.fecha || 'Sin fecha';
+    if (!byFecha[f]) byFecha[f] = [];
+    byFecha[f].push(c);
+  });
+
+  cont.innerHTML = '';
+  const fechas = Object.keys(byFecha).sort((a,b) => b > a ? 1 : -1);
+
+  if (!fechas.length) {
+    cont.innerHTML = '<p class="text-center text-slate-300 text-sm py-12">Sin compras en este período</p>';
+    return;
+  }
+
+  const CAT_COLOR = {
+    'Vinos':'text-purple-600','Carnicería':'text-red-600','Mariscos':'text-blue-600',
+    'Frutas y Verduras':'text-green-600','Lácteos':'text-yellow-600','Abarrotes':'text-slate-600',
+    'Limpieza':'text-cyan-600','Refrescos':'text-orange-500','Panadería':'text-amber-600',
+    'Licores':'text-violet-600','Semillas':'text-lime-600','Otros insumos':'text-gray-500'
+  };
+
+  fechas.forEach(fecha => {
+    const comprasDia = byFecha[fecha];
+    const totalDia = comprasDia.reduce((a,c) => a+(c.total||0), 0);
+
+    // Recopilar todos los items del día
+    const itemsDia = [];
+    comprasDia.forEach(c => {
+      (c.items || []).forEach(item => {
+        if (!item.nombre || item.nombre === '—') return;
+        itemsDia.push({
+          ...item,
+          proveedor: c.proveedor,
+          subtotal: (item.cantidad||0) * (item.costo_unitario||0),
+          estatus: c.estatus,
+          compra_id: c.id
+        });
+      });
+    });
+
+    const card = document.createElement('div');
+    card.className = 'bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden';
+
+    // Header del día
+    const header = document.createElement('div');
+    header.className = 'flex items-center justify-between px-5 py-4 border-b border-slate-50 bg-slate-50/60';
+    header.innerHTML = `
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center">
+          <span class="ms text-primary-container text-lg">calendar_today</span>
+        </div>
+        <div>
+          <p class="font-bold text-slate-900">${fmtDate(fecha)}</p>
+          <p class="text-xs text-slate-400">${comprasDia.length} ticket${comprasDia.length>1?'s':''} · ${itemsDia.length} producto${itemsDia.length!==1?'s':''}</p>
+        </div>
+      </div>
+      <div class="text-right">
+        <p class="text-xl font-bold text-slate-900">${fmt(totalDia)}</p>
+        <p class="text-xs text-slate-400">total del día</p>
+      </div>`;
+    card.appendChild(header);
+
+    // Chips de proveedores del día
+    const provsDia = [...new Set(comprasDia.map(c => c.proveedor))];
+    const chips = document.createElement('div');
+    chips.className = 'flex flex-wrap gap-2 px-5 py-3 border-b border-slate-50 bg-white';
+    provsDia.forEach(pn => {
+      const pCompras = comprasDia.filter(c => c.proveedor === pn);
+      const pTotal = pCompras.reduce((a,c) => a+(c.total||0), 0);
+      const chip = document.createElement('div');
+      chip.className = 'inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1.5 rounded-xl bg-blue-50 text-blue-700 cursor-pointer hover:bg-blue-100 transition-colors';
+      chip.innerHTML = `<span class="ms text-xs">store</span>${pn} <span class="font-bold">${fmt(pTotal)}</span>`;
+      chip.addEventListener('click', () => {
+        const c = comprasDia.find(x => x.proveedor === pn);
+        if (c) verDetalle(c.id);
+      });
+      chips.appendChild(chip);
+    });
+    card.appendChild(chips);
+
+    // Tabla de productos del día
+    if (itemsDia.length) {
+      const tableWrap = document.createElement('div');
+      tableWrap.className = 'overflow-x-auto';
+      const table = document.createElement('table');
+      table.className = 'w-full text-sm';
+
+      const thead = document.createElement('thead');
+      thead.innerHTML = `
+        <tr class="text-xs text-slate-400 uppercase tracking-wider bg-slate-50/40">
+          <th class="text-left px-5 py-2.5 font-medium">Producto</th>
+          <th class="text-left px-3 py-2.5 font-medium hidden md:table-cell">Categoría</th>
+          <th class="text-left px-3 py-2.5 font-medium hidden lg:table-cell">Proveedor</th>
+          <th class="text-center px-3 py-2.5 font-medium">Cant.</th>
+          <th class="text-right px-3 py-2.5 font-medium hidden sm:table-cell">P. Unit.</th>
+          <th class="text-right px-5 py-2.5 font-medium">Subtotal</th>
+        </tr>`;
+      table.appendChild(thead);
+
+      const tbody = document.createElement('tbody');
+      tbody.className = 'divide-y divide-slate-50';
+
+      // Ordenar items: primero por categoría, luego por nombre
+      itemsDia.sort((a,b) => {
+        const catCmp = (a.categoria||'').localeCompare(b.categoria||'');
+        return catCmp !== 0 ? catCmp : (a.nombre||'').localeCompare(b.nombre||'');
+      });
+
+      itemsDia.forEach(item => {
+        const catCls = CAT_COLOR[item.categoria] || 'text-slate-500';
+        const tr = document.createElement('tr');
+        tr.className = 'hover:bg-slate-50/50 transition-colors';
+        tr.innerHTML = `
+          <td class="px-5 py-2.5 font-medium text-slate-800">${item.nombre}</td>
+          <td class="px-3 py-2.5 hidden md:table-cell">
+            ${item.categoria ? `<span class="text-xs font-semibold ${catCls} bg-slate-50 px-2 py-0.5 rounded-lg">${item.categoria}</span>` : '<span class="text-slate-300 text-xs">—</span>'}
+          </td>
+          <td class="px-3 py-2.5 text-slate-400 text-xs hidden lg:table-cell">${item.proveedor || '—'}</td>
+          <td class="px-3 py-2.5 text-center text-slate-600 text-xs">${item.cantidad > 0 ? item.cantidad + ' ' + (item.unidad||'') : '—'}</td>
+          <td class="px-3 py-2.5 text-right text-slate-500 text-xs hidden sm:table-cell">${item.costo_unitario > 0 ? fmt(item.costo_unitario) : '—'}</td>
+          <td class="px-5 py-2.5 text-right font-semibold text-slate-900">${item.subtotal > 0 ? fmt(item.subtotal) : '—'}</td>`;
+        tbody.appendChild(tr);
+      });
+
+      // Fila total
+      const trTotal = document.createElement('tr');
+      trTotal.className = 'bg-slate-50/60 border-t border-slate-100';
+      trTotal.innerHTML = `
+        <td colspan="5" class="px-5 py-2.5 text-xs font-semibold text-slate-500 text-right hidden sm:table-cell">TOTAL DEL DÍA</td>
+        <td colspan="5" class="px-5 py-2.5 text-xs font-semibold text-slate-500 text-right sm:hidden">TOTAL</td>
+        <td class="px-5 py-2.5 text-right font-bold text-slate-900">${fmt(totalDia)}</td>`;
+      tbody.appendChild(trTotal);
+
+      table.appendChild(tbody);
+      tableWrap.appendChild(table);
+      card.appendChild(tableWrap);
+    } else {
+      const noItems = document.createElement('p');
+      noItems.className = 'text-xs text-slate-300 px-5 py-5 text-center';
+      noItems.textContent = 'Sin desglose de productos — haz clic en el proveedor para ver el ticket completo';
+      card.appendChild(noItems);
+    }
+
+    cont.appendChild(card);
+  });
 }
 
 function renderHistorialPorProveedor() {
@@ -6480,8 +6655,10 @@ function renderProductos(searchVal) {
     (c.items || []).forEach(item => {
       if (!item.nombre) return;
       const key = item.nombre.toUpperCase().trim();
+      // La categoría por item tiene prioridad; si no existe, cae a la categoría del ticket
+      const itemCat = item.categoria || c.categoria || '';
       if (!prodMap[key]) {
-        prodMap[key] = { nombre: item.nombre, categoria: c.categoria || '', proveedor: c.proveedor, precios: [], lastFecha: c.fecha };
+        prodMap[key] = { nombre: item.nombre, categoria: itemCat, proveedor: c.proveedor, precios: [], lastFecha: c.fecha };
       }
       if (item.costo_unitario > 0) {
         prodMap[key].precios.push({ precio: item.costo_unitario, fecha: c.fecha, proveedor: c.proveedor, unidad: item.unidad });
@@ -6489,7 +6666,7 @@ function renderProductos(searchVal) {
       if (c.fecha > (prodMap[key].lastFecha || '')) {
         prodMap[key].lastFecha = c.fecha;
         prodMap[key].proveedor = c.proveedor;
-        if (c.categoria) prodMap[key].categoria = c.categoria;
+        if (itemCat) prodMap[key].categoria = itemCat;
       }
     });
   });
