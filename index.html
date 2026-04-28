@@ -2236,11 +2236,8 @@ async function sincronizarInventarioLoyverse(btn) {
   const label    = document.getElementById('inv-sync-label');
 
   try {
-    const resp = await fetch('/api/loyverse?endpoint=summary&date_from='
-      + encodeURIComponent(semDesde + 'T00:00:00.000Z')
-      + '&date_to=' + encodeURIComponent(fecha + 'T23:59:59.000Z'));
-    const data = await resp.json();
-    DB.invRecibos = data.receipts || [];
+    const receipts = await fetchReceipts(semDesde, fecha);
+    DB.invRecibos = receipts;
     const hora = new Date().toLocaleTimeString('es-MX', { hour:'2-digit', minute:'2-digit' });
     if (label) label.textContent = '✓ ' + DB.invRecibos.length + ' ventas · ' + semDesde + ' → ' + fecha + ' · ' + hora;
     renderInventario();
@@ -2254,6 +2251,29 @@ async function sincronizarInventarioLoyverse(btn) {
 // SALIDAS DE CAJA
 // ============================================================
 let SAL_DATA = []; // salidas cargadas de Loyverse
+
+// Caché GLOBAL de receipts — compartido entre Ventas, P&L e Inventario
+let RECEIPTS_CACHE_GLOBAL = { desde: null, hasta: null, data: null, loading: false, waiters: [] };
+
+async function fetchReceipts(desde, hasta) {
+  if (RECEIPTS_CACHE_GLOBAL.desde === desde && RECEIPTS_CACHE_GLOBAL.hasta === hasta && RECEIPTS_CACHE_GLOBAL.data) {
+    return RECEIPTS_CACHE_GLOBAL.data;
+  }
+  if (RECEIPTS_CACHE_GLOBAL.loading && RECEIPTS_CACHE_GLOBAL.desde === desde && RECEIPTS_CACHE_GLOBAL.hasta === hasta) {
+    return new Promise(resolve => { RECEIPTS_CACHE_GLOBAL.waiters.push(resolve); });
+  }
+  RECEIPTS_CACHE_GLOBAL = { desde, hasta, data: null, loading: true, waiters: [] };
+  const resp = await fetch('/api/loyverse?endpoint=summary&date_from='
+    + encodeURIComponent(desde + 'T00:00:00.000Z')
+    + '&date_to=' + encodeURIComponent(hasta + 'T23:59:59.000Z'));
+  const data = await resp.json();
+  const receipts = data.receipts || [];
+  RECEIPTS_CACHE_GLOBAL.data = receipts;
+  RECEIPTS_CACHE_GLOBAL.loading = false;
+  RECEIPTS_CACHE_GLOBAL.waiters.forEach(r => r(receipts));
+  RECEIPTS_CACHE_GLOBAL.waiters = [];
+  return receipts;
+}
 
 // Caché GLOBAL de shifts — compartido entre Salidas, Caja y Cortes para evitar llamadas duplicadas
 let SHIFTS_CACHE_GLOBAL = { desde: null, hasta: null, data: null, loading: false, waiters: [] };
@@ -2612,11 +2632,7 @@ async function cargarPnL() {
   let totalVentas = 0;
   let receipts    = [];
   try {
-    const resp = await fetch('/api/loyverse?endpoint=summary&date_from='
-      + encodeURIComponent(desde + 'T00:00:00.000Z')
-      + '&date_to=' + encodeURIComponent(hasta + 'T23:59:59.000Z'));
-    const data = await resp.json();
-    receipts    = data.receipts || [];
+    receipts    = await fetchReceipts(desde, hasta);
     totalVentas = receipts.reduce((a,r) => a+(r.total_money||0), 0);
     DB.invRecibos = receipts;
   } catch(e) {}
@@ -4347,14 +4363,7 @@ async function sincronizarVentasDashboard(btn) {
   const metricVentas = document.getElementById('metric-ventas');
 
   try {
-    const dateFrom = encodeURIComponent(desde + 'T00:00:00.000Z');
-    const dateTo   = encodeURIComponent(hasta + 'T23:59:59.000Z');
-    const resp = await fetch('/api/loyverse?endpoint=summary&date_from=' + dateFrom + '&date_to=' + dateTo);
-    const data = await resp.json();
-
-    if (data.error) throw new Error(data.error);
-
-    const receipts   = data.receipts || [];
+    const receipts    = await fetchReceipts(desde, hasta);
     const totalVentas = receipts.reduce((a, r) => a + (r.total_money || 0), 0);
 
     if (!DB.ventasPorPeriodo) DB.ventasPorPeriodo = {};
@@ -4397,8 +4406,7 @@ async function renderVentas() {
   error.classList.add('hidden');
   contentDiv.classList.add('hidden');
 
-  // Set default dates: usar semana operativa en lugar del primer día del mes
-  const hoy = new Date();
+  // Set default dates: usar semana operativa
   const desde = document.getElementById('ventas-desde');
   const hasta = document.getElementById('ventas-hasta');
   if (!desde.value || !hasta.value) {
@@ -4407,14 +4415,9 @@ async function renderVentas() {
     if (!hasta.value) hasta.value = sh;
   }
 
-  const dateFrom = desde.value + 'T00:00:00.000Z';
-  const dateTo = hasta.value + 'T23:59:59.000Z';
-
   try {
-    const resp = await fetch(`/api/loyverse?endpoint=summary&date_from=${encodeURIComponent(dateFrom)}&date_to=${encodeURIComponent(dateTo)}`);
-    const data = await resp.json();
-
-    if (data.error) throw new Error(data.error);
+    const receipts = await fetchReceipts(desde.value, hasta.value);
+    const data = { receipts };
 
     const receipts = data.receipts || [];
     loading.classList.add('hidden');
@@ -4585,6 +4588,9 @@ function setVentasPeriodo(tipo, btn) {
   const { desde, hasta } = getRangoSemana(tipo === 'semana' ? 'actual' : 'pasada');
   if (desdeEl) desdeEl.value = desde;
   if (hastaEl) hastaEl.value = hasta;
+  // Invalidar caché para forzar nueva carga con el nuevo período
+  RECEIPTS_CACHE_GLOBAL = { desde: null, hasta: null, data: null, loading: false, waiters: [] };
+  SHIFTS_CACHE_GLOBAL   = { desde: null, hasta: null, data: null, loading: false, waiters: [] };
   renderVentas();
 }
 
