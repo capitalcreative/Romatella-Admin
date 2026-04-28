@@ -2200,7 +2200,8 @@ function setSalidasPeriodo(tipo, btnEl) {
   salDesactivarBotones();
   if (btnEl) btnEl.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold';
   // Limpiar caché para forzar nueva llamada a Loyverse con el nuevo rango
-  SAL_SHIFTS_CACHE = { desde: null, hasta: null, data: null };
+  // Reset caché global de shifts al cambiar período
+  SHIFTS_CACHE_GLOBAL = { desde: null, hasta: null, data: null, loading: false, waiters: [] };
   cargarSalidas();
 }
 
@@ -2253,6 +2254,32 @@ async function sincronizarInventarioLoyverse(btn) {
 // SALIDAS DE CAJA
 // ============================================================
 let SAL_DATA = []; // salidas cargadas de Loyverse
+
+// Caché GLOBAL de shifts — compartido entre Salidas, Caja y Cortes para evitar llamadas duplicadas
+let SHIFTS_CACHE_GLOBAL = { desde: null, hasta: null, data: null, loading: false, waiters: [] };
+
+async function fetchShifts(desde, hasta) {
+  // Si ya está en caché con el mismo rango, devolver inmediatamente
+  if (SHIFTS_CACHE_GLOBAL.desde === desde && SHIFTS_CACHE_GLOBAL.hasta === hasta && SHIFTS_CACHE_GLOBAL.data) {
+    return SHIFTS_CACHE_GLOBAL.data;
+  }
+  // Si hay una llamada en vuelo para el mismo rango, encolar y esperar
+  if (SHIFTS_CACHE_GLOBAL.loading && SHIFTS_CACHE_GLOBAL.desde === desde && SHIFTS_CACHE_GLOBAL.hasta === hasta) {
+    return new Promise(resolve => { SHIFTS_CACHE_GLOBAL.waiters.push(resolve); });
+  }
+  // Nueva llamada
+  SHIFTS_CACHE_GLOBAL = { desde, hasta, data: null, loading: true, waiters: [] };
+  const resp = await fetch('/api/loyverse?endpoint=shifts&date_from='
+    + encodeURIComponent(desde + 'T00:00:00.000Z')
+    + '&date_to=' + encodeURIComponent(hasta + 'T23:59:59.000Z'));
+  const data = await resp.json();
+  const shifts = data.shifts || [];
+  SHIFTS_CACHE_GLOBAL.data = shifts;
+  SHIFTS_CACHE_GLOBAL.loading = false;
+  SHIFTS_CACHE_GLOBAL.waiters.forEach(r => r(shifts));
+  SHIFTS_CACHE_GLOBAL.waiters = [];
+  return shifts;
+}
 // Persistir IDs registrados en localStorage para sobrevivir recargas
 let SAL_REGISTRADAS = (() => {
   try { return new Set(JSON.parse(localStorage.getItem('sal_registradas') || '[]')); }
@@ -2263,7 +2290,7 @@ function salPersistir() {
 }
 
 // Cache de shifts para no repetir la llamada a Loyverse si el rango no cambió
-let SAL_SHIFTS_CACHE = { desde: null, hasta: null, data: null };
+// SAL_SHIFTS_CACHE migrado a SHIFTS_CACHE_GLOBAL (ver arriba)
 
 async function cargarSalidas() {
   const desde = document.getElementById('sal-desde')?.value;
@@ -2277,18 +2304,7 @@ async function cargarSalidas() {
     </div>`;
 
   try {
-    let shifts;
-    // Reutilizar caché si el rango no cambió
-    if (SAL_SHIFTS_CACHE.desde === desde && SAL_SHIFTS_CACHE.hasta === hasta && SAL_SHIFTS_CACHE.data) {
-      shifts = SAL_SHIFTS_CACHE.data;
-    } else {
-      const resp = await fetch('/api/loyverse?endpoint=shifts&date_from='
-        + encodeURIComponent(desde + 'T00:00:00.000Z')
-        + '&date_to=' + encodeURIComponent(hasta + 'T23:59:59.000Z'));
-      const data = await resp.json();
-      shifts = data.shifts || [];
-      SAL_SHIFTS_CACHE = { desde, hasta, data: shifts };
-    }
+    const shifts = await fetchShifts(desde, hasta);
 
     SAL_DATA = [];
     shifts.forEach(s => {
@@ -2609,8 +2625,34 @@ async function cargarPnL() {
   // Separar insumos (food cost real) de gastos fijos/operativos
   const CATS_INSUMOS = ['Carnicería','Mariscos','Lácteos','Frutas y Verduras','Abarrotes','Vinos','Licores','Refrescos','Panadería','Semillas'];
   const CATS_FIJOS   = ['Nómina','Renta','Música','Gastos Fijos','Limpieza','Otros insumos'];
-  const costoInsumos = compras.filter(c => CATS_INSUMOS.includes(c.categoria)).reduce((a,c) => a+(c.total||0), 0);
-  const costoFijos   = compras.filter(c => CATS_FIJOS.includes(c.categoria)).reduce((a,c) => a+(c.total||0), 0);
+
+  let costoInsumos = 0;
+  let costoFijos   = 0;
+  compras.forEach(c => {
+    const catTicket = c.categoria || '';
+    if (CATS_INSUMOS.includes(catTicket)) {
+      costoInsumos += c.total || 0;
+    } else if (CATS_FIJOS.includes(catTicket)) {
+      costoFijos += c.total || 0;
+    } else if (c.items && c.items.length > 0) {
+      // Compra mixta o sin categoría en cabecera: clasificar por item
+      let sumaItems = 0;
+      c.items.forEach(it => {
+        const sub = (it.cantidad || 0) * (it.costo_unitario || 0);
+        const catItem = it.categoria || '';
+        if (CATS_INSUMOS.includes(catItem)) costoInsumos += sub;
+        else if (CATS_FIJOS.includes(catItem)) costoFijos += sub;
+        else costoInsumos += sub; // sin categoría → conservador: cuenta como insumo
+        sumaItems += sub;
+      });
+      // Si los items no cubren el total del ticket (ej. diferencia por IVA), prorratea el resto
+      const resto = (c.total || 0) - sumaItems;
+      if (resto > 0.5) costoInsumos += resto; // atribuir resto a insumos conservadoramente
+    } else {
+      // Sin items y sin categoría reconocida → contar como insumo (no omitir)
+      costoInsumos += c.total || 0;
+    }
+  });
   const totalCostosPnL = costoInsumos + costoFijos;
   // Food cost = solo insumos / ventas (estándar de industria restaurantera)
   const fc       = totalVentas > 0 ? (costoInsumos / totalVentas * 100) : 0;
@@ -2638,19 +2680,29 @@ async function cargarPnL() {
   renderAlertasPrecios(desde, hasta);
 
   // ── Gasto por categoría ───────────────────────────────────
+  // Para las barras: clasificar items por categoría individual cuando el ticket es mixto
   const porCat = {};
   compras.forEach(c => {
-    const cat = c.categoria || 'Otros';
-    porCat[cat] = (porCat[cat]||0) + (c.total||0);
+    if (c.items && c.items.length > 0) {
+      c.items.forEach(it => {
+        const cat = it.categoria || c.categoria || 'Otros';
+        const sub = (it.cantidad || 0) * (it.costo_unitario || 0);
+        if (sub > 0) porCat[cat] = (porCat[cat]||0) + sub;
+      });
+    } else {
+      const cat = c.categoria || 'Otros';
+      porCat[cat] = (porCat[cat]||0) + (c.total||0);
+    }
   });
   const catSorted = Object.entries(porCat).sort((a,b) => b[1]-a[1]);
   const maxCat    = catSorted[0]?.[1] || 1;
+  const totalCatSum = Object.values(porCat).reduce((a,v) => a+v, 0) || 1;
   const catColors = { 'Vinos':'bg-purple-400','Carnicería':'bg-red-400','Mariscos':'bg-teal-400',
     'Lácteos':'bg-amber-400','Frutas y Verduras':'bg-green-400','Abarrotes':'bg-blue-400',
     'Licores':'bg-indigo-400','Refrescos':'bg-cyan-400','Panadería':'bg-orange-400' };
 
   document.getElementById('pnl-categorias').innerHTML = catSorted.map(([cat, total]) => {
-    const pct  = (total / totalCostos * 100).toFixed(1);
+    const pct  = (total / totalCatSum * 100).toFixed(1);
     const pBar = (total / maxCat * 100).toFixed(0);
     const col  = catColors[cat] || 'bg-slate-400';
     return `<div>
@@ -2672,9 +2724,10 @@ async function cargarPnL() {
   compras.forEach(c => { porProv[c.proveedor] = (porProv[c.proveedor]||0) + (c.total||0); });
   const provSorted = Object.entries(porProv).sort((a,b) => b[1]-a[1]).slice(0,8);
   const maxProv    = provSorted[0]?.[1] || 1;
+  const totalProvSum = provSorted.reduce((a,[,v]) => a+v, 0) || 1;
 
   document.getElementById('pnl-proveedores').innerHTML = provSorted.map(([prov, total], i) => {
-    const pct  = (total / totalCostos * 100).toFixed(1);
+    const pct  = (total / totalProvSum * 100).toFixed(1);
     const pBar = (total / maxProv * 100).toFixed(0);
     return `<div>
       <div class="flex items-center justify-between mb-1">
@@ -4379,8 +4432,31 @@ async function renderVentas() {
     document.getElementById('v-tickets').textContent = receipts.length;
     document.getElementById('v-promedio').textContent = fmt(ticketProm);
 
-    // Food cost
-    const totalCompras = DB.compras.reduce((a, c) => a + c.total, 0);
+    // Food cost — solo compras del MISMO período de fechas, no de toda la historia
+    const desdeFC = desde.value;
+    const hastaFC = hasta.value;
+    const CATS_INSUMOS_FC = ['Carnicería','Mariscos','Lácteos','Frutas y Verduras','Abarrotes','Vinos','Licores','Refrescos','Panadería','Semillas'];
+    const comprasPeriodo = DB.compras.filter(c => c.fecha >= desdeFC && c.fecha <= hastaFC);
+    // Sumar: si la compra tiene categoría de insumo en el ticket → todo el total
+    // Si la compra tiene categoría vacía pero items con categoría → sumar solo items de insumo
+    let totalCompras = 0;
+    comprasPeriodo.forEach(c => {
+      const catTicket = c.categoria || '';
+      if (CATS_INSUMOS_FC.includes(catTicket)) {
+        totalCompras += c.total || 0;
+      } else if (!catTicket && c.items && c.items.length > 0) {
+        // Compra mixta: sumar solo los items de insumo
+        const sumItems = c.items
+          .filter(it => CATS_INSUMOS_FC.includes(it.categoria || ''))
+          .reduce((a, it) => a + (it.cantidad || 0) * (it.costo_unitario || 0), 0);
+        // Si ningún item tiene categoría, incluir todo (mejor sobreestimar que omitir)
+        totalCompras += sumItems > 0 ? sumItems : (c.total || 0);
+      } else {
+        // Categoría no es insumo (Nómina, Limpieza, etc.) → no cuenta para food cost
+        // pero si categoría está vacía y no hay items → incluir conservadoramente
+        if (!catTicket) totalCompras += c.total || 0;
+      }
+    });
     const foodCost = totalVentas > 0 ? ((totalCompras / totalVentas) * 100).toFixed(1) : '—';
     const fcEl = document.getElementById('v-foodcost');
     fcEl.textContent = totalVentas > 0 ? foodCost + '%' : '—';
@@ -4515,13 +4591,12 @@ function setVentasPeriodo(tipo, btn) {
 async function renderCaja() {
   const desde = document.getElementById('ventas-desde').value || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
   const hasta = document.getElementById('ventas-hasta').value || new Date().toISOString().split('T')[0];
-  const dateFrom = encodeURIComponent(desde + 'T00:00:00.000Z');
-  const dateTo = encodeURIComponent(hasta + 'T23:59:59.000Z');
+
+  const cajaCont = document.getElementById('ventas-caja');
+  if (cajaCont) cajaCont.innerHTML = `<div class="flex items-center justify-center py-16 gap-3 text-slate-400"><span class="ms" style="animation:spin 1s linear infinite;display:inline-block">sync</span><span class="text-sm">Cargando movimientos...</span></div>`;
 
   try {
-    const resp = await fetch('/api/loyverse?endpoint=shifts&date_from=' + dateFrom + '&date_to=' + dateTo);
-    const data = await resp.json();
-    const shifts = data.shifts || [];
+    const shifts = await fetchShifts(desde, hasta);
 
     // Los movimientos reales están en cash_movements[] de cada shift
     // cash_movements tiene: type (PAY_IN/PAY_OUT), money_amount, comment, created_at
@@ -4584,13 +4659,12 @@ async function renderCaja() {
 async function renderCortes() {
   const desde = document.getElementById('ventas-desde').value || new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
   const hasta = document.getElementById('ventas-hasta').value || new Date().toISOString().split('T')[0];
-  const dateFrom = encodeURIComponent(desde + 'T00:00:00.000Z');
-  const dateTo = encodeURIComponent(hasta + 'T23:59:59.000Z');
+
+  const tbody = document.getElementById('cortes-list');
+  if (tbody) tbody.innerHTML = '<tr><td colspan="7" class="py-8 text-center"><span class="ms text-slate-300" style="animation:spin 1s linear infinite;display:inline-block;font-size:24px">sync</span><p class="text-slate-400 text-sm mt-2">Cargando cortes...</p></td></tr>';
 
   try {
-    const resp = await fetch('/api/loyverse?endpoint=shifts&date_from=' + dateFrom + '&date_to=' + dateTo);
-    const data = await resp.json();
-    const shifts = data.shifts || [];
+    const shifts = await fetchShifts(desde, hasta);
 
     const tbody = document.getElementById('cortes-list');
     if (!shifts.length) {
