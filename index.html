@@ -2299,6 +2299,8 @@ async function fetchShifts(desde, hasta) {
   SHIFTS_CACHE_GLOBAL.loading = false;
   SHIFTS_CACHE_GLOBAL.waiters.forEach(r => r(shifts));
   SHIFTS_CACHE_GLOBAL.waiters = [];
+  // Guardar en DB para acceso síncrono desde renderCaja/renderCortes
+  DB._shiftsCache = { desde, hasta, shifts };
   return shifts;
 }
 // Persistir IDs registrados en localStorage para sobrevivir recargas
@@ -4608,64 +4610,75 @@ async function renderCaja() {
   const hasta  = hastaEl.value;
 
   const cajaCont = document.getElementById('ventas-caja');
+
+  // Si ya tenemos shifts en caché síncrono del mismo período, renderizar sin spinner
+  const cache = DB._shiftsCache;
+  if (cache && cache.desde === desde && cache.hasta === hasta && cache.shifts) {
+    _renderCajaConShifts(cache.shifts, desde, hasta);
+    return;
+  }
+
+  // Primera vez: mostrar spinner y esperar
   if (cajaCont) cajaCont.innerHTML = `<div class="flex items-center justify-center py-16 gap-3 text-slate-400"><span class="ms" style="animation:spin 1s linear infinite;display:inline-block">sync</span><span class="text-sm">Cargando movimientos...</span></div>`;
 
   try {
     const shifts = await fetchShifts(desde, hasta);
-
-    // Los movimientos reales están en cash_movements[] de cada shift
-    const allMovements = [];
-    let totalEntradas = 0, totalSalidas = 0;
-
-    shifts.forEach(s => {
-      (s.cash_movements || []).filter(m => {
-        const md = (m.created_at || s.opened_at || '').substring(0,10);
-        return md >= desde && md <= hasta;
-      }).forEach(m => {
-        const esEntrada = m.type === 'PAY_IN';
-        const monto = m.money_amount || 0;
-        if (esEntrada) totalEntradas += monto;
-        else totalSalidas += monto;
-        allMovements.push({
-          fecha: m.created_at || s.opened_at,
-          tipo: esEntrada ? 'ENTRADA' : 'SALIDA',
-          descripcion: m.comment || (esEntrada ? 'Entrada de efectivo' : 'Salida de efectivo'),
-          monto,
-          esEntrada
-        });
-      });
-    });
-
-    const balance = totalEntradas - totalSalidas;
-    document.getElementById('caja-entradas').textContent = fmt(totalEntradas);
-    document.getElementById('caja-salidas').textContent = fmt(totalSalidas);
-    const balEl = document.getElementById('caja-balance');
-    balEl.textContent = fmt(Math.abs(balance));
-    balEl.className = 'text-xl font-bold ' + (balance >= 0 ? 'text-green-700' : 'text-red-600');
-
-    const tbody = document.getElementById('caja-list');
-    if (!allMovements.length) {
-      tbody.innerHTML = '<tr><td colspan="4" class="py-8 text-center text-slate-300 text-sm">Sin movimientos de caja en este período</td></tr>';
-      return;
-    }
-    tbody.innerHTML = [...allMovements]
-      .sort((a,b) => new Date(b.fecha) - new Date(a.fecha))
-      .map(op => {
-        const fecha = new Date(op.fecha);
-        const fechaStr = fecha.toLocaleDateString('es-MX', {day:'2-digit', month:'short'}) + ' ' +
-                         fecha.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
-        return '<tr class="text-sm hover:bg-slate-50/50">' +
-          '<td class="p-4 text-slate-500">' + fechaStr + '</td>' +
-          '<td class="p-4"><span class="flex items-center gap-1 ' + (op.esEntrada?'text-green-600':'text-red-600') + ' font-semibold text-xs">' +
-          '<span class="ms text-base">' + (op.esEntrada?'arrow_downward':'arrow_upward') + '</span>' +
-          op.tipo + '</span></td>' +
-          '<td class="p-4 text-slate-600 hidden md:table-cell text-sm">' + op.descripcion + '</td>' +
-          '<td class="p-4 text-right font-bold ' + (op.esEntrada?'text-green-700':'text-red-600') + '">' +
-          (op.esEntrada?'+':'-') + fmt(op.monto) + '</td></tr>';
-      }).join('');
+    _renderCajaConShifts(shifts, desde, hasta);
   } catch(e) {
     document.getElementById('caja-list').innerHTML = '<tr><td colspan="4" class="py-4 text-center text-red-400 text-sm">' + e.message + '</td></tr>';
   }
+}
+
+function _renderCajaConShifts(shifts, desde, hasta) {
+  const allMovements = [];
+  let totalEntradas = 0, totalSalidas = 0;
+
+  shifts.forEach(s => {
+    (s.cash_movements || []).filter(m => {
+      const md = (m.created_at || s.opened_at || '').substring(0,10);
+      return md >= desde && md <= hasta;
+    }).forEach(m => {
+      const esEntrada = m.type === 'PAY_IN';
+      const monto = m.money_amount || 0;
+      if (esEntrada) totalEntradas += monto;
+      else totalSalidas += monto;
+      allMovements.push({
+        fecha: m.created_at || s.opened_at,
+        tipo: esEntrada ? 'ENTRADA' : 'SALIDA',
+        descripcion: m.comment || (esEntrada ? 'Entrada de efectivo' : 'Salida de efectivo'),
+        monto,
+        esEntrada
+      });
+    });
+  });
+
+  const balance = totalEntradas - totalSalidas;
+  document.getElementById('caja-entradas').textContent = fmt(totalEntradas);
+  document.getElementById('caja-salidas').textContent = fmt(totalSalidas);
+  const balEl = document.getElementById('caja-balance');
+  balEl.textContent = fmt(Math.abs(balance));
+  balEl.className = 'text-xl font-bold ' + (balance >= 0 ? 'text-green-700' : 'text-red-600');
+
+  const tbody = document.getElementById('caja-list');
+  if (!allMovements.length) {
+    tbody.innerHTML = '<tr><td colspan="4" class="py-8 text-center text-slate-300 text-sm">Sin movimientos de caja en este período</td></tr>';
+    return;
+  }
+  tbody.innerHTML = [...allMovements]
+    .sort((a,b) => new Date(b.fecha) - new Date(a.fecha))
+    .map(op => {
+      const fecha = new Date(op.fecha);
+      const fechaStr = fecha.toLocaleDateString('es-MX', {day:'2-digit', month:'short'}) + ' ' +
+                       fecha.toLocaleTimeString('es-MX', {hour:'2-digit', minute:'2-digit'});
+      return '<tr class="text-sm hover:bg-slate-50/50">' +
+        '<td class="p-4 text-slate-500">' + fechaStr + '</td>' +
+        '<td class="p-4"><span class="flex items-center gap-1 ' + (op.esEntrada?'text-green-600':'text-red-600') + ' font-semibold text-xs">' +
+        '<span class="ms text-base">' + (op.esEntrada?'arrow_downward':'arrow_upward') + '</span>' +
+        op.tipo + '</span></td>' +
+        '<td class="p-4 text-slate-600 hidden md:table-cell text-sm">' + op.descripcion + '</td>' +
+        '<td class="p-4 text-right font-bold ' + (op.esEntrada?'text-green-700':'text-red-600') + '">' +
+        (op.esEntrada?'+':'-') + fmt(op.monto) + '</td></tr>';
+    }).join('');
 }
 
 async function renderCortes() {
