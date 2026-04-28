@@ -5772,9 +5772,6 @@ function exportarCSV() {
     if (badge) badge.classList.add('hidden');
 
     showEmp('confirm');
-
-    // AUTOGUARDADO — sin botón, se ejecuta al llegar al resumen
-    reqGuardarSupabase();
   };
 
   window.reqEnviarWhatsApp = function() {
@@ -5800,7 +5797,12 @@ function exportarCSV() {
       if (ssCocina.length) msg += `\n🍳 ` + ssCocina.map(x => x.item).join(', ');
     }
     msg += `\n\n_Enviado desde Romatella Admin_`;
+
+    // Abrir WhatsApp inmediatamente
     window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+
+    // Guardado en Supabase en paralelo (silencioso)
+    reqGuardarSupabase();
   };
 
   window.reqGuardarSupabase = async function() {
