@@ -17,85 +17,67 @@ export default async function handler(req, res) {
 
     const prompt =
       'Eres un asistente contable experto en CFDIs mexicanos para un restaurante. ' +
-      'Analiza este ' + (isPDF ? 'CFDI/factura PDF' : 'ticket o factura') + ' con precision absoluta. ' +
+      'Analiza este ' + (isPDF ? 'CFDI/factura PDF' : 'ticket o factura') + ' y extrae los datos EXACTOS como aparecen. ' +
 
-      'PASO 1 — LEE EL RESUMEN FINAL PRIMERO (ultima pagina o seccion de totales): ' +
-      'Busca el bloque con campos: SUBTOTAL / DESCUENTO / IVA / TOTAL. ' +
-      'El campo "total" de tu respuesta JSON es SIEMPRE el campo "TOTAL" de ese resumen. ' +
-      'NUNCA uses "SUBTOTAL" como total. El SUBTOTAL es antes de descuentos e IVA. ' +
+      'PASO 1 — LEE EL RESUMEN FINAL PRIMERO: ' +
+      'Busca el bloque SUBTOTAL / DESCUENTO / IVA / TOTAL al final del documento. ' +
+      'El campo "total" del JSON = campo TOTAL de ese resumen. NUNCA el SUBTOTAL. ' +
 
-      'PASO 2 — IDENTIFICA EL EMISOR: ' +
-      'Lee el campo "EMISOR" o nombre de la empresa en la parte superior. ' +
+      'PASO 2 — IDENTIFICA EL EMISOR y TIPO DE DOCUMENTO: ' +
+      'Lee el nombre del emisor. Determina si es CFDI (tiene UUID/Folio Fiscal) o ticket simple. ' +
 
-      'PASO 3 — APLICA LAS REGLAS SEGUN EL EMISOR: ' +
+      'PASO 3 — MODO DE EXTRACCION SEGUN EMISOR: ' +
 
-      'REGLA A — COSTCO DE MEXICO / COSTCO WHOLESALE: ' +
-      '  - tiene_iva = true. ' +
-      '  - costo_unitario = campo "VALOR UNITARIO" exacto. Ese valor es precio NETO sin IVA. ' +
-      '  - NUNCA dividas entre 1.16. NUNCA uses el campo "IMPORTE". ' +
-      '  - cantidad = columna "CANTIDAD" (decimal para KGM). ' +
-      '  - Unidades: H87 = pza, KGM = kg, LTR = lt, XBX = caja. ' +
-      '  - total = campo "Total" del resumen final. ' +
+      'MODO 1 — WALMART CFDI / BODEGA AURRERA CFDI (con UUID): ' +
+      '  tiene_iva = "cfdi_walmart" ' +
+      '  Para cada producto extrae: ' +
+      '    - nombre: descripcion legible ' +
+      '    - cantidad: columna CANTIDAD ' +
+      '    - unidad: H87=pza, KGM=kg, LTR=lt, XBX=caja ' +
+      '    - valor_unitario: columna VALOR UNITARIO exacto ' +
+      '    - importe: columna IMPORTE exacto ' +
+      '    - descuento: columna DESCUENTO (0 si no tiene) ' +
+      '    - tasa_iva: numero de la tasa (16, 0, o -1 si es Exento) ' +
+      '    - costo_unitario: pon 0, el sistema lo calculara ' +
 
-      'REGLA B — NUEVA WAL MART DE MEXICO / WALMART / BODEGA AURRERA (CFDI con UUID): ' +
-      '  - tiene_iva = false. ' +
-      '  - RAZON: Walmart CFDI tiene descuentos individuales por producto. Para que la suma de partidas ' +
-      '    cuadre con el TOTAL, debes devolver el precio final real por pieza ya con IVA y descuento aplicados. ' +
-      '  - Para cada producto CALCULA el costo_unitario asi: ' +
-      '    a) Si el producto tiene tasa IVA 16% Y tiene DESCUENTO: ' +
-      '       costo_unitario = ((IMPORTE - DESCUENTO) / CANTIDAD) * 1.16, redondeado a 2 decimales. ' +
-      '    b) Si el producto tiene tasa IVA 16% SIN descuento: ' +
-      '       costo_unitario = VALOR_UNITARIO * 1.16, redondeado a 2 decimales. ' +
-      '    c) Si el producto tiene tasa IVA 0% (alimentos basicos: pasta, arroz, pan, verduras, anchoas): ' +
-      '       Si tiene DESCUENTO: costo_unitario = (IMPORTE - DESCUENTO) / CANTIDAD. ' +
-      '       Sin descuento: costo_unitario = VALOR_UNITARIO tal cual. ' +
-      '    d) Si el producto es EXENTO de IVA (campo "Exento"): ' +
-      '       costo_unitario = VALOR_UNITARIO tal cual. ' +
-      '  - cantidad = columna CANTIDAD. ' +
-      '  - total = campo TOTAL del resumen (con descuentos e IVA ya aplicados). ' +
+      'MODO 2 — COSTCO DE MEXICO / COSTCO WHOLESALE: ' +
+      '  tiene_iva = true ' +
+      '  costo_unitario = campo VALOR UNITARIO exacto (ya es neto sin IVA, NO dividas entre 1.16) ' +
+      '  importe, descuento, tasa_iva: no necesarios, puedes omitirlos ' +
 
-      'REGLA C — WALMART TICKET SIMPLE (sin UUID, sin Folio Fiscal): ' +
-      '  - tiene_iva = false. ' +
-      '  - costo_unitario = precio por pieza tal como aparece en el ticket. ' +
-      '  - total = campo TOTAL al fondo. NUNCA el SUBTOTAL. ' +
+      'MODO 3 — TICKET SIMPLE SIN UUID (Walmart ticket, Soriana, Chedraui, La Comer): ' +
+      '  tiene_iva = false ' +
+      '  costo_unitario = precio por pieza tal como aparece ' +
 
-      'REGLA D — SORIANA / CHEDRAUI / LA COMER (tickets de caja): ' +
-      '  - tiene_iva = false. ' +
-      '  - costo_unitario = precio por pieza tal como aparece. ' +
-      '  - total = campo TOTAL al final. ' +
+      'MODO 4 — CUALQUIER OTRO CFDI CON UUID (carniceria, mariscos, vinos, otros): ' +
+      '  tiene_iva = true ' +
+      '  costo_unitario = campo Valor Unitario o Precio Unitario neto sin IVA ' +
 
-      'REGLA E — CUALQUIER OTRO CFDI CON UUID (carniceria, mariscos, vinos, otros proveedores): ' +
-      '  - tiene_iva = true. ' +
-      '  - costo_unitario = campo "Precio Unitario" o "Valor Unitario" neto sin IVA. ' +
-      '  - total = campo Total del CFDI. ' +
+      'PASO 4 — EXTRAE TODOS LOS RENGLONES: ' +
+      '  - Incluye todos los productos Y servicios (membresias, servicios de facturacion como REVISTA). ' +
+      '  - Solo omite: lineas de totales globales, lineas de IVA global, lineas de descuento global. ' +
+      '  - Omite articulos de hogar que no son insumos (difusores electricos, ropa). ' +
+      '  - Si cantidad=0 o todos los precios=0, omite el renglon. ' +
 
-      'REGLA F — NOTAS DE VENTA / TICKETS SIN IVA DESGLOSADO: ' +
-      '  - tiene_iva = false. ' +
-      '  - costo_unitario = precio tal como aparece. ' +
+      'PASO 5 — CATEGORIA de la compra (la de mayor valor): ' +
+      '  Carnes/aves=Carniceria, Mariscos=Mariscos, Quesos/leche=Lacteos, ' +
+      '  Pastas/arroz/aceite=Abarrotes, Frutas/verduras=Frutas y Verduras, ' +
+      '  Vinos=Vinos, Cervezas/licores=Licores, Limpiadores=Limpieza. ' +
+      '  Si hay mezcla usa la categoria del producto de mayor subtotal. ' +
 
-      'PASO 4 — EXTRAE TODOS LOS PRODUCTOS Y CARGOS DEL DOCUMENTO: ' +
-      '  - Incluye TODOS los renglones de la factura, incluso los que tienen descuento individual. ' +
-      '  - Incluye servicios de facturacion (ej. REVISTA de membresia de Walmart) como "Otros insumos". ' +
-      '  - SOLO omite: lineas de totales, lineas de impuestos globales, lineas de descuento global. ' +
-      '  - Omite articulos de hogar que no son insumos (difusores electricos, ropa, electrodomesticos). ' +
-      '  - Si cantidad = 0 o precio = 0, omite el producto. ' +
-      '  - Nombres: descripcion legible, sin codigos de barras. ' +
-
-      'PASO 5 — CATEGORIA general de la compra (la de mayor valor total): ' +
-      '  - Carnes/aves → Carniceria. Mariscos/pescados → Mariscos. ' +
-      '  - Quesos/leche/crema → Lacteos. Pastas/arroz/aceite/conservas → Abarrotes. ' +
-      '  - Frutas/verduras → Frutas y Verduras. Vinos/prosecco → Vinos. ' +
-      '  - Cervezas/licores → Licores. Limpiadores → Limpieza. ' +
-      '  - Si hay mezcla, usa la categoria del producto de mayor subtotal. ' +
-
-      'Responde UNICAMENTE con JSON valido, sin texto, sin backticks: ' +
-      '{"proveedor":"NUEVA WAL MART DE MEXICO","fecha":"04/05/2026","categoria":"Licores","total":4891.50,"tiene_iva":false,' +
+      'Responde UNICAMENTE con JSON valido sin texto ni backticks. ' +
+      'Para MODO 1 (Walmart CFDI) usa este formato: ' +
+      '{"proveedor":"NUEVA WAL MART DE MEXICO","fecha":"04/05/2026","categoria":"Licores","total":4891.50,"tiene_iva":"cfdi_walmart",' +
       '"productos":[' +
-      '{"nombre":"STELLA 6","cantidad":2,"unidad":"pza","costo_unitario":104.50},' +
-      '{"nombre":"VP CHIV 12","cantidad":1,"unidad":"pza","costo_unitario":659.00}' +
+      '{"nombre":"STELLA 6","cantidad":2,"unidad":"pza","valor_unitario":129.31,"importe":258.62,"descuento":78.45,"tasa_iva":16,"costo_unitario":0},' +
+      '{"nombre":"SM ARBORIO","cantidad":1,"unidad":"pza","valor_unitario":72.00,"importe":72.00,"descuento":0,"tasa_iva":0,"costo_unitario":0},' +
+      '{"nombre":"REVISTA","cantidad":1,"unidad":"pza","valor_unitario":111.00,"importe":111.00,"descuento":0,"tasa_iva":-1,"costo_unitario":0}' +
       ']}. ' +
-      'Categorias validas: Carniceria, Mariscos, Abarrotes, Lacteos, Frutas y Verduras, Vinos, Licores, Refrescos, Panaderia, Limpieza, Semillas, Otros insumos. ' +
-      'Extrae ABSOLUTAMENTE TODOS los renglones del documento incluyendo servicios y membresías.';
+      'Para otros modos usa: ' +
+      '{"proveedor":"COSTCO DE MEXICO","fecha":"04/05/2026","categoria":"Abarrotes","total":6065.46,"tiene_iva":true,' +
+      '"productos":[{"nombre":"ACEITE OLIVA 3L KIRKLAND","cantidad":1,"unidad":"pza","costo_unitario":357.02}]}. ' +
+      'Categorias: Carniceria, Mariscos, Abarrotes, Lacteos, Frutas y Verduras, Vinos, Licores, Refrescos, Panaderia, Limpieza, Semillas, Otros insumos. ' +
+      'Extrae ABSOLUTAMENTE TODOS los renglones del documento.';
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -127,6 +109,32 @@ export default async function handler(req, res) {
       } else {
         return res.status(200).json({ error: 'No se pudo leer el documento', raw: text });
       }
+    }
+
+    // POST-PROCESS: calcular costo_unitario para Walmart CFDI en el backend
+    // Asi el frontend recibe siempre el mismo formato simple
+    if (parsed.tiene_iva === 'cfdi_walmart' && parsed.productos?.length) {
+      parsed.tiene_iva = false; // el frontend no multiplica
+      parsed.productos = parsed.productos.map(p => {
+        const importe    = parseFloat(p.importe)         || 0;
+        const descuento  = parseFloat(p.descuento)       || 0;
+        const cantidad   = parseFloat(p.cantidad)         || 1;
+        const tasa       = parseFloat(p.tasa_iva)         ?? 16;
+        const baseNeta   = importe - descuento;
+        let subtotalFinal;
+        if (tasa === -1) {
+          subtotalFinal = baseNeta; // exento
+        } else {
+          subtotalFinal = baseNeta * (1 + tasa / 100);
+        }
+        const costoUnitario = Math.round((subtotalFinal / cantidad) * 10000) / 10000;
+        return {
+          nombre:         p.nombre,
+          cantidad:       p.cantidad,
+          unidad:         p.unidad,
+          costo_unitario: costoUnitario
+        };
+      });
     }
 
     return res.status(200).json(parsed);
