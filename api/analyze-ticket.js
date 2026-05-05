@@ -22,76 +22,73 @@ export default async function handler(req, res) {
       'PASO 1 — LEE EL RESUMEN FINAL PRIMERO (ultima pagina o seccion de totales): ' +
       'Busca el bloque con campos: SUBTOTAL / DESCUENTO / IVA / TOTAL. ' +
       'El campo "total" de tu respuesta JSON es SIEMPRE el campo "TOTAL" de ese resumen. ' +
-      'NUNCA uses "SUBTOTAL" como total. El SUBTOTAL es antes de descuentos e IVA, no es el total real. ' +
-      'Ejemplo correcto: Subtotal $6349.70, Descuento -$460.83, IVA $176.59 → total = $6065.46. ' +
+      'NUNCA uses "SUBTOTAL" como total. El SUBTOTAL es antes de descuentos e IVA. ' +
 
       'PASO 2 — IDENTIFICA EL EMISOR: ' +
-      'Lee el campo "EMISOR" o nombre de la empresa en la parte superior del documento. ' +
+      'Lee el campo "EMISOR" o nombre de la empresa en la parte superior. ' +
 
       'PASO 3 — APLICA LAS REGLAS SEGUN EL EMISOR: ' +
 
       'REGLA A — COSTCO DE MEXICO / COSTCO WHOLESALE: ' +
       '  - tiene_iva = true. ' +
-      '  - costo_unitario = campo "VALOR UNITARIO" de cada producto. Ese valor ya es precio NETO SIN IVA. ' +
-      '  - NUNCA dividas el Valor Unitario entre 1.16. Ya esta en neto. ' +
-      '  - NUNCA uses el campo "IMPORTE" como costo_unitario (IMPORTE = Valor Unitario x Cantidad). ' +
-      '  - cantidad = columna "CANTIDAD" (puede ser decimal para KGM/kilogramos). ' +
+      '  - costo_unitario = campo "VALOR UNITARIO" exacto de cada producto. Ese valor es precio NETO sin IVA. ' +
+      '  - NUNCA dividas entre 1.16. NUNCA uses el campo "IMPORTE". ' +
+      '  - cantidad = columna "CANTIDAD" (decimal para KGM). ' +
       '  - Unidades: H87 = pza, KGM = kg, LTR = lt, XBX = caja. ' +
-      '  - Omite el producto "DIFUSOR" o articulos de hogar que no sean insumos del restaurante. ' +
-      '  - total = campo "Total" del resumen final (NUNCA el Subtotal). ' +
+      '  - total = campo "Total" del resumen final. ' +
 
-      'REGLA B — NUEVA WAL MART DE MEXICO / WALMART / BODEGA AURRERA: ' +
-      '  - Identifica si es CFDI (tiene UUID/Folio Fiscal) o ticket de caja simple. ' +
-      '  - Si es CFDI con UUID: tiene_iva = true. ' +
-      '    costo_unitario = campo "VALOR UNITARIO" (precio neto sin IVA). ' +
-      '    Algunos productos tienen descuento individual en columna DESCUENTO — usa el Valor Unitario tal como aparece. ' +
-      '  - Si es ticket simple sin UUID: tiene_iva = false. ' +
-      '    costo_unitario = precio por pieza tal como aparece. ' +
-      '  - En ambos casos: total = campo "TOTAL" del resumen. NUNCA el "SUBTOTAL". ' +
-      '  - Si aparece campo "IEPS" separado, IGNORALO completamente. ' +
+      'REGLA B — NUEVA WAL MART DE MEXICO / WALMART / BODEGA AURRERA (CFDI con UUID): ' +
+      '  - tiene_iva = false. ' +
+      '  - RAZON: Walmart CFDI tiene descuentos individuales por producto (IEPS especial en licores/cervezas). ' +
+      '    Estos descuentos hacen que la suma de partidas nunca cuadre si se aplica IVA adicional. ' +
+      '    Para que el sistema cuadre correctamente, debes devolver el precio YA CON IVA incluido. ' +
+      '  - costo_unitario = calcula tu mismo: (VALOR UNITARIO × 1.16) redondeado a 2 decimales. ' +
+      '    Excepcion: si el producto tiene tasa IVA 0% (alimentos basicos como pasta, arroz, verduras), ' +
+      '    costo_unitario = VALOR UNITARIO tal como aparece (sin multiplicar). ' +
+      '  - Para productos con DESCUENTO individual (licores, cervezas): ' +
+      '    calcula el precio neto real = (IMPORTE - DESCUENTO) / CANTIDAD, luego multiplica × 1.16. ' +
+      '    Eso da el precio final real por pieza que el cliente pago. ' +
+      '  - cantidad = columna CANTIDAD. ' +
+      '  - total = campo TOTAL del resumen (con descuentos e IVA ya aplicados). ' +
 
-      'REGLA C — SORIANA / CHEDRAUI / LA COMER (tickets de caja): ' +
+      'REGLA C — WALMART TICKET SIMPLE (sin UUID, sin Folio Fiscal): ' +
+      '  - tiene_iva = false. ' +
+      '  - costo_unitario = precio por pieza tal como aparece en el ticket. ' +
+      '  - total = campo TOTAL al fondo. NUNCA el SUBTOTAL. ' +
+
+      'REGLA D — SORIANA / CHEDRAUI / LA COMER (tickets de caja): ' +
       '  - tiene_iva = false. ' +
       '  - costo_unitario = precio por pieza tal como aparece. ' +
-      '  - total = campo "TOTAL" al final. NUNCA el "SUBTOTAL". ' +
+      '  - total = campo TOTAL al final. ' +
 
-      'REGLA D — CUALQUIER OTRO CFDI CON UUID (proveedores, carniceria, mariscos, etc): ' +
+      'REGLA E — CUALQUIER OTRO CFDI CON UUID (carniceria, mariscos, vinos, otros proveedores): ' +
       '  - tiene_iva = true. ' +
-      '  - costo_unitario = campo "Precio Unitario" o "Valor Unitario" (precio neto sin IVA). ' +
-      '  - total = campo "Total" del CFDI. ' +
+      '  - costo_unitario = campo "Precio Unitario" o "Valor Unitario" neto sin IVA. ' +
+      '  - total = campo Total del CFDI. ' +
 
-      'REGLA E — NOTAS DE VENTA / TICKETS SIN IVA DESGLOSADO: ' +
+      'REGLA F — NOTAS DE VENTA / TICKETS SIN IVA DESGLOSADO: ' +
       '  - tiene_iva = false. ' +
       '  - costo_unitario = precio tal como aparece. ' +
-      '  - total = total final del documento. ' +
 
-      'PASO 4 — EXTRAE TODOS LOS PRODUCTOS DEL DOCUMENTO: ' +
-      '  - Incluye TODOS los productos, incluso los que tienen descuento individual. ' +
-      '  - Omite estas lineas: impuestos globales, descuentos globales, servicios de facturacion. ' +
-      '  - Omite articulos de hogar o limpieza personal que claramente no son insumos de restaurante ' +
-      '    (ejemplo: difusores electricos, ropa, electrodomesticos). ' +
+      'PASO 4 — EXTRAE TODOS LOS PRODUCTOS: ' +
+      '  - Incluye todos, incluso los que tienen descuento individual. ' +
+      '  - Omite: impuestos globales, descuentos globales, servicios de facturacion, revistas de membresia. ' +
+      '  - Omite articulos de hogar que no son insumos (difusores, ropa, electrodomesticos). ' +
       '  - Si cantidad = 0 o precio = 0, omite el producto. ' +
-      '  - Nombres: usa la descripcion legible, no el codigo de barras ni numero de item. ' +
-      '  - Para Costco: el nombre viene en columna "Descripcion", usalo completo pero sin el codigo numerico inicial. ' +
+      '  - Nombres: descripcion legible, sin codigos de barras. ' +
 
-      'PASO 5 — ASIGNA UNA SOLA CATEGORIA para toda la compra (la de mayor valor): ' +
-      '  - Carnes/aves -> Carniceria. ' +
-      '  - Mariscos/pescados/anchoas -> Mariscos. ' +
-      '  - Quesos, leche, crema, mantequilla -> Lacteos. ' +
-      '  - Pastas, arroz, aceite, conservas, pure de tomate -> Abarrotes. ' +
-      '  - Lechuga, arugula, blueberries, frutas, verduras -> Frutas y Verduras. ' +
-      '  - Cervezas, vinos, prosecco, licores -> Licores o Vinos. ' +
-      '  - Limpiadores, papel, lavatrastes -> Limpieza. ' +
+      'PASO 5 — CATEGORIA general de la compra (la de mayor valor total): ' +
+      '  - Carnes/aves → Carniceria. Mariscos/pescados → Mariscos. ' +
+      '  - Quesos/leche/crema → Lacteos. Pastas/arroz/aceite/conservas → Abarrotes. ' +
+      '  - Frutas/verduras → Frutas y Verduras. Vinos/prosecco → Vinos. ' +
+      '  - Cervezas/licores → Licores. Limpiadores → Limpieza. ' +
       '  - Si hay mezcla, usa la categoria del producto de mayor subtotal. ' +
 
-      'Responde UNICAMENTE con JSON valido, sin texto, sin backticks, sin comentarios: ' +
-      '{"proveedor":"COSTCO DE MEXICO","fecha":"04/05/2026","categoria":"Abarrotes","total":6065.46,"tiene_iva":true,' +
-      '"productos":[' +
-      '{"nombre":"ACEITE PURO DE OLIVA 3L KIRKLAND","cantidad":1,"unidad":"pza","costo_unitario":357.02},' +
-      '{"nombre":"PECHUGA DE POLLO SIN PIEL","cantidad":3.214,"unidad":"kg","costo_unitario":138.10}' +
-      ']}. ' +
+      'Responde UNICAMENTE con JSON valido, sin texto, sin backticks: ' +
+      '{"proveedor":"NUEVA WAL MART DE MEXICO","fecha":"04/05/2026","categoria":"Abarrotes","total":4891.50,"tiene_iva":false,' +
+      '"productos":[{"nombre":"BOLSA VERDE","cantidad":1,"unidad":"pza","costo_unitario":29.00}]}. ' +
       'Categorias validas: Carniceria, Mariscos, Abarrotes, Lacteos, Frutas y Verduras, Vinos, Licores, Refrescos, Panaderia, Limpieza, Semillas, Otros insumos. ' +
-      'Extrae ABSOLUTAMENTE TODOS los productos insumos del documento sin omitir ninguno.';
+      'Extrae ABSOLUTAMENTE TODOS los productos insumos del documento.';
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
