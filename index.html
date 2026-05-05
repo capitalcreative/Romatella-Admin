@@ -3692,6 +3692,43 @@ function setEstatus(e) {
 function calcVencimiento() { /* legacy — reemplazado por setCondicion */ }
 
 
+function inferirCategoria(nombre) {
+  const n = nombre.toUpperCase().trim();
+
+  // 1. Match exacto en catálogo
+  const exacto = DB.productos.find(p => p.nombre.toUpperCase().trim() === n);
+  if (exacto) return exacto.categoria;
+
+  // 2. Match parcial — primera palabra del nombre
+  const primeraIA  = n.split(' ')[0];
+  const parcial = DB.productos.find(p => {
+    const primeraDB = p.nombre.toUpperCase().split(' ')[0];
+    return n.includes(primeraDB) || p.nombre.toUpperCase().includes(primeraIA);
+  });
+  if (parcial) return parcial.categoria;
+
+  // 3. Diccionario de palabras clave como fallback
+  const reglas = [
+    { cat: 'Carnicería',        keys: ['PECHUGA','MILANESA','MOLIDA','BISTEC','TOCINO','JAMON','JAMÓN','COSTILLA','LOMO','FILETE','POLLO','CERDO','ARRACHERA','BARBACOA','CHORIZO','SALCHICHA'] },
+    { cat: 'Mariscos',          keys: ['CAMARON','CAMARÓN','SALMON','SALMÓN','ATUN','ATÚN','PULPO','CALAMAR','ALMEJA','MEJILLON','MEJILLÓN','ANCHOA','PESCADO','TILAPIA','BARRA DE MARLIN'] },
+    { cat: 'Lácteos',           keys: ['QUESO','LECHE','CREMA','MANTEQUILLA','YOGURT','MASCARPONE','MOZZARELLA','MOZARELLA','STRACCIATELLA','RICOTTA','PARMESANO','GOUDA','MENONITA','CABRA','BRIE','MANCHEGO','GRUYERE','JOCOQUE'] },
+    { cat: 'Frutas y Verduras', keys: ['LECHUGA','ARUGULA','ARÚGULA','JITOMATE','TOMATE','CEBOLLA','LIMON','LIMÓN','NARANJA','MANGO','FRESA','BERENJENA','CALABACITA','CHAMPINON','CHAMPIÑÓN','SETA','ESPINACA','BROCOLI','BRÓCOLI','ZANAHORIA','PAPA','ESPARRAGO','ESPÁRRAGO','BLUEBERR','ARANDANO','ARÁNDANO','GERMINADO','ROMERO','ALBAHACA','HIERBABUENA','MENTA','PEREJIL','PEPINO','AGUACATE','CREMINI','LECHUG','BUTTER','ITALIANA'] },
+    { cat: 'Vinos',             keys: ['VINO','PROSECCO','CHAMPAGNE','CAVA','ESPUMANTE','LAMBRUSCO','CHARDONNAY','TEMPRANILLO','MERLOT','CABERNET','SAUVIGNON','ROSÉ','ROSE','DOCG','DOC'] },
+    { cat: 'Licores',           keys: ['WHISKY','WHISKEY','TEQUILA','MEZCAL','RON','GIN','VODKA','APEROL','CAMPARI','CONTROY','LICOR','FRANGELICO','AMARETTO','BOURBON','COGNAC','BRANDY','CERVEZA','CHIVAS','MONTELOBOS','ARTESANAL','JABALI','JABALÍ','MINERVA','IPA','STELLA','MODELO','CORONA','PACÍFICO','PACIFICO'] },
+    { cat: 'Refrescos',         keys: ['COCA','PEPSI','SPRITE','FANTA','SIDRAL','SQUIRT','PEÑAFIEL','PENAFIEL','TONICA','TÓNICA','SMUND','AGUA MINERAL','7UP'] },
+    { cat: 'Limpieza',          keys: ['LYSOL','AXION','FABULOSO','CLORALEX','PINOL','LAVATRASTES','LAVASTRES','LIMPIADOR','DETERGENTE','ESCOBA','TRAPEADOR','FRANELA','GUANTE','PETALO','PÉTALO','KLEENEX','INODORO','SANITIZANTE'] },
+    { cat: 'Panadería',         keys: ['BAGUETTE','TORTILLA','GALLETA','SAVOIARDI','CROISSANT','BOLILLO','TELERA','PANQUÉ'] },
+    { cat: 'Semillas',          keys: ['NUEZ','ALMENDRA','CACAHUATE','PISTACHE','PIÑON','PIÑÓN','SEMILLA','AJONJOLI','AJONJOLÍ'] },
+    { cat: 'Abarrotes',         keys: ['ACEITE','PASTA','ARROZ','HARINA','AZUCAR','AZÚCAR','SAL','VINAGRE','MOSTAZA','MAYONESA','PURE','PURÉ','BARILLA','GALLO','GRENETINA','COCOA','CALDO','KNORR','MAGGI','SALSA','CONSERVA','ATÚN','SARDINA','MIEL','CAFE','CAFÉ'] },
+  ];
+
+  for (const { cat, keys } of reglas) {
+    if (keys.some(k => n.includes(k))) return cat;
+  }
+
+  return ''; // sin categoría — el usuario la asigna manualmente
+}
+
 function addItem(nombre, unidad, precio, categoria) {
   const div = document.createElement('div');
   div.className = 'relative item-row';
@@ -4233,7 +4270,7 @@ async function handleFileUpload(event) {
         const precioFinal = tieneIVA
           ? Math.round(precioNeto * 1.16 * 100) / 100
           : precioNeto;
-        addItem(p.nombre || '', p.unidad || 'bot', precioFinal);
+        addItem(p.nombre || '', p.unidad || 'bot', precioFinal, inferirCategoria(p.nombre || ''));
       });
 
       // Paso 2: filtrar solo filas con inputs numéricos (excluye divs de sugerencias)
