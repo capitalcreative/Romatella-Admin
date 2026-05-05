@@ -31,7 +31,7 @@ export default async function handler(req, res) {
 
       'REGLA A — COSTCO DE MEXICO / COSTCO WHOLESALE: ' +
       '  - tiene_iva = true. ' +
-      '  - costo_unitario = campo "VALOR UNITARIO" exacto de cada producto. Ese valor es precio NETO sin IVA. ' +
+      '  - costo_unitario = campo "VALOR UNITARIO" exacto. Ese valor es precio NETO sin IVA. ' +
       '  - NUNCA dividas entre 1.16. NUNCA uses el campo "IMPORTE". ' +
       '  - cantidad = columna "CANTIDAD" (decimal para KGM). ' +
       '  - Unidades: H87 = pza, KGM = kg, LTR = lt, XBX = caja. ' +
@@ -39,15 +39,18 @@ export default async function handler(req, res) {
 
       'REGLA B — NUEVA WAL MART DE MEXICO / WALMART / BODEGA AURRERA (CFDI con UUID): ' +
       '  - tiene_iva = false. ' +
-      '  - RAZON: Walmart CFDI tiene descuentos individuales por producto (IEPS especial en licores/cervezas). ' +
-      '    Estos descuentos hacen que la suma de partidas nunca cuadre si se aplica IVA adicional. ' +
-      '    Para que el sistema cuadre correctamente, debes devolver el precio YA CON IVA incluido. ' +
-      '  - costo_unitario = calcula tu mismo: (VALOR UNITARIO × 1.16) redondeado a 2 decimales. ' +
-      '    Excepcion: si el producto tiene tasa IVA 0% (alimentos basicos como pasta, arroz, verduras), ' +
-      '    costo_unitario = VALOR UNITARIO tal como aparece (sin multiplicar). ' +
-      '  - Para productos con DESCUENTO individual (licores, cervezas): ' +
-      '    calcula el precio neto real = (IMPORTE - DESCUENTO) / CANTIDAD, luego multiplica × 1.16. ' +
-      '    Eso da el precio final real por pieza que el cliente pago. ' +
+      '  - RAZON: Walmart CFDI tiene descuentos individuales por producto. Para que la suma de partidas ' +
+      '    cuadre con el TOTAL, debes devolver el precio final real por pieza ya con IVA y descuento aplicados. ' +
+      '  - Para cada producto CALCULA el costo_unitario asi: ' +
+      '    a) Si el producto tiene tasa IVA 16% Y tiene DESCUENTO: ' +
+      '       costo_unitario = ((IMPORTE - DESCUENTO) / CANTIDAD) * 1.16, redondeado a 2 decimales. ' +
+      '    b) Si el producto tiene tasa IVA 16% SIN descuento: ' +
+      '       costo_unitario = VALOR_UNITARIO * 1.16, redondeado a 2 decimales. ' +
+      '    c) Si el producto tiene tasa IVA 0% (alimentos basicos: pasta, arroz, pan, verduras, anchoas): ' +
+      '       Si tiene DESCUENTO: costo_unitario = (IMPORTE - DESCUENTO) / CANTIDAD. ' +
+      '       Sin descuento: costo_unitario = VALOR_UNITARIO tal cual. ' +
+      '    d) Si el producto es EXENTO de IVA (campo "Exento"): ' +
+      '       costo_unitario = VALOR_UNITARIO tal cual. ' +
       '  - cantidad = columna CANTIDAD. ' +
       '  - total = campo TOTAL del resumen (con descuentos e IVA ya aplicados). ' +
 
@@ -70,10 +73,11 @@ export default async function handler(req, res) {
       '  - tiene_iva = false. ' +
       '  - costo_unitario = precio tal como aparece. ' +
 
-      'PASO 4 — EXTRAE TODOS LOS PRODUCTOS: ' +
-      '  - Incluye todos, incluso los que tienen descuento individual. ' +
-      '  - Omite: impuestos globales, descuentos globales, servicios de facturacion, revistas de membresia. ' +
-      '  - Omite articulos de hogar que no son insumos (difusores, ropa, electrodomesticos). ' +
+      'PASO 4 — EXTRAE TODOS LOS PRODUCTOS Y CARGOS DEL DOCUMENTO: ' +
+      '  - Incluye TODOS los renglones de la factura, incluso los que tienen descuento individual. ' +
+      '  - Incluye servicios de facturacion (ej. REVISTA de membresia de Walmart) como "Otros insumos". ' +
+      '  - SOLO omite: lineas de totales, lineas de impuestos globales, lineas de descuento global. ' +
+      '  - Omite articulos de hogar que no son insumos (difusores electricos, ropa, electrodomesticos). ' +
       '  - Si cantidad = 0 o precio = 0, omite el producto. ' +
       '  - Nombres: descripcion legible, sin codigos de barras. ' +
 
@@ -85,10 +89,13 @@ export default async function handler(req, res) {
       '  - Si hay mezcla, usa la categoria del producto de mayor subtotal. ' +
 
       'Responde UNICAMENTE con JSON valido, sin texto, sin backticks: ' +
-      '{"proveedor":"NUEVA WAL MART DE MEXICO","fecha":"04/05/2026","categoria":"Abarrotes","total":4891.50,"tiene_iva":false,' +
-      '"productos":[{"nombre":"BOLSA VERDE","cantidad":1,"unidad":"pza","costo_unitario":29.00}]}. ' +
+      '{"proveedor":"NUEVA WAL MART DE MEXICO","fecha":"04/05/2026","categoria":"Licores","total":4891.50,"tiene_iva":false,' +
+      '"productos":[' +
+      '{"nombre":"STELLA 6","cantidad":2,"unidad":"pza","costo_unitario":104.50},' +
+      '{"nombre":"VP CHIV 12","cantidad":1,"unidad":"pza","costo_unitario":659.00}' +
+      ']}. ' +
       'Categorias validas: Carniceria, Mariscos, Abarrotes, Lacteos, Frutas y Verduras, Vinos, Licores, Refrescos, Panaderia, Limpieza, Semillas, Otros insumos. ' +
-      'Extrae ABSOLUTAMENTE TODOS los productos insumos del documento.';
+      'Extrae ABSOLUTAMENTE TODOS los renglones del documento incluyendo servicios y membresías.';
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
