@@ -5741,7 +5741,7 @@ function exportarCSV() {
     Object.entries(data).forEach(([sec, items]) => {
       items.forEach(item => {
         itemToSection[t][item] = sec;
-        if (!reqState[t][item]) reqState[t][item] = { qty: 0, noStock: false };
+        if (!reqState[t][item]) reqState[t][item] = { qty: 0, noStock: false, bien: false };
         else reqState[t][item].qty = parseFloat(reqState[t][item].qty) || 0;
       });
     });
@@ -5763,6 +5763,12 @@ function exportarCSV() {
     const nsInner = s.noStock
       ? '<span class="ms text-sm leading-none">close</span><span>Sin stock</span>'
       : '<span class="ms text-base leading-none">close</span>';
+    const bnClass = s.bien
+      ? 'flex items-center gap-0.5 text-xs px-2.5 py-1.5 rounded-full border bg-emerald-50 border-emerald-400 text-emerald-700 font-semibold ml-1 transition-all'
+      : 'w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 ml-1 hover:border-emerald-400 hover:text-emerald-500 active:scale-95 transition-all';
+    const bnInner = s.bien
+      ? '<span class="ms text-sm leading-none">check</span><span>Bien</span>'
+      : '<span class="ms text-base leading-none">check</span>';
     return `
       <div class="flex-1 flex items-center gap-2 min-w-0">
         <span id="rico-${id}" class="ms${isFilled ? ' ms-fill text-green-500' : ' text-slate-200'} text-xl shrink-0">${isFilled ? 'check_circle' : 'radio_button_unchecked'}</span>
@@ -5777,8 +5783,8 @@ function exportarCSV() {
           style="appearance:textfield;-moz-appearance:textfield"/>
         <button type="button" onclick="reqQty('${id}','${safeItem}',0.5)"
           class="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 text-lg leading-none hover:bg-slate-100 active:scale-95 transition-transform">+</button>
-        <button type="button" id="rns-${id}" onclick="reqNoStock('${id}','${safeItem}')"
-          class="${nsClass}">${nsInner}</button>
+        <button type="button" id="rns-${id}" onclick="reqNoStock('${id}','${safeItem}')" class="${nsClass}">${nsInner}</button>
+        <button type="button" id="rbn-${id}" onclick="reqBien('${id}','${safeItem}')" class="${bnClass}">${bnInner}</button>
       </div>`;
   }
 
@@ -5861,30 +5867,41 @@ function exportarCSV() {
   }
 
   window.reqQty = function(id, item, delta) {
-    if (!reqState[tabActual][item]) reqState[tabActual][item] = { qty: 0, noStock: false };
+    if (!reqState[tabActual][item]) reqState[tabActual][item] = { qty: 0, noStock: false, bien: false };
     const current = parseFloat(reqState[tabActual][item].qty) || 0;
     reqState[tabActual][item].qty = Math.round(Math.max(0, current + delta) * 100) / 100;
     reqState[tabActual][item].noStock = false;
+    reqState[tabActual][item].bien = false;
     updateRowUI(id, item);
   };
 
   window.reqQtyInput = function(id, item, val) {
-    if (!reqState[tabActual][item]) reqState[tabActual][item] = { qty: 0, noStock: false };
+    if (!reqState[tabActual][item]) reqState[tabActual][item] = { qty: 0, noStock: false, bien: false };
     reqState[tabActual][item].qty = Math.round(Math.max(0, parseFloat(val) || 0) * 100) / 100;
     reqState[tabActual][item].noStock = false;
+    reqState[tabActual][item].bien = false;
     updateRowUI(id, item);
   };
 
   window.reqNoStock = function(id, item) {
-    if (!reqState[tabActual][item]) reqState[tabActual][item] = { qty: 0, noStock: false };
+    if (!reqState[tabActual][item]) reqState[tabActual][item] = { qty: 0, noStock: false, bien: false };
     reqState[tabActual][item].noStock = !reqState[tabActual][item].noStock;
+    reqState[tabActual][item].qty = 0;
+    reqState[tabActual][item].bien = false;
+    updateRowUI(id, item);
+  };
+
+  window.reqBien = function(id, item) {
+    if (!reqState[tabActual][item]) reqState[tabActual][item] = { qty: 0, noStock: false, bien: false };
+    reqState[tabActual][item].bien = !reqState[tabActual][item].bien;
+    reqState[tabActual][item].noStock = false;
     reqState[tabActual][item].qty = 0;
     updateRowUI(id, item);
   };
 
   function updateRowUI(id, item) {
-    const s = reqState[tabActual][item] || { qty: 0, noStock: false };
-    const isFilled = s.qty > 0 || s.noStock;
+    const s = reqState[tabActual][item] || { qty: 0, noStock: false, bien: false };
+    const isFilled = s.qty > 0 || s.noStock || s.bien;
 
     const row = document.getElementById('rrow-' + id);
     if (row) {
@@ -5913,6 +5930,16 @@ function exportarCSV() {
       } else {
         nsEl.className = 'w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 ml-1 hover:border-red-300 hover:text-red-400 active:scale-95 transition-all';
         nsEl.innerHTML = '<span class="ms text-base leading-none">close</span>';
+      }
+    }
+    const bnEl = document.getElementById('rbn-' + id);
+    if (bnEl) {
+      if (s.bien) {
+        bnEl.className = 'flex items-center gap-0.5 text-xs px-2.5 py-1.5 rounded-full border bg-emerald-50 border-emerald-400 text-emerald-700 font-semibold ml-1 transition-all';
+        bnEl.innerHTML = '<span class="ms text-sm leading-none">check</span><span>Bien</span>';
+      } else {
+        bnEl.className = 'w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 ml-1 hover:border-emerald-400 hover:text-emerald-500 active:scale-95 transition-all';
+        bnEl.innerHTML = '<span class="ms text-base leading-none">check</span>';
       }
     }
 
@@ -5979,14 +6006,16 @@ function exportarCSV() {
 
     const solicitados = [];
     const sinStock = [];
+    const bien = [];
     ['barra','cocina'].forEach(t => {
       Object.entries(reqState[t] || {}).forEach(([item, v]) => {
         if (v.noStock) sinStock.push({ item, area: t });
+        else if (v.bien) bien.push({ item, area: t });
         else if (v.qty > 0) solicitados.push({ item, qty: v.qty, area: t });
       });
     });
 
-    if (!solicitados.length && !sinStock.length) { alert('Anota al menos un producto antes de continuar.'); return; }
+    if (!solicitados.length && !sinStock.length && !bien.length) { alert('Anota al menos un producto antes de continuar.'); return; }
 
     const now = new Date();
     const fechaStr = now.toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
@@ -5997,7 +6026,7 @@ function exportarCSV() {
     setEl('conf-stat-total', solicitados.length);
     setEl('conf-stat-sinstock', sinStock.length);
     const totalItems = Object.values({...reqState.barra,...reqState.cocina}).length;
-    setEl('conf-stat-sintocar', totalItems - solicitados.length - sinStock.length);
+    setEl('conf-stat-sintocar', totalItems - solicitados.length - sinStock.length - bien.length);
 
     const areasUsadas = [...new Set([...solicitados.map(x => x.area),...sinStock.map(x => x.area)])];
     const confAreas = document.getElementById('conf-areas');
@@ -6032,7 +6061,7 @@ function exportarCSV() {
       } else { ssWrap.classList.add('hidden'); }
     }
 
-    window._reqPayload = { nombre, fecha: now.toISOString(), solicitados, sinStock };
+    window._reqPayload = { nombre, fecha: now.toISOString(), solicitados, sinStock, bien };
 
     // Ocultar badge guardado mientras se guarda
     const badge = document.getElementById('conf-guardado-badge');
@@ -6063,6 +6092,9 @@ function exportarCSV() {
       if (ssBarra.length) msg += `\n🍹 ` + ssBarra.map(x => x.item).join(', ');
       if (ssCocina.length) msg += `\n🍳 ` + ssCocina.map(x => x.item).join(', ');
     }
+    if (p.bien && p.bien.length) {
+      msg += `\n\n✅ *Bien/Suficiente:* ` + p.bien.map(x => x.item).join(', ');
+    }
     msg += `\n\n_Enviado desde Romatella Admin_`;
 
     // Abrir WhatsApp inmediatamente
@@ -6079,7 +6111,7 @@ function exportarCSV() {
     const req = {
       nombre: p.nombre,
       fecha: p.fecha,
-      items: JSON.stringify(p.solicitados),
+      items: JSON.stringify([...p.solicitados, ...(p.bien||[]).map(x => ({...x, qty: 0, bien: true}))]),
       sin_stock: JSON.stringify(p.sinStock),
       estatus: 'Pendiente'
     };
@@ -7427,58 +7459,78 @@ function reqExportPDF() {
   const w = window.open('', '_blank');
   if (!w) { toast('Permite ventanas emergentes para exportar PDF'); return; }
   const fecha = new Date().toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
-  let rows = '';
+
+  const SEC_ORDER = ['Superama','Costco','Mercado','Carnicería','Mariscos','Quesos Ayala','Semillas y Materias Primas','Productos Italianos','Limpieza cocina','Desechables cocina','Refrescos','Pulpas','Cerveza','Vino Tinto','Vino Blanco','Vino Rosado','Vino Espumoso','Destilados','Frutas barra','Abarrotes barra','Semillas barra','Papelería','Limpieza barra','Desechables barra'];
+
+  // Agrupar todos los items de todas las requisiciones por proveedor
+  const grouped = {}; // { section: [{item, qty, area, ss, bien, nombre, fStr}] }
+
   reqs.forEach(r => {
-    const items = (() => { try { return JSON.parse(r.items || '[]'); } catch { return []; } })();
+    const items   = (() => { try { return JSON.parse(r.items    || '[]'); } catch { return []; } })();
     const sinStock = (() => { try { return JSON.parse(r.sin_stock || '[]'); } catch { return []; } })();
-    const fStr = r.fecha ? new Date(r.fecha).toLocaleDateString('es-MX') : '—';
-    const allItems = [
-      ...items.map(x => ({ area: x.area, item: x.item, qty: x.qty, ss: false })),
-      ...sinStock.map(x => ({ area: x.area, item: x.item, qty: 0, ss: true }))
-    ];
-    if (!allItems.length) {
-      rows += `<tr><td>${fStr}</td><td>${r.nombre||'—'}</td><td>—</td><td>${r.producto||'—'}</td><td>${r.cantidad||'—'}</td><td></td></tr>`;
-    } else {
-      allItems.forEach((x, i) => {
-        rows += `<tr>
-          <td>${i === 0 ? fStr : ''}</td>
-          <td>${i === 0 ? (r.nombre||'—') : ''}</td>
-          <td><span class="pill ${x.area||''}">${x.area === 'barra' ? '🍹 Barra' : '🍳 Cocina'}</span></td>
-          <td>${x.item}</td>
-          <td class="${x.ss ? 'sinstock' : 'qty'}">${x.ss ? 'SIN STOCK' : x.qty}</td>
-        </tr>`;
-      });
-      rows += `<tr class="sep"><td colspan="5"></td></tr>`;
-    }
+    const fStr = r.fecha ? new Date(r.fecha).toLocaleDateString('es-MX', {day:'numeric',month:'short'}) : '—';
+    const enc  = r.nombre || '—';
+
+    [...items, ...sinStock.map(x => ({...x, qty: 0, ss: true}))].forEach(x => {
+      const isBien = x.bien === true;
+      const isSS   = x.ss   === true;
+      const sec = (window.reqItemSection && window.reqItemSection(x.item, x.area)) || (x.area === 'barra' ? '🍹 Barra' : '🍳 Cocina');
+      if (!grouped[sec]) grouped[sec] = [];
+      grouped[sec].push({ item: x.item, qty: x.qty, area: x.area, ss: isSS, bien: isBien, enc, fStr });
+    });
   });
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Requisiciones Romatella</title>
+
+  const sortedSecs = Object.keys(grouped).sort((a, b) => {
+    const ai = SEC_ORDER.indexOf(a), bi = SEC_ORDER.indexOf(b);
+    return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi);
+  });
+
+  let html = '';
+  sortedSecs.forEach(sec => {
+    const rows = grouped[sec];
+    html += `<div class="sec-block">
+      <div class="sec-hdr">${sec}</div>
+      <table>
+        <thead><tr><th>Artículo</th><th>Cantidad</th><th>Encargado</th><th>Fecha</th></tr></thead>
+        <tbody>`;
+    rows.forEach(x => {
+      const qtyCell = x.bien
+        ? `<td class="bien">✓ OK</td>`
+        : x.ss
+          ? `<td class="sinstock">SIN STOCK</td>`
+          : `<td class="qty">${x.qty}</td>`;
+      html += `<tr><td>${x.item}</td>${qtyCell}<td class="enc">${x.enc}</td><td class="dt">${x.fStr}</td></tr>`;
+    });
+    html += `</tbody></table></div>`;
+  });
+
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Lista de Compras · Romatella</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     body{font-family:Arial,sans-serif;font-size:11px;color:#1a1c1d;padding:28px 32px}
     .header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;border-bottom:2px solid #1a1c1d;padding-bottom:14px}
     .logo{font-size:22px;font-weight:700;letter-spacing:.02em}.logo span{color:#9b3f00}
     .meta{text-align:right;font-size:10px;color:#666;line-height:1.7}
-    table{width:100%;border-collapse:collapse;margin-top:4px}
-    th{background:#1a1c1d;color:#fff;padding:7px 10px;text-align:left;font-size:9px;letter-spacing:.08em;text-transform:uppercase}
+    .btn-print{display:inline-flex;align-items:center;gap:8px;margin-bottom:18px;padding:9px 20px;background:#0059b5;color:white;border:none;border-radius:10px;cursor:pointer;font-size:12px;font-weight:600}
+    .sec-block{margin-bottom:22px;break-inside:avoid}
+    .sec-hdr{background:#1a1c1d;color:#fff;padding:6px 12px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:6px 6px 0 0}
+    table{width:100%;border-collapse:collapse}
+    th{background:#f3f3f5;padding:5px 10px;text-align:left;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:#888;border-bottom:1px solid #e0e0e4}
     td{padding:5px 10px;font-size:11px;border-bottom:1px solid #f0f0f2;vertical-align:middle}
-    tr.sep td{padding:3px;border:none;background:#f3f3f5}
-    .qty{font-weight:700;color:#1a1c1d}
-    .sinstock{font-weight:700;color:#ba1a1a;font-size:10px;letter-spacing:.04em}
-    .pill{font-size:9px;padding:2px 7px;border-radius:99px;font-weight:600;display:inline-block}
-    .pill.barra{background:#e8f0fb;color:#0059b5}.pill.cocina{background:#e8f5e9;color:#2e7d32}
-    .btn-print{display:inline-flex;align-items:center;gap:8px;margin-bottom:16px;padding:9px 20px;background:#0059b5;color:white;border:none;border-radius:10px;cursor:pointer;font-size:12px;font-weight:600}
+    .qty{font-weight:700;color:#1a1c1d;text-align:right;width:70px}
+    .sinstock{font-weight:700;color:#ba1a1a;font-size:10px;letter-spacing:.04em;width:70px}
+    .bien{font-weight:600;color:#2e7d32;font-size:10px;width:70px}
+    .enc{color:#888;font-size:10px;width:90px}
+    .dt{color:#aaa;font-size:10px;width:70px}
     .footer{margin-top:24px;font-size:9px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:10px}
     @media print{.btn-print{display:none}body{padding:16px}}
   </style></head><body>
   <div class="header">
-    <div><div class="logo"><span>R</span>omatella</div><div style="font-size:10px;color:#888;margin-top:3px">Requisición de insumos</div></div>
+    <div><div class="logo"><span>R</span>omatella</div><div style="font-size:10px;color:#888;margin-top:3px">Lista de compras por proveedor</div></div>
     <div class="meta">${fecha}<br>${reqs.length} requisición${reqs.length!==1?'es':''}</div>
   </div>
   <button class="btn-print" onclick="window.print()">🖨️ Guardar como PDF / Imprimir</button>
-  <table>
-    <thead><tr><th>Fecha</th><th>Encargado</th><th>Área</th><th>Artículo</th><th>Cantidad</th></tr></thead>
-    <tbody>${rows}</tbody>
-  </table>
+  ${html}
   <div class="footer">Romatella Admin · Generado el ${fecha}</div>
   </body></html>`);
   w.document.close();
