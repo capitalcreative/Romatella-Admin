@@ -5783,10 +5783,9 @@ function exportarCSV() {
       <div class="flex items-center gap-1 shrink-0">
         <button type="button" onclick="reqQty('${id}','${safeItem}',-0.5)"
           class="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 text-lg leading-none hover:bg-slate-100 active:scale-95 transition-transform">−</button>
-        <input type="number" id="rqty-${id}" value="${s.qty || ''}" min="0" step="any" placeholder="0" inputmode="decimal"
+        <input type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*" id="rqty-${id}" value="${s.qty || ''}" placeholder="0"
           oninput="reqQtyInput('${id}','${safeItem}',this.value)"
-          class="w-16 text-center text-sm font-bold border border-slate-200 rounded-xl outline-none bg-white px-1 ${s.qty > 0 ? 'text-primary' : 'text-slate-400'}"
-          style="appearance:textfield;-moz-appearance:textfield"/>
+          class="w-16 text-center text-sm font-bold border border-slate-200 rounded-xl outline-none bg-white px-1 ${s.qty > 0 ? 'text-primary' : 'text-slate-400'}"/>
         <button type="button" onclick="reqQty('${id}','${safeItem}',0.5)"
           class="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 text-lg leading-none hover:bg-slate-100 active:scale-95 transition-transform">+</button>
         <button type="button" id="rns-${id}" onclick="reqNoStock('${id}','${safeItem}')" class="${nsClass}">${nsInner}</button>
@@ -5883,10 +5882,21 @@ function exportarCSV() {
 
   window.reqQtyInput = function(id, item, val) {
     if (!reqState[tabActual][item]) reqState[tabActual][item] = { qty: 0, noStock: false, bien: false };
-    reqState[tabActual][item].qty = Math.round(Math.max(0, parseFloat(val) || 0) * 100) / 100;
+    // Normalize comma → dot (some iOS keyboards use comma as decimal separator)
+    const normalized = String(val).replace(',', '.');
+    // Allow user to keep typing (e.g. "0.", "1.5") — only update state when value is a valid number
+    const num = parseFloat(normalized);
+    reqState[tabActual][item].qty = isNaN(num) ? 0 : Math.round(Math.max(0, num) * 100) / 100;
     reqState[tabActual][item].noStock = false;
     reqState[tabActual][item].bien = false;
-    updateRowUI(id, item);
+    // Update icon/color without overwriting the input field content while typing
+    const ico = document.getElementById('rico-' + id);
+    const nameEl = document.getElementById('rname-' + id);
+    const inp = document.getElementById('rqty-' + id);
+    const filled = reqState[tabActual][item].qty > 0;
+    if (ico) { ico.textContent = filled ? 'check_circle' : 'radio_button_unchecked'; ico.className = 'ms' + (filled ? ' ms-fill text-green-500' : ' text-slate-200') + ' text-xl shrink-0'; }
+    if (nameEl) nameEl.className = 'text-sm ' + (filled ? 'text-slate-600' : 'text-slate-800') + ' leading-tight';
+    if (inp) inp.className = inp.className.replace(/text-(primary|slate-400)/, filled ? 'text-primary' : 'text-slate-400');
   };
 
   window.reqNoStock = function(id, item) {
