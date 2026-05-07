@@ -7187,7 +7187,7 @@ function filterReq(filtro, btnEl) {
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
           <span class="${estatusCls}">${r.estatus}</span>
-          <button type="button" data-req-id="${r.id}" onclick="reqEliminar(${r.id})"
+          <button type="button" id="del-btn-${r.id}"
             class="w-7 h-7 rounded-full flex items-center justify-center text-slate-300 hover:bg-red-50 hover:text-red-400 transition-colors"
             title="Eliminar requisición">
             <span class="ms text-lg">delete</span>
@@ -7199,6 +7199,46 @@ function filterReq(filtro, btnEl) {
         ${sinStock.length ? `<span class="text-xs px-2 py-0.5 rounded-full bg-red-50 text-red-600 font-medium">${sinStock.length} sin stock</span>` : ''}
       </div>`;
     card.appendChild(header);
+
+    // Botón eliminar — usa addEventListener para evitar problemas con IDs tipo UUID
+    const delBtn = header.querySelector(`#del-btn-${r.id}`) || card.querySelector('[title="Eliminar requisición"]');
+    if (delBtn) {
+      let confirmPending = false;
+      delBtn.addEventListener('click', async () => {
+        if (!confirmPending) {
+          // Primer tap: pide confirmación visualmente
+          confirmPending = true;
+          delBtn.innerHTML = '<span class="ms text-lg">delete_forever</span>';
+          delBtn.className = 'w-7 h-7 rounded-full flex items-center justify-center bg-red-500 text-white transition-colors';
+          delBtn.title = 'Toca de nuevo para confirmar';
+          setTimeout(() => {
+            if (confirmPending) {
+              confirmPending = false;
+              delBtn.innerHTML = '<span class="ms text-lg">delete</span>';
+              delBtn.className = 'w-7 h-7 rounded-full flex items-center justify-center text-slate-300 hover:bg-red-50 hover:text-red-400 transition-colors';
+              delBtn.title = 'Eliminar requisición';
+            }
+          }, 3000);
+          return;
+        }
+        // Segundo tap: eliminar
+        confirmPending = false;
+        delBtn.disabled = true;
+        try {
+          await fetch('/api/supabase', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'delete', table: 'requisiciones', id: r.id })
+          });
+          DB.requisiciones = (DB.requisiciones || []).filter(x => x.id !== r.id);
+          filterReq(DB.reqFiltro || 'pendientes');
+          toast('Requisición eliminada');
+        } catch(e) {
+          toast('Error al eliminar');
+          delBtn.disabled = false;
+        }
+      });
+    }
 
     // Lista agrupada por proveedor/sección
     if (items.length > 0 || sinStock.length > 0) {
@@ -7293,22 +7333,6 @@ function filterReq(filtro, btnEl) {
 
     grid.appendChild(card);
   });
-}
-
-async function reqEliminar(id) {
-  if (!confirm('¿Eliminar esta requisición? No se puede deshacer.')) return;
-  try {
-    await fetch('/api/supabase', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'delete', table: 'requisiciones', id })
-    });
-    DB.requisiciones = (DB.requisiciones || []).filter(r => r.id !== id);
-    filterReq(DB.reqFiltro || 'pendientes');
-    toast('Requisición eliminada');
-  } catch(e) {
-    toast('Error al eliminar');
-  }
 }
 
 // ============================================================
