@@ -1,0 +1,10 @@
+{
+  "rewrites": [
+    { "source": "/inventario", "destination": "/index.html" }
+  ],
+  "functions": {
+    "api/*.js": {
+      "runtime": "@vercel/node"
+    }
+  }
+}

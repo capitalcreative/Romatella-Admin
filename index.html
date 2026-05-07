@@ -7536,5 +7536,13 @@ function reqExportPDF() {
   w.document.close();
 }
 </script>
+<script>
+// Acceso directo: romatella.vercel.app/inventario → abre el formulario de empleados
+if (window.location.pathname === '/inventario') {
+  document.addEventListener('DOMContentLoaded', () => {
+    if (typeof showEmp === 'function') showEmp('pin');
+  });
+}
+</script>
 </body>
 </html>
