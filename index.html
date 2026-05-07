@@ -5771,9 +5771,9 @@ function exportarCSV() {
       <div class="flex items-center gap-1 shrink-0">
         <button type="button" onclick="reqQty('${id}','${safeItem}',-0.5)"
           class="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 text-lg leading-none hover:bg-slate-100 active:scale-95 transition-transform">−</button>
-        <input type="number" id="rqty-${id}" value="${s.qty || ''}" min="0" step="0.5" placeholder="0"
+        <input type="number" id="rqty-${id}" value="${s.qty || ''}" min="0" step="any" placeholder="0" inputmode="decimal"
           oninput="reqQtyInput('${id}','${safeItem}',this.value)"
-          class="w-12 text-center text-sm font-bold border-0 outline-none bg-transparent ${s.qty > 0 ? 'text-primary' : 'text-slate-400'}"
+          class="w-16 text-center text-sm font-bold border border-slate-200 rounded-xl outline-none bg-white px-1 ${s.qty > 0 ? 'text-primary' : 'text-slate-400'}"
           style="appearance:textfield;-moz-appearance:textfield"/>
         <button type="button" onclick="reqQty('${id}','${safeItem}',0.5)"
           class="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 text-lg leading-none hover:bg-slate-100 active:scale-95 transition-transform">+</button>
@@ -5903,7 +5903,7 @@ function exportarCSV() {
     const qEl = document.getElementById('rqty-' + id);
     if (qEl) {
       qEl.value = s.qty > 0 ? fmtQty(s.qty) : '';
-      qEl.className = `w-12 text-center text-sm font-bold border-0 outline-none bg-transparent ${s.qty > 0 ? 'text-primary' : 'text-slate-400'}`;
+      qEl.className = `w-16 text-center text-sm font-bold border border-slate-200 rounded-xl outline-none bg-white px-1 ${s.qty > 0 ? 'text-primary' : 'text-slate-400'}`;
     }
     const nsEl = document.getElementById('rns-' + id);
     if (nsEl) {
