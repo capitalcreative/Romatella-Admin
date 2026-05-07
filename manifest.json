@@ -1,0 +1,12 @@
+{
+  "name": "Romatella Admin",
+  "short_name": "Romatella",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9f9fb",
+  "theme_color": "#0059b5",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
