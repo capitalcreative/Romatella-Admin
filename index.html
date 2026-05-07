@@ -7721,23 +7721,15 @@ function lcCopiarProveedor(sec) {
   if (!pendientes.length) { toast('Todo está comprado en ' + sec); return; }
 
   const lineas = pendientes.map(r => {
-    const cantPedir = r.pedido !== '' && r.pedido != null ? r.pedido : (r.ss ? '?' : r.qty || '?');
-    return r.ss
-      ? `• ${r.item} — ${cantPedir !== '?' ? cantPedir : '⚠️ SIN STOCK (verificar)'}`
-      : `• ${r.item} — ${cantPedir}`;
+    const cantPedir = (r.pedido !== '' && r.pedido != null) ? r.pedido : (r.ss ? '⚠️ sin stock' : r.qty || '?');
+    return `• ${r.item} — ${cantPedir}`;
   }).join('\n');
 
-  const texto = `*Pedido Romatella – ${sec}*\n📅 ${lcFecha}\n\n${lineas}\n\n_Enviado desde Romatella Admin_`;
+  const texto = `*Pedido Romatella – ${sec}*\n📅 ${lcFecha}\n\n${lineas}\n\n_Romatella Admin_`;
 
-  if (navigator.clipboard) {
-    navigator.clipboard.writeText(texto).then(() => toast('✓ Copiado · listo para pegar en WhatsApp'));
-  } else {
-    const ta = document.createElement('textarea');
-    ta.value = texto; ta.style.position='fixed'; ta.style.opacity='0';
-    document.body.appendChild(ta); ta.focus(); ta.select();
-    document.execCommand('copy'); document.body.removeChild(ta);
-    toast('✓ Copiado · listo para pegar en WhatsApp');
-  }
+  // Abrir WhatsApp directamente con el mensaje pre-llenado
+  const url = 'https://wa.me/?text=' + encodeURIComponent(texto);
+  window.open(url, '_blank');
 }
 
 function lcRender() {
