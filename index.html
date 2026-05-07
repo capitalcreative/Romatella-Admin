@@ -7501,49 +7501,95 @@ function reqExportPDF() {
     return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi);
   });
 
-  let html = '';
+  // Separar secciones de cocina vs barra para colorearlas diferente
+  const COCINA_SECS = new Set(['Superama','Costco','Mercado','Carnicería','Mariscos','Quesos Ayala','Semillas y Materias Primas','Productos Italianos','Limpieza cocina','Desechables cocina']);
+
+  // Contar totales para el resumen
+  let totalItems = 0, totalSinStock = 0, totalBien = 0;
+  sortedSecs.forEach(sec => grouped[sec].forEach(x => {
+    if (x.bien) totalBien++; else if (x.ss) totalSinStock++; else totalItems++;
+  }));
+
+  let html = '<div class="grid">';
   sortedSecs.forEach(sec => {
     const rows = grouped[sec];
+    const isCocina = COCINA_SECS.has(sec);
+    const needRows = rows.filter(x => !x.bien);
+    const bienRows = rows.filter(x => x.bien);
+    if (!needRows.length && !bienRows.length) return;
+
     html += `<div class="sec-block">
-      <div class="sec-hdr">${sec}</div>
-      <table>
-        <thead><tr><th>Artículo</th><th>Cantidad</th><th>Encargado</th><th>Fecha</th></tr></thead>
-        <tbody>`;
-    rows.forEach(x => {
-      const qtyCell = x.bien
-        ? `<td class="bien">✓ OK</td>`
-        : x.ss
-          ? `<td class="sinstock">SIN STOCK</td>`
-          : `<td class="qty">${x.qty}</td>`;
-      html += `<tr><td>${x.item}</td>${qtyCell}<td class="enc">${x.enc}</td><td class="dt">${x.fStr}</td></tr>`;
-    });
-    html += `</tbody></table></div>`;
+      <div class="sec-hdr ${isCocina ? 'hdr-cocina' : 'hdr-barra'}">${sec}</div>`;
+
+    if (needRows.length) {
+      html += `<table><tbody>`;
+      needRows.forEach(x => {
+        if (x.ss) {
+          html += `<tr class="row-ss"><td class="chk"></td><td class="item">${x.item}</td><td class="tag-ss">SIN STOCK</td></tr>`;
+        } else {
+          html += `<tr><td class="chk"></td><td class="item">${x.item}</td><td class="qty">${x.qty}</td></tr>`;
+        }
+      });
+      html += `</tbody></table>`;
+    }
+
+    if (bienRows.length) {
+      html += `<div class="bien-list">`;
+      bienRows.forEach(x => { html += `<span class="bien-tag">✓ ${x.item}</span>`; });
+      html += `</div>`;
+    }
+
+    html += `</div>`;
   });
+  html += '</div>';
 
   w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Lista de Compras · Romatella</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:Arial,sans-serif;font-size:11px;color:#1a1c1d;padding:28px 32px}
-    .header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;border-bottom:2px solid #1a1c1d;padding-bottom:14px}
-    .logo{font-size:22px;font-weight:700;letter-spacing:.02em}.logo span{color:#9b3f00}
-    .meta{text-align:right;font-size:10px;color:#666;line-height:1.7}
-    .btn-print{display:inline-flex;align-items:center;gap:8px;margin-bottom:18px;padding:9px 20px;background:#0059b5;color:white;border:none;border-radius:10px;cursor:pointer;font-size:12px;font-weight:600}
-    .sec-block{margin-bottom:22px;break-inside:avoid}
-    .sec-hdr{background:#1a1c1d;color:#fff;padding:6px 12px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;border-radius:6px 6px 0 0}
+    body{font-family:-apple-system,Arial,sans-serif;font-size:11px;color:#1a1c1d;background:#fff;padding:20px 24px}
+    .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #1a1c1d}
+    .logo{font-size:20px;font-weight:800;letter-spacing:-.01em}
+    .logo span{color:#9b3f00}
+    .logo small{display:block;font-size:9px;font-weight:400;color:#888;letter-spacing:.04em;margin-top:1px}
+    .meta{text-align:right;font-size:9px;color:#888;line-height:1.8}
+    .meta strong{color:#1a1c1d;font-size:11px}
+    .summary{display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+    .sum-chip{padding:5px 12px;border-radius:20px;font-size:10px;font-weight:600;display:flex;align-items:center;gap:5px}
+    .sum-need{background:#e8f0fe;color:#0059b5}
+    .sum-ss{background:#fce8e8;color:#ba1a1a}
+    .sum-ok{background:#e6f4ea;color:#2e7d32}
+    .btn-print{display:inline-flex;align-items:center;gap:6px;margin-bottom:14px;padding:8px 18px;background:#0059b5;color:white;border:none;border-radius:8px;cursor:pointer;font-size:11px;font-weight:600}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:start}
+    .sec-block{border:1px solid #e8e8ea;border-radius:8px;overflow:hidden;break-inside:avoid}
+    .sec-hdr{padding:6px 10px;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+    .hdr-cocina{background:#1a1c1d;color:#fff}
+    .hdr-barra{background:#0059b5;color:#fff}
     table{width:100%;border-collapse:collapse}
-    th{background:#f3f3f5;padding:5px 10px;text-align:left;font-size:9px;letter-spacing:.06em;text-transform:uppercase;color:#888;border-bottom:1px solid #e0e0e4}
-    td{padding:5px 10px;font-size:11px;border-bottom:1px solid #f0f0f2;vertical-align:middle}
-    .qty{font-weight:700;color:#1a1c1d;text-align:right;width:70px}
-    .sinstock{font-weight:700;color:#ba1a1a;font-size:10px;letter-spacing:.04em;width:70px}
-    .bien{font-weight:600;color:#2e7d32;font-size:10px;width:70px}
-    .enc{color:#888;font-size:10px;width:90px}
-    .dt{color:#aaa;font-size:10px;width:70px}
-    .footer{margin-top:24px;font-size:9px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:10px}
-    @media print{.btn-print{display:none}body{padding:16px}}
+    tr:last-child td{border-bottom:none}
+    td{padding:5px 8px;font-size:10.5px;border-bottom:1px solid #f3f3f5;vertical-align:middle}
+    .chk{width:16px;padding-right:4px}
+    .chk::before{content:'';display:inline-block;width:11px;height:11px;border:1.5px solid #ccc;border-radius:2px;vertical-align:middle}
+    .item{flex:1;color:#1a1c1d}
+    .qty{font-weight:700;color:#0059b5;text-align:right;white-space:nowrap;width:36px}
+    .row-ss td{background:#fff8f8}
+    .tag-ss{font-weight:700;color:#ba1a1a;font-size:9px;text-align:right;white-space:nowrap;width:60px}
+    .bien-list{padding:5px 8px 6px;background:#f6faf6;display:flex;flex-wrap:wrap;gap:4px;border-top:1px solid #e8f5e9}
+    .bien-tag{font-size:9px;color:#2e7d32;background:#e6f4ea;border-radius:4px;padding:2px 6px}
+    .footer{margin-top:16px;font-size:8px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:8px}
+    @media print{
+      .btn-print{display:none}
+      body{padding:10px 14px}
+      .grid{grid-template-columns:repeat(3,1fr)}
+    }
   </style></head><body>
   <div class="header">
-    <div><div class="logo"><span>R</span>omatella</div><div style="font-size:10px;color:#888;margin-top:3px">Lista de compras por proveedor</div></div>
-    <div class="meta">${fecha}<br>${reqs.length} requisición${reqs.length!==1?'es':''}</div>
+    <div class="logo"><span>R</span>omatella<small>Lista de compras por proveedor</small></div>
+    <div class="meta"><strong>${fecha}</strong><br>${reqs.length} requisición${reqs.length!==1?'es':''}</div>
+  </div>
+  <div class="summary">
+    <div class="sum-chip sum-need">🛒 ${totalItems} artículos por comprar</div>
+    ${totalSinStock ? `<div class="sum-chip sum-ss">⚠️ ${totalSinStock} sin stock</div>` : ''}
+    ${totalBien ? `<div class="sum-chip sum-ok">✓ ${totalBien} bien / suficiente</div>` : ''}
   </div>
   <button class="btn-print" onclick="window.print()">🖨️ Guardar como PDF / Imprimir</button>
   ${html}
