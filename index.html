@@ -7667,7 +7667,7 @@ function lcBuildData() {
         if (!existing.ss && !x.ss) existing.qty = Math.round((existing.qty + (parseFloat(x.qty)||0)) * 100) / 100;
         if (x.ss) existing.ss = true;
       } else {
-        lcData[sec].push({ item: x.item, qty: parseFloat(x.qty)||0, ss: x.ss||false, comprado: false });
+        lcData[sec].push({ item: x.item, qty: parseFloat(x.qty)||0, ss: x.ss||false, comprado: false, pedido: '' });
       }
     });
   });
@@ -7690,13 +7690,22 @@ function lcToggle(sec, idx) {
   if (row) {
     const isCocina = LC_COCINA_SECS.has(sec);
     row.className = lcRowClass(lcData[sec][idx], isCocina);
-    row.querySelector('.lc-item-name').className = `lc-item-name flex-1 text-sm leading-snug transition-all ${lcData[sec][idx].comprado ? 'line-through text-slate-300' : 'text-slate-800'}`;
+    const nameEl = row.querySelector('.lc-item-name');
+    if (nameEl) nameEl.className = `lc-item-name text-sm leading-snug transition-all ${lcData[sec][idx].comprado ? 'line-through text-slate-300' : 'text-slate-800'}`;
     const chk = row.querySelector('.lc-chk');
     if (chk) chk.innerHTML = lcData[sec][idx].comprado
       ? `<span class="ms ms-fill text-green-500 text-xl">check_circle</span>`
       : `<span class="ms text-xl text-slate-200">radio_button_unchecked</span>`;
+    // dim the input area when done
+    const inputArea = row.querySelector('.lc-input-area');
+    if (inputArea) inputArea.style.opacity = lcData[sec][idx].comprado ? '0.3' : '1';
   }
   lcRenderProgress();
+}
+
+function lcSetPedido(sec, idx, val) {
+  const normalized = String(val).replace(',', '.');
+  lcData[sec][idx].pedido = normalized;
 }
 
 function lcRowClass(r, isCocina) {
@@ -7711,9 +7720,12 @@ function lcCopiarProveedor(sec) {
   const pendientes = rows.filter(r => !r.comprado);
   if (!pendientes.length) { toast('Todo está comprado en ' + sec); return; }
 
-  const lineas = pendientes.map(r =>
-    r.ss ? `• ${r.item} — ⚠️ SIN STOCK (verificar)` : `• ${r.item} — ${r.qty || '?'}`
-  ).join('\n');
+  const lineas = pendientes.map(r => {
+    const cantPedir = r.pedido !== '' && r.pedido != null ? r.pedido : (r.ss ? '?' : r.qty || '?');
+    return r.ss
+      ? `• ${r.item} — ${cantPedir !== '?' ? cantPedir : '⚠️ SIN STOCK (verificar)'}`
+      : `• ${r.item} — ${cantPedir}`;
+  }).join('\n');
 
   const texto = `*Pedido Romatella – ${sec}*\n📅 ${lcFecha}\n\n${lineas}\n\n_Enviado desde Romatella Admin_`;
 
@@ -7748,19 +7760,27 @@ function lcRender() {
     const pendCount = rows.filter(r => !r.comprado).length;
     const safeId = sec.replace(/\s/g,'_');
 
+    const secEsc = sec.replace(/'/g,"\\'");
     const rowsHtml = rows.map((r, i) => `
-      <div id="lc-row-${safeId}-${i}" class="${lcRowClass(r, isCocina)}" onclick="lcToggle('${sec.replace(/'/g,"\\'")}',${i})">
-        <div class="lc-chk shrink-0">
+      <div id="lc-row-${safeId}-${i}" class="${lcRowClass(r, isCocina)}">
+        <div class="lc-chk shrink-0 cursor-pointer" onclick="lcToggle('${secEsc}',${i})">
           ${r.comprado
             ? `<span class="ms ms-fill text-green-500 text-xl">check_circle</span>`
             : `<span class="ms text-xl text-slate-200">radio_button_unchecked</span>`}
         </div>
-        <span class="lc-item-name flex-1 text-sm leading-snug transition-all ${r.comprado ? 'line-through text-slate-300' : 'text-slate-800'}">${r.item}</span>
-        ${r.ss
-          ? `<span class="text-xs font-bold text-red-500 bg-red-50 px-2 py-0.5 rounded-full shrink-0">SIN STOCK</span>`
-          : r.comprado
-            ? `<span class="text-xs text-slate-300 shrink-0">—</span>`
-            : `<span class="text-sm font-bold ${isCocina ? 'text-slate-700' : 'text-primary'} shrink-0">${r.qty || '?'}</span>`}
+        <span class="lc-item-name cursor-pointer flex-1 text-sm leading-snug transition-all ${r.comprado ? 'line-through text-slate-300' : 'text-slate-800'}" onclick="lcToggle('${secEsc}',${i})">${r.item}</span>
+        <div class="lc-input-area flex items-center gap-2 shrink-0" style="opacity:${r.comprado?'0.3':'1'}">
+          ${r.ss
+            ? `<span class="text-xs font-bold text-red-500 shrink-0">SIN STOCK</span>`
+            : `<span class="text-xs text-slate-400 shrink-0">ref&nbsp;${r.qty||'?'}</span>`}
+          <input type="text" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*"
+            value="${r.pedido||''}"
+            placeholder="${r.ss ? '—' : (r.qty||'0')}"
+            oninput="lcSetPedido('${secEsc}',${i},this.value)"
+            onclick="event.stopPropagation()"
+            class="w-14 text-center text-sm font-bold border-2 ${isCocina ? 'border-slate-300 focus:border-slate-700' : 'border-blue-200 focus:border-primary'} rounded-xl outline-none bg-white px-1 py-1 text-slate-800"
+            title="Cantidad a pedir"/>
+        </div>
       </div>`).join('');
 
     return `
@@ -7774,6 +7794,9 @@ function lcRender() {
             class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-white/20 hover:bg-white/30 transition-colors">
             <span class="ms text-base">content_copy</span> WhatsApp
           </button>
+        </div>
+        <div class="flex items-center justify-end px-4 py-1.5 bg-slate-50 border-b border-slate-100">
+          <span class="text-xs text-slate-400 w-14 text-center">a pedir</span>
         </div>
         <div class="p-3 space-y-1.5 bg-surface">${rowsHtml}</div>
       </div>`;
