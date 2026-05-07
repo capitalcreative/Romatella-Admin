@@ -1,12 +1,5 @@
 {
-  "routes": [
-    { "src": "/inventario", "dest": "/index.html" },
-    { "handle": "filesystem" },
-    { "src": "/api/(.*)", "dest": "/api/$1" }
-  ],
-  "functions": {
-    "api/*.js": {
-      "runtime": "@vercel/node"
-    }
-  }
+  "rewrites": [
+    { "source": "/inventario", "destination": "/index.html" }
+  ]
 }
