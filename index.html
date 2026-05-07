@@ -1523,6 +1523,13 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
     <button type="button" id="rtab-cocina" onclick="reqSwitchTab('cocina')" class="flex-1 py-3 text-sm font-medium text-slate-400 border-b-2 border-transparent">🍳 Cocina</button>
   </div>
 
+  <div class="flex items-center justify-between px-4 py-2 bg-white border-b border-slate-100 max-w-sm mx-auto w-full">
+    <span class="text-xs text-slate-400" id="req-filter-label">Mostrando todos</span>
+    <button type="button" id="btn-solo-pend" onclick="reqToggleSoloPend()" class="text-xs font-medium px-3 py-1.5 rounded-full border border-slate-200 text-slate-500 flex items-center gap-1.5 hover:border-primary hover:text-primary transition-colors">
+      <span class="ms text-sm">filter_list</span> Solo pendientes
+    </button>
+  </div>
+
   <div id="req-checklist-body" class="flex-1 overflow-y-auto pb-28 max-w-sm mx-auto w-full"></div>
 
   <div class="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 px-4 py-3 z-20">
@@ -5693,44 +5700,87 @@ function exportarCSV() {
 (function() {
 
   const BARRA = {
-    'Refrescos y agua': ['Agua Mineral 2L','Agua Tónica','Botella agua 500ml','Coca Cola 235ml','Coca Cola Regular','Coca Cola Zero','Manzanita 2L','Peñafiel 355ml','Peñafiel 600ml','Sprite 600ml','Sprite 2L','Squirt 2L','Topo Chico 600ml'],
-    'Cervezas': ['Corona','Modelo Especial','Negra Modelo','Sin Alcohol Modelo','Stella Artois','Victoria'],
-    'Vino tinto': ['Apapcho','Cal y Canto','Gran Passione Tinto','Vino Clericot'],
-    'Vino blanco': ['Desvarío','Soave'],
-    'Vino rosado y espumoso': ['Rincones Rosé','Cinzano Espumoso','Gran Passione Espumoso','Kirkland'],
-    'Destilados': ['Absolut','Aperol','Bacardí','Baileys','Campari','Centenario Plata','Cinzano Vermouth','Controy','Frangelico','Grey Goose','Licor del 43','Maestro Dobel','Mezcal Joven 38','Red Label','Stoli','Tanqueray','Torres 5','Vaccari'],
-    'Pulpas y frutas barra': ['Pulpa Fresa','Pulpa Frutos Rojos','Pulpa Maracuyá','Hierbabuena','Limón','Naranja'],
-    'Abarrotes barra': ['Azúcar','Baguette','Galletas Salmas','Mantequilla','Stevia','Café','Café Descafeinado','Té Fresa Vainilla','Té Frutos del Bosque'],
-    'Desechables barra': ['Bolsa Asa Ch','Bolsa Asa Med','Bolsa Basura','Bolsa Botes Baño','Bolsa Papel Pan','Cuchara','Cuchillo','Hamburgesero','Servilleta Larga','Tapa 16 Oz','Tenedor','Vaso 16 Oz','Vaso 2 Oz'],
+    'Refrescos': ['Agua Mineral 2L','Agua Tónica','Botella de Agua 500ml','Coca Cola 235ml','Coca Cola Regular','Coca Cola Zero','Manzanita 2L','Peñafiel 355ml','Peñafiel 600ml','Sprite 600ml','Sprite 2L','Squirt 2L','Topo Chico 600ml'],
+    'Pulpas': ['Pulpa Fresa','Pulpa Frutos Rojos','Pulpa Maracuyá'],
+    'Cerveza': ['Corona','Modelo Especial','Negra Modelo','Sin Alcohol Modelo','Stella Artois','Victoria'],
+    'Semillas barra': ['Chile Guajillo','Chile Negro','Jamaica'],
     'Papelería': ['Bolígrafos','Cinta Masking','Grapas','Rollos Impresora','Rollos Terminales PDV'],
-    'Limpieza barra': ['Desengrasante','Fabuloso','Jabón para manos','Papel de baño','Sanitas','Windex']
+    'Vino Tinto': ['Apapcho','Cal y Canto','Gran Passione Tinto','Vino Clericot'],
+    'Vino Blanco': ['Desvarío','Soave'],
+    'Vino Rosado': ['Rincones Rosé'],
+    'Vino Espumoso': ['Cinzano Espumoso','Gran Passione Espumoso','Kirkland'],
+    'Frutas barra': ['Hierbabuena','Limón','Naranja'],
+    'Abarrotes barra': ['Azúcar','Baguette','Galletas Salmas','Mantequilla','Stevia','Café','Café Descafeinado','Té Fresa Vainilla','Té Frutos del Bosque'],
+    'Limpieza barra': ['Desengrasante','Fabuloso','Jabón para Manos','Papel de Baño','Sanitas','Windex'],
+    'Destilados': ['Absolut','Aperol','Bacardí','Baileys','Campari','Centenario Plata','Cinzano Vermouth Rosso','Controy','Frangelico','Grey Goose','Licor del 43','Maestro Dobel','Mezcal Joven 38','Red Label','Stoli','Tanqueray','Torres 5','Vaccari'],
+    'Desechables barra': ['Bolsa Asa P/Llevar Ch','Bolsa Asa P/Llevar Med','Bolsa Basura','Bolsa Botes Baño','Bolsa Papel Pan','Cuchara','Cuchillo','Hamburgesero','Servilleta Larga','Tapa 16 Oz','Tapa 2 Pz','Tenedor','Vaso 16 Oz','Vaso 2 Oz']
   };
 
   const COCINA = {
-    'Carnicería': ['Carne Carpaccio','Carne Molida Res','Pollo Porción','Pollo Scaloppine','Tocino'],
+    'Superama': ['Alcaparras','Anchoas','Arroz Risotto','Encendedores','Fettuccine','Galletas para Salame','Galletas Salmas','Gas para Rellenar','Grenetina','Mayonesa','Microdin','Mostaza','Pan Bimbo','Papel Cocina','Pasta Lasagna','Penne','Polvo Camarón','Salsa Soya','Spaghetti','Tortiglioni','Vinagre Balsámico','Vino Blanco Cocina'],
+    'Costco': ['Aceite Oliva','Aceite Regular','Aceitunas Negras','Aceitunas Verdes','Arúgula','Chocolate Hershey','Helado Vainilla','Jamón Serrano','Jitomate Deshidratado','Leche Entera','Lechugas','Manteca Vegetal para Freír','Mascarpone','Philadelphia','Puré Tomate','Queso Azul','Queso Chihuahua','Queso de Cabra','Queso Gouda','Queso Mozzarella Fresco','Queso Ricotta','Vodka Cocina'],
+    'Mercado': ['Ajo','Albahaca','Apio','Arándano Fresco','Azúcar Glass','Berenjena','Calabaza','Cebolla Blanca','Cebolla Morada','Champiñón','Chile Habanero Chocolate','Chips Betabel','Espárrago','Fresa a Granel','Fresa Cajita','Hierbabuena','Huevo','Jitomate Bola','Jitomate Cherry','Jitomate Salsa Pomodoro','Limón','Limón Eureka','Mantequilla Desy','Manzana Amarilla','Naranja','Papa Cambray','Perejil','Pimiento Morrón','Romero','Zanahoria','Gas'],
+    'Semillas y Materias Primas': ['Azúcar Glass','Almendra','Arándano Deshidratado','Azúcar','Chile de Árbol','Chile Guajillo','Chile Negro','Chocolate Semi Amargo','Gotas de Chocolate','Harina','Miel','Nuez de la India','Nuez Granillo','Pan Molido','Pimienta en Grano','Pistacho','Sal de Grano','Sal Fina','Vainilla'],
+    'Carnicería': ['Carne Carpaccio','Carne Molida Res','Pollo Porción','Pollo Scaloppine','Tocino','Arrachera'],
     'Mariscos': ['Almejas','Aros Calamar','Atún','Camarón Grande','Mejillones','Nuggets','Pulpo','Salmón'],
-    'Quesos y lácteos': ['Crema','Pepperoni','Queso Gouda','Queso Mozzarella','Queso Parmesano'],
-    'Verduras y frutas cocina': ['Ajo','Albahaca','Apio','Arándano Fresco','Berenjena','Brócoli','Calabaza','Cebolla Blanca','Cebolla Morada','Champiñón','Chile Habanero','Cremini','Espárrago','Fresa a Granel','Fresa Cajita','Hierbabuena','Huevo','Jitomate Bola','Jitomate Cherry','Jitomate Salsa Pomodoro','Limón','Limón Eureka','Manzana Amarilla','Mantequilla Desy','Naranja','Papa Cambray','Perejil','Pimiento Morrón','Romero','Setas','Zanahoria'],
-    'Costco y Sams': ['Aceite Oliva','Aceite Regular','Aceitunas Negras','Aceitunas Verdes','Arúgula','Chocolate Hershey','Helado Vainilla','Jamón Serrano','Jitomate Deshidratado','Leche Entera','Lechugas','Manteca Vegetal','Mascarpone','Philadelphia','Puré Tomate','Queso Azul','Queso Chihuahua','Queso de Cabra','Queso Gouda','Queso Mozzarella Fresco','Queso Ricotta','Vodka Cocina'],
-    'Superama y abarrotes': ['Alcaparras','Anchoas','Arroz Risotto','Encendedores','Fettuccine','Galletas para Salame','Gas para Rellenar','Grenetina','Harina Hot Cake','Mayonesa','Microdin','Mostaza','Pan Bimbo','Papel Cocina','Pasta Lasagna','Penne','Polvo Camarón','Salsa Soya','Spaghetti','Tortiglioni','Vinagre Balsámico','Vino Blanco Cocina'],
-    'Semillas y materias primas': ['Ajonjolí Blanco','Ajonjolí Negro','Almendra','Almendra Fileteada','Arándano Deshidratado','Azúcar','Chile de Árbol','Chile Guajillo','Chile Negro','Chocolate Semi Amargo','Gotas de Chocolate','Harina','Miel','Nuez de la India','Nuez Granillo','Pan Molido','Pimienta en Grano','Pistacho','Sal de Grano','Sal Fina','Semilla Girasol','Vainilla'],
-    'Productos italianos': ['Savoiardi'],
-    'Gas': ['Gas (tanque)'],
-    'Limpieza cocina': ['Bolsa Basura 90x120','Cloro','Esponjas Trastes','Fibra de Metal','Jabón Trastes','Jabón Roma','Papel Transparente','Bolsa Kilo 20x30','Cristal Chico Postre','Cristal Grande','Desechable c/Tapa','Redondo Sopa c/Tapa']
+    'Quesos Ayala': ['Crema','Queso Gouda','Queso Mozzarella','Queso Parmesano'],
+    'Productos Italianos': ['Savoiardi'],
+    'Limpieza cocina': ['Bolsa Basura 90x120','Cloro','Esponjas Trastes','Fibra de Metal','Jabón para Trastes','Jabón Roma','Papel Transparente'],
+    'Desechables cocina': ['Bolsa de Kilo 20x30','Hamburgesero','Cristal Grande','Desechables Costco con Tapa','Redondo Sopa con Tapa']
   };
 
   let tabActual = 'barra';
   let reqState = { barra: {}, cocina: {} };
+  let soloP = false;
+  let collapsedSecs = { barra: {}, cocina: {} };
+  let itemToSection = { barra: {}, cocina: {} };
 
   function initTab(t) {
     const data = t === 'barra' ? BARRA : COCINA;
-    Object.values(data).flat().forEach(item => {
-      if (!reqState[t][item]) reqState[t][item] = { qty: 0, noStock: false };
-      else reqState[t][item].qty = parseFloat(reqState[t][item].qty) || 0;
+    itemToSection[t] = {};
+    Object.entries(data).forEach(([sec, items]) => {
+      items.forEach(item => {
+        itemToSection[t][item] = sec;
+        if (!reqState[t][item]) reqState[t][item] = { qty: 0, noStock: false };
+        else reqState[t][item].qty = parseFloat(reqState[t][item].qty) || 0;
+      });
     });
   }
 
   function enc(s) { return s.replace(/[^a-zA-Z0-9]/g, '_'); }
+
+  function secProgress(t, section) {
+    const data = t === 'barra' ? BARRA : COCINA;
+    const items = data[section] || [];
+    const filled = items.filter(item => { const s = reqState[t][item]; return s && (s.qty > 0 || s.noStock); }).length;
+    return { filled, total: items.length };
+  }
+
+  function rowHTML(item, safeItem, id, s, isFilled) {
+    const nsClass = s.noStock
+      ? 'flex items-center gap-0.5 text-xs px-2.5 py-1.5 rounded-full border bg-red-50 border-red-300 text-red-600 font-semibold ml-1 transition-all'
+      : 'w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 ml-1 hover:border-red-300 hover:text-red-400 active:scale-95 transition-all';
+    const nsInner = s.noStock
+      ? '<span class="ms text-sm leading-none">close</span><span>Sin stock</span>'
+      : '<span class="ms text-base leading-none">close</span>';
+    return `
+      <div class="flex-1 flex items-center gap-2 min-w-0">
+        <span id="rico-${id}" class="ms${isFilled ? ' ms-fill text-green-500' : ' text-slate-200'} text-xl shrink-0">${isFilled ? 'check_circle' : 'radio_button_unchecked'}</span>
+        <span id="rname-${id}" class="text-sm ${isFilled ? 'text-slate-600' : 'text-slate-800'} leading-tight">${item}</span>
+      </div>
+      <div class="flex items-center gap-1 shrink-0">
+        <button type="button" onclick="reqQty('${id}','${safeItem}',-0.5)"
+          class="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 text-lg leading-none hover:bg-slate-100 active:scale-95 transition-transform">−</button>
+        <input type="number" id="rqty-${id}" value="${s.qty || ''}" min="0" step="0.5" placeholder="0"
+          oninput="reqQtyInput('${id}','${safeItem}',this.value)"
+          class="w-12 text-center text-sm font-bold border-0 outline-none bg-transparent ${s.qty > 0 ? 'text-primary' : 'text-slate-400'}"
+          style="appearance:textfield;-moz-appearance:textfield"/>
+        <button type="button" onclick="reqQty('${id}','${safeItem}',0.5)"
+          class="w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 text-lg leading-none hover:bg-slate-100 active:scale-95 transition-transform">+</button>
+        <button type="button" id="rns-${id}" onclick="reqNoStock('${id}','${safeItem}')"
+          class="${nsClass}">${nsInner}</button>
+      </div>`;
+  }
 
   function renderChecklist() {
     const data = tabActual === 'barra' ? BARRA : COCINA;
@@ -5738,35 +5788,44 @@ function exportarCSV() {
     if (!body) return;
     body.innerHTML = '';
     Object.entries(data).forEach(([section, items]) => {
+      const { filled, total } = secProgress(tabActual, section);
+      const isCollapsed = !!collapsedSecs[tabActual][section];
+      const allDone = filled === total;
+      const secId = enc(section);
+
       const secDiv = document.createElement('div');
-      secDiv.className = 'border-b border-slate-100';
-      const secTitle = document.createElement('div');
-      secTitle.className = 'px-4 py-2 text-xs font-semibold uppercase tracking-wider text-slate-400 bg-surface-container-low';
-      secTitle.textContent = section;
-      secDiv.appendChild(secTitle);
+      secDiv.id = 'rsec-' + secId;
+
+      const secHeader = document.createElement('div');
+      secHeader.style.cssText = 'position:sticky;top:48px;z-index:5;';
+      secHeader.className = `px-4 py-2.5 flex items-center justify-between cursor-pointer select-none border-b border-slate-100 ${allDone ? 'bg-green-50' : 'bg-slate-50'}`;
+      secHeader.id = 'rshdr-' + secId;
+      secHeader.onclick = () => reqToggleSection(section);
+      secHeader.innerHTML = `
+        <span id="rsect-${secId}" class="text-xs font-semibold uppercase tracking-wider ${allDone ? 'text-green-700' : 'text-slate-500'}">${section}</span>
+        <div class="flex items-center gap-2">
+          <span id="rsc-${secId}" class="text-xs font-bold ${allDone ? 'text-green-600' : filled > 0 ? 'text-primary' : 'text-slate-300'}">${filled}/${total}</span>
+          <span class="ms text-base text-slate-400" id="rchev-${secId}" style="display:inline-block;transition:transform 0.2s;transform:rotate(${isCollapsed ? '0' : '180'}deg)">expand_less</span>
+        </div>`;
+      secDiv.appendChild(secHeader);
+
+      const itemsBody = document.createElement('div');
+      itemsBody.id = 'rsec-body-' + secId;
+      if (isCollapsed) itemsBody.style.display = 'none';
+
       items.forEach(item => {
         const s = reqState[tabActual][item] || { qty: 0, noStock: false };
         const id = enc(item);
+        const isFilled = s.qty > 0 || s.noStock;
+        const safeItem = item.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         const row = document.createElement('div');
         row.id = 'rrow-' + id;
-        row.className = 'flex items-center px-4 py-2.5 border-b border-slate-50 gap-3 bg-white';
-        const safeItem = item.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-        row.innerHTML = `
-          <span class="flex-1 text-sm text-slate-800 leading-tight">${item}</span>
-          <div class="flex items-center gap-1 shrink-0">
-            <button type="button" onclick="reqQty('${id}','${safeItem}',-0.5)"
-              class="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 text-base leading-none hover:bg-slate-100 active:scale-95 transition-transform">−</button>
-            <input type="number" id="rqty-${id}" value="${s.qty}" min="0" step="0.5"
-              oninput="reqQtyInput('${id}','${safeItem}',this.value)"
-              class="w-12 text-center text-sm font-bold border-0 outline-none bg-transparent ${s.qty > 0 ? 'text-primary' : 'text-slate-400'}"
-              style="appearance:textfield;-moz-appearance:textfield"/>
-            <button type="button" onclick="reqQty('${id}','${safeItem}',0.5)"
-              class="w-7 h-7 rounded-full border border-slate-200 flex items-center justify-center text-slate-500 text-base leading-none hover:bg-slate-100 active:scale-95 transition-transform">+</button>
-            <button type="button" id="rns-${id}" onclick="reqNoStock('${id}','${safeItem}')"
-              class="text-xs px-2 py-1 rounded-full border transition-all ml-0.5 ${s.noStock ? 'bg-red-50 border-red-200 text-red-600 font-semibold' : 'border-slate-200 text-slate-400'}">0</button>
-          </div>`;
-        secDiv.appendChild(row);
+        row.className = `flex items-center px-4 py-2.5 border-b border-slate-50 gap-3 transition-colors ${isFilled ? 'bg-green-50' : 'bg-white'}${soloP && isFilled ? ' hidden' : ''}`;
+        row.innerHTML = rowHTML(item, safeItem, id, s, isFilled);
+        itemsBody.appendChild(row);
       });
+
+      secDiv.appendChild(itemsBody);
       body.appendChild(secDiv);
     });
     updateProgress();
@@ -5804,47 +5863,112 @@ function exportarCSV() {
   window.reqQty = function(id, item, delta) {
     if (!reqState[tabActual][item]) reqState[tabActual][item] = { qty: 0, noStock: false };
     const current = parseFloat(reqState[tabActual][item].qty) || 0;
-    const next = Math.round(Math.max(0, current + delta) * 100) / 100;
-    reqState[tabActual][item].qty = next;
+    reqState[tabActual][item].qty = Math.round(Math.max(0, current + delta) * 100) / 100;
     reqState[tabActual][item].noStock = false;
-    const qEl = document.getElementById('rqty-' + id);
-    const nsEl = document.getElementById('rns-' + id);
-    if (qEl) {
-      qEl.value = fmtQty(next);
-      qEl.className = 'w-12 text-center text-sm font-bold border-0 outline-none bg-transparent ' + (next > 0 ? 'text-primary' : 'text-slate-400');
-    }
-    if (nsEl) nsEl.className = 'text-xs px-2 py-1 rounded-full border border-slate-200 text-slate-400 transition-all ml-0.5';
-    updateProgress();
+    updateRowUI(id, item);
   };
 
   window.reqQtyInput = function(id, item, val) {
     if (!reqState[tabActual][item]) reqState[tabActual][item] = { qty: 0, noStock: false };
-    const n = Math.max(0, parseFloat(val) || 0);
-    reqState[tabActual][item].qty = Math.round(n * 100) / 100;
+    reqState[tabActual][item].qty = Math.round(Math.max(0, parseFloat(val) || 0) * 100) / 100;
     reqState[tabActual][item].noStock = false;
-    const qEl = document.getElementById('rqty-' + id);
-    const nsEl = document.getElementById('rns-' + id);
-    if (qEl) qEl.className = 'w-12 text-center text-sm font-bold border-0 outline-none bg-transparent ' + (n > 0 ? 'text-primary' : 'text-slate-400');
-    if (nsEl) nsEl.className = 'text-xs px-2 py-1 rounded-full border border-slate-200 text-slate-400 transition-all ml-0.5';
-    updateProgress();
+    updateRowUI(id, item);
   };
 
   window.reqNoStock = function(id, item) {
     if (!reqState[tabActual][item]) reqState[tabActual][item] = { qty: 0, noStock: false };
-    const val = !reqState[tabActual][item].noStock;
-    reqState[tabActual][item].noStock = val;
+    reqState[tabActual][item].noStock = !reqState[tabActual][item].noStock;
     reqState[tabActual][item].qty = 0;
+    updateRowUI(id, item);
+  };
+
+  function updateRowUI(id, item) {
+    const s = reqState[tabActual][item] || { qty: 0, noStock: false };
+    const isFilled = s.qty > 0 || s.noStock;
+
+    const row = document.getElementById('rrow-' + id);
+    if (row) {
+      let cls = `flex items-center px-4 py-2.5 border-b border-slate-50 gap-3 transition-colors ${isFilled ? 'bg-green-50' : 'bg-white'}`;
+      if (soloP && isFilled) cls += ' hidden';
+      row.className = cls;
+    }
+    const iconEl = document.getElementById('rico-' + id);
+    if (iconEl) {
+      iconEl.textContent = isFilled ? 'check_circle' : 'radio_button_unchecked';
+      iconEl.className = `ms${isFilled ? ' ms-fill text-green-500' : ' text-slate-200'} text-xl shrink-0`;
+    }
+    const nameEl = document.getElementById('rname-' + id);
+    if (nameEl) nameEl.className = `text-sm ${isFilled ? 'text-slate-600' : 'text-slate-800'} leading-tight`;
+
     const qEl = document.getElementById('rqty-' + id);
+    if (qEl) {
+      qEl.value = s.qty > 0 ? fmtQty(s.qty) : '';
+      qEl.className = `w-12 text-center text-sm font-bold border-0 outline-none bg-transparent ${s.qty > 0 ? 'text-primary' : 'text-slate-400'}`;
+    }
     const nsEl = document.getElementById('rns-' + id);
-    if (qEl) { qEl.value = '0'; qEl.className = 'w-12 text-center text-sm font-bold border-0 outline-none bg-transparent text-slate-400'; }
-    if (nsEl) nsEl.className = 'text-xs px-2 py-1 rounded-full border transition-all ml-0.5 ' +
-      (val ? 'bg-red-50 border-red-200 text-red-600 font-semibold' : 'border-slate-200 text-slate-400');
+    if (nsEl) {
+      if (s.noStock) {
+        nsEl.className = 'flex items-center gap-0.5 text-xs px-2.5 py-1.5 rounded-full border bg-red-50 border-red-300 text-red-600 font-semibold ml-1 transition-all';
+        nsEl.innerHTML = '<span class="ms text-sm leading-none">close</span><span>Sin stock</span>';
+      } else {
+        nsEl.className = 'w-8 h-8 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 ml-1 hover:border-red-300 hover:text-red-400 active:scale-95 transition-all';
+        nsEl.innerHTML = '<span class="ms text-base leading-none">close</span>';
+      }
+    }
+
+    const sec = itemToSection[tabActual][item];
+    if (sec) {
+      const secId = enc(sec);
+      const { filled, total } = secProgress(tabActual, sec);
+      const allDone = filled === total;
+      const scEl = document.getElementById('rsc-' + secId);
+      if (scEl) {
+        scEl.textContent = `${filled}/${total}`;
+        scEl.className = `text-xs font-bold ${allDone ? 'text-green-600' : filled > 0 ? 'text-primary' : 'text-slate-300'}`;
+      }
+      const hdr = document.getElementById('rshdr-' + secId);
+      if (hdr) {
+        hdr.className = `px-4 py-2.5 flex items-center justify-between cursor-pointer select-none border-b border-slate-100 ${allDone ? 'bg-green-50' : 'bg-slate-50'}`;
+        const sectEl = document.getElementById('rsect-' + secId);
+        if (sectEl) sectEl.className = `text-xs font-semibold uppercase tracking-wider ${allDone ? 'text-green-700' : 'text-slate-500'}`;
+      }
+    }
     updateProgress();
+  }
+
+  window.reqToggleSoloPend = function() {
+    soloP = !soloP;
+    const btn = document.getElementById('btn-solo-pend');
+    const lbl = document.getElementById('req-filter-label');
+    if (btn) btn.className = soloP
+      ? 'text-xs font-semibold px-3 py-1.5 rounded-full border transition-colors flex items-center gap-1.5 bg-primary-container text-white border-primary-container'
+      : 'text-xs font-medium px-3 py-1.5 rounded-full border border-slate-200 text-slate-500 flex items-center gap-1.5 hover:border-primary hover:text-primary transition-colors';
+    if (lbl) lbl.textContent = soloP ? 'Solo pendientes' : 'Mostrando todos';
+    const data = tabActual === 'barra' ? BARRA : COCINA;
+    Object.values(data).flat().forEach(item => {
+      const s = reqState[tabActual][item];
+      const isFilled = s && (s.qty > 0 || s.noStock);
+      if (isFilled) {
+        const row = document.getElementById('rrow-' + enc(item));
+        if (row) row.classList.toggle('hidden', soloP);
+      }
+    });
+  };
+
+  window.reqToggleSection = function(section) {
+    collapsedSecs[tabActual][section] = !collapsedSecs[tabActual][section];
+    const secId = enc(section);
+    const body = document.getElementById('rsec-body-' + secId);
+    const chev = document.getElementById('rchev-' + secId);
+    const isCollapsed = !!collapsedSecs[tabActual][section];
+    if (body) body.style.display = isCollapsed ? 'none' : '';
+    if (chev) chev.style.transform = isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)';
   };
 
   window.reqResetTab = function() {
     if (!confirm('¿Limpiar la lista de ' + tabActual + '?')) return;
     reqState[tabActual] = {};
+    collapsedSecs[tabActual] = {};
     initTab(tabActual);
     renderChecklist();
   };
@@ -5979,12 +6103,30 @@ function exportarCSV() {
     }
   };
 
+  // Lookup: item name → { section, area } — usado en admin para agrupar por proveedor
+  window.reqItemSection = (function() {
+    const bMap = {}, cMap = {};
+    Object.entries(BARRA).forEach(([sec, items]) => items.forEach(i => { bMap[i.toLowerCase()] = sec; }));
+    Object.entries(COCINA).forEach(([sec, items]) => items.forEach(i => { cMap[i.toLowerCase()] = sec; }));
+    return function(itemName, area) {
+      const k = (itemName || '').toLowerCase().trim();
+      if (area === 'barra' && bMap[k]) return bMap[k];
+      if (area === 'cocina' && cMap[k]) return cMap[k];
+      return bMap[k] || cMap[k] || null;
+    };
+  })();
+
   // Hook showEmp para inicializar al abrir
   const _origShowEmp = window.showEmp;
   window.showEmp = function(page) {
     if (page === 'form') {
       if (Object.keys(reqState.barra).length === 0) { initTab('barra'); initTab('cocina'); }
       tabActual = 'barra';
+      soloP = false;
+      const spBtn = document.getElementById('btn-solo-pend');
+      if (spBtn) spBtn.className = 'text-xs font-medium px-3 py-1.5 rounded-full border border-slate-200 text-slate-500 flex items-center gap-1.5 hover:border-primary hover:text-primary transition-colors';
+      const lbl = document.getElementById('req-filter-label');
+      if (lbl) lbl.textContent = 'Mostrando todos';
       const dl = document.getElementById('req-date-label');
       if (dl) dl.textContent = new Date().toLocaleDateString('es-MX', { weekday:'short', day:'numeric', month:'short' });
       reqSwitchTab('barra');
@@ -6998,39 +7140,47 @@ function filterReq(filtro, btnEl) {
       </div>`;
     card.appendChild(header);
 
-    // Lista de artículos (máx 5 visibles)
-    if (items.length > 0) {
-      const lista = document.createElement('div');
-      lista.className = 'px-4 py-2 flex-1';
-      const visibles = items.slice(0, 5);
-      visibles.forEach(x => {
-        const row = document.createElement('div');
-        row.className = 'flex justify-between items-center py-1 border-b border-slate-50 last:border-0';
-        row.innerHTML = `
-          <span class="text-xs text-slate-700 truncate flex-1">${x.item}</span>
-          <div class="flex items-center gap-1.5 shrink-0 ml-2">
-            <span class="text-xs px-1.5 py-0.5 rounded-full ${x.area === 'barra' ? 'bg-blue-50 text-primary' : 'bg-green-50 text-green-700'}">${x.area}</span>
-            <span class="text-xs font-bold text-slate-900 w-6 text-right">${x.qty}</span>
-          </div>`;
-        lista.appendChild(row);
+    // Lista agrupada por proveedor/sección
+    if (items.length > 0 || sinStock.length > 0) {
+      const SEC_ORDER = ['Superama','Costco','Mercado','Carnicería','Mariscos','Quesos Ayala','Semillas y Materias Primas','Productos Italianos','Limpieza cocina','Desechables cocina','Refrescos','Pulpas','Cerveza','Vino Tinto','Vino Blanco','Vino Rosado','Vino Espumoso','Destilados','Frutas barra','Abarrotes barra','Semillas barra','Papelería','Limpieza barra','Desechables barra'];
+      const grouped = {};
+      items.forEach(x => {
+        const sec = (window.reqItemSection && window.reqItemSection(x.item, x.area)) || (x.area === 'barra' ? '🍹 Barra' : '🍳 Cocina');
+        if (!grouped[sec]) grouped[sec] = { items: [], sinStock: [] };
+        grouped[sec].items.push(x);
       });
-      if (items.length > 5) {
-        const more = document.createElement('p');
-        more.className = 'text-xs text-slate-300 pt-1 text-center';
-        more.textContent = '+ ' + (items.length - 5) + ' más...';
-        lista.appendChild(more);
-      }
-      card.appendChild(lista);
-    }
+      sinStock.forEach(x => {
+        const sec = (window.reqItemSection && window.reqItemSection(x.item, x.area)) || (x.area === 'barra' ? '🍹 Barra' : '🍳 Cocina');
+        if (!grouped[sec]) grouped[sec] = { items: [], sinStock: [] };
+        grouped[sec].sinStock.push(x);
+      });
 
-    // Sin stock mini-lista
-    if (sinStock.length > 0) {
-      const ssDiv = document.createElement('div');
-      ssDiv.className = 'px-4 pb-2';
-      ssDiv.innerHTML = '<p class="text-xs font-semibold text-red-400 mb-1">Sin stock:</p>' +
-        sinStock.slice(0,3).map(x => `<span class="inline-block text-xs bg-red-50 text-red-600 rounded-full px-2 py-0.5 mr-1 mb-1">${x.item}</span>`).join('') +
-        (sinStock.length > 3 ? `<span class="text-xs text-slate-300">+${sinStock.length-3} más</span>` : '');
-      card.appendChild(ssDiv);
+      const lista = document.createElement('div');
+      lista.className = 'px-4 pt-1 pb-2 flex-1';
+
+      Object.keys(grouped)
+        .sort((a, b) => { const ai = SEC_ORDER.indexOf(a), bi = SEC_ORDER.indexOf(b); return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi); })
+        .forEach(sec => {
+          const g = grouped[sec];
+          const hdr = document.createElement('p');
+          hdr.className = 'text-xs font-bold text-slate-400 uppercase tracking-wide pt-2 pb-0.5';
+          hdr.textContent = sec;
+          lista.appendChild(hdr);
+          g.items.forEach(x => {
+            const row = document.createElement('div');
+            row.className = 'flex justify-between items-center py-0.5';
+            row.innerHTML = `<span class="text-xs text-slate-700 flex-1">${x.item}</span><span class="text-xs font-bold text-slate-900 ml-2">${x.qty}</span>`;
+            lista.appendChild(row);
+          });
+          g.sinStock.forEach(x => {
+            const row = document.createElement('div');
+            row.className = 'flex justify-between items-center py-0.5';
+            row.innerHTML = `<span class="text-xs text-red-500 flex-1">${x.item}</span><span class="text-xs font-semibold text-red-400 ml-2">sin stock</span>`;
+            lista.appendChild(row);
+          });
+        });
+
+      card.appendChild(lista);
     }
 
     // Botones acción
