@@ -5713,7 +5713,7 @@ function exportarCSV() {
   const BARRA = {
     'Refrescos': ['Agua Mineral 2L','Agua Tónica','Botella de Agua 500ml','Coca Cola 235ml','Coca Cola Regular','Coca Cola Zero','Manzanita 2L','Peñafiel 355ml','Peñafiel 600ml','Sprite 600ml','Sprite 2L','Squirt 2L','Topo Chico 600ml'],
     'Pulpas': ['Pulpa Fresa','Pulpa Frutos Rojos','Pulpa Maracuyá'],
-    'Cerveza': ['Corona','Modelo Especial','Negra Modelo','Sin Alcohol Modelo','Stella Artois','Victoria'],
+    'Cerveza': ['Corona','Jabalí Bock','Jabalí IPA','Modelo Especial','Negra Modelo','Sin Alcohol Modelo','Stella Artois','Victoria'],
     'Semillas barra': ['Chile Guajillo','Chile Negro','Jamaica'],
     'Papelería': ['Bolígrafos','Cinta Masking','Grapas','Rollos Impresora','Rollos Terminales PDV'],
     'Vino Tinto': ['Apapcho','Cal y Canto','Gran Passione Tinto','Vino Clericot'],
@@ -5721,22 +5721,22 @@ function exportarCSV() {
     'Vino Rosado': ['Rincones Rosé'],
     'Vino Espumoso': ['Cinzano Espumoso','Gran Passione Espumoso','Kirkland'],
     'Frutas barra': ['Hierbabuena','Limón','Naranja'],
-    'Abarrotes barra': ['Azúcar','Baguette','Galletas Salmas','Mantequilla','Stevia','Café','Café Descafeinado','Té Fresa Vainilla','Té Frutos del Bosque'],
-    'Limpieza barra': ['Desengrasante','Fabuloso','Jabón para Manos','Papel de Baño','Sanitas','Windex'],
+    'Abarrotes barra': ['Azúcar','Baguette','Stevia','Café','Café Descafeinado','Té Fresa Vainilla','Té Frutos del Bosque'],
+    'Limpieza barra': ['Aromatizante de Baño','Desengrasante','Fabuloso','Jabón para Manos','Papel de Baño','Sanitas','Windex'],
     'Destilados': ['Absolut','Aperol','Bacardí','Baileys','Campari','Centenario Plata','Cinzano Vermouth Rosso','Controy','Frangelico','Grey Goose','Licor del 43','Maestro Dobel','Mezcal Joven 38','Red Label','Stoli','Tanqueray','Torres 5','Vaccari'],
     'Desechables barra': ['Bolsa Asa P/Llevar Ch','Bolsa Asa P/Llevar Med','Bolsa Basura','Bolsa Botes Baño','Bolsa Papel Pan','Cuchara','Cuchillo','Hamburgesero','Servilleta Larga','Tapa 16 Oz','Tapa 2 Pz','Tenedor','Vaso 16 Oz','Vaso 2 Oz']
   };
 
   const COCINA = {
     'Superama': ['Alcaparras','Anchoas','Arroz Risotto','Encendedores','Fettuccine','Galletas para Salame','Galletas Salmas','Gas para Rellenar','Grenetina','Mayonesa','Microdin','Mostaza','Pan Bimbo','Papel Cocina','Pasta Lasagna','Penne','Polvo Camarón','Salsa Soya','Spaghetti','Tortiglioni','Vinagre Balsámico','Vino Blanco Cocina'],
-    'Costco': ['Aceite Oliva','Aceite Regular','Aceitunas Negras','Aceitunas Verdes','Arúgula','Chocolate Hershey','Helado Vainilla','Jamón Serrano','Jitomate Deshidratado','Leche Entera','Lechugas','Manteca Vegetal para Freír','Mascarpone','Philadelphia','Puré Tomate','Queso Azul','Queso Chihuahua','Queso de Cabra','Queso Gouda','Queso Mozzarella Fresco','Queso Ricotta','Vodka Cocina'],
-    'Mercado': ['Ajo','Albahaca','Apio','Arándano Fresco','Azúcar Glass','Berenjena','Calabaza','Cebolla Blanca','Cebolla Morada','Champiñón','Chile Habanero Chocolate','Chips Betabel','Espárrago','Fresa a Granel','Fresa Cajita','Hierbabuena','Huevo','Jitomate Bola','Jitomate Cherry','Jitomate Salsa Pomodoro','Limón','Limón Eureka','Mantequilla Desy','Manzana Amarilla','Naranja','Papa Cambray','Perejil','Pimiento Morrón','Romero','Zanahoria','Gas'],
+    'Costco': ['Aceite Oliva','Aceite Regular','Aceitunas Negras','Aceitunas Verdes','Alcaparras','Arúgula','Chocolate Hershey','Helado Vainilla','Jamón Serrano','Jitomate Deshidratado','Leche Entera','Lechugas','Manteca Vegetal para Freír','Mascarpone','Philadelphia','Puré Tomate','Queso Azul','Queso Chihuahua','Queso de Cabra','Queso Gouda','Queso Mozzarella Fresco','Queso Ricotta','Vodka Cocina'],
+    'Mercado': ['Ajo','Albahaca','Apio','Arándano Fresco','Berenjena','Calabaza','Cebolla Blanca','Cebolla Morada','Champiñón','Chile Habanero Chocolate','Chips Betabel','Espárrago','Fresa a Granel','Fresa Cajita','Hierbabuena','Huevo','Jitomate Bola','Jitomate Cherry','Jitomate Salsa Pomodoro','Limón','Limón Eureka','Mantequilla Desy','Manzana Amarilla','Naranja','Papa Cambray','Perejil','Pimiento Morrón','Romero','Zanahoria','Gas'],
     'Semillas y Materias Primas': ['Azúcar Glass','Almendra','Arándano Deshidratado','Azúcar','Chile de Árbol','Chile Guajillo','Chile Negro','Chocolate Semi Amargo','Gotas de Chocolate','Harina','Miel','Nuez de la India','Nuez Granillo','Pan Molido','Pimienta en Grano','Pistacho','Sal de Grano','Sal Fina','Vainilla'],
     'Carnicería': ['Carne Carpaccio','Carne Molida Res','Pollo Porción','Pollo Scaloppine','Tocino','Arrachera'],
     'Mariscos': ['Almejas','Aros Calamar','Atún','Camarón Grande','Mejillones','Nuggets','Pulpo','Salmón'],
     'Quesos Ayala': ['Crema','Queso Gouda','Queso Mozzarella','Queso Parmesano'],
     'Productos Italianos': ['Savoiardi'],
-    'Limpieza cocina': ['Bolsa Basura 90x120','Cloro','Esponjas Trastes','Fibra de Metal','Jabón para Trastes','Jabón Roma','Papel Transparente'],
+    'Limpieza cocina': ['Bolsa Basura 90x120','Cloro','Desengrasante','Esponjas Trastes','Fabuloso','Fibra de Metal','Jabón para Trastes','Jabón Roma','Papel Transparente'],
     'Desechables cocina': ['Bolsa de Kilo 20x30','Hamburgesero','Cristal Grande','Desechables Costco con Tapa','Redondo Sopa con Tapa']
   };
 
