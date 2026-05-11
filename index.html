@@ -5736,7 +5736,7 @@ function exportarCSV() {
     'Mariscos': ['Almejas','Aros Calamar','Atún','Camarón Grande','Mejillones','Nuggets','Pulpo','Salmón'],
     'Quesos Ayala': ['Crema','Queso Gouda','Queso Mozzarella','Queso Parmesano'],
     'Productos Italianos': ['Savoiardi'],
-    'Limpieza cocina': ['Bolsa Basura 90x120','Cloro','Desengrasante','Esponjas Trastes','Fabuloso','Fibra de Metal','Jabón para Trastes','Jabón Roma','Papel Transparente'],
+    'Limpieza cocina': ['Bolsa Basura 90x120','Cloro','Desengrasante','Esponjas Trastes','Fabuloso','Fibra de Metal','Guantes','Jabón para Trastes','Jabón Roma','Papel Transparente'],
     'Desechables cocina': ['Bolsa de Kilo 20x30','Hamburgesero','Cristal Grande','Desechables Costco con Tapa','Redondo Sopa con Tapa']
   };
 
@@ -5766,6 +5766,8 @@ function exportarCSV() {
     const filled = items.filter(item => { const s = reqState[t][item]; return s && (s.qty > 0 || s.noStock); }).length;
     return { filled, total: items.length };
   }
+
+  const ITEMS_CON_NOTA = new Set(['Albahaca','Jitomate Salsa Pomodoro','Carne Molida Res']);
 
   function rowHTML(item, safeItem, id, s, isFilled) {
     const nsClass = s.noStock
@@ -5839,6 +5841,19 @@ function exportarCSV() {
         row.className = `flex items-center px-4 py-2.5 border-b border-slate-50 gap-3 transition-colors ${isFilled ? 'bg-green-50' : 'bg-white'}${soloP && isFilled ? ' hidden' : ''}`;
         row.innerHTML = rowHTML(item, safeItem, id, s, isFilled);
         itemsBody.appendChild(row);
+
+        // Campo de nota para items especiales
+        if (ITEMS_CON_NOTA.has(item)) {
+          const noteRow = document.createElement('div');
+          noteRow.id = 'rnote-' + id;
+          noteRow.className = 'px-4 pb-2.5 bg-white border-b border-slate-50' + (soloP && isFilled ? ' hidden' : '');
+          const safeNota = (s.nota || '').replace(/"/g, '&quot;');
+          noteRow.innerHTML = `<input type="text" placeholder="📝 Nota (ej: fresca, no de bolsa)…"
+            value="${safeNota}"
+            oninput="reqNotaInput('${safeItem}',this.value)"
+            class="w-full text-xs border border-dashed border-slate-200 rounded-lg px-2.5 py-1.5 outline-none text-slate-500 placeholder-slate-300 focus:border-primary bg-slate-50"/>`;
+          itemsBody.appendChild(noteRow);
+        }
       });
 
       secDiv.appendChild(itemsBody);
@@ -5902,6 +5917,11 @@ function exportarCSV() {
     if (ico) { ico.textContent = filled ? 'check_circle' : 'radio_button_unchecked'; ico.className = 'ms' + (filled ? ' ms-fill text-green-500' : ' text-slate-200') + ' text-xl shrink-0'; }
     if (nameEl) nameEl.className = 'text-sm ' + (filled ? 'text-slate-600' : 'text-slate-800') + ' leading-tight';
     if (inp) inp.className = inp.className.replace(/text-(primary|slate-400)/, filled ? 'text-primary' : 'text-slate-400');
+  };
+
+  window.reqNotaInput = function(item, val) {
+    if (!reqState[tabActual][item]) reqState[tabActual][item] = { qty: 0, noStock: false, bien: false };
+    reqState[tabActual][item].nota = val;
   };
 
   window.reqNoStock = function(id, item) {
@@ -6030,9 +6050,9 @@ function exportarCSV() {
     const bien = [];
     ['barra','cocina'].forEach(t => {
       Object.entries(reqState[t] || {}).forEach(([item, v]) => {
-        if (v.noStock) sinStock.push({ item, area: t });
+        if (v.noStock) sinStock.push({ item, area: t, ...(v.nota ? { nota: v.nota } : {}) });
         else if (v.bien) bien.push({ item, area: t });
-        else if (v.qty > 0) solicitados.push({ item, qty: v.qty, area: t });
+        else if (v.qty > 0) solicitados.push({ item, qty: v.qty, area: t, ...(v.nota ? { nota: v.nota } : {}) });
       });
     });
 
@@ -7268,14 +7288,14 @@ function filterReq(filtro, btnEl) {
           lista.appendChild(hdr);
           g.items.forEach(x => {
             const row = document.createElement('div');
-            row.className = 'flex justify-between items-center py-0.5';
-            row.innerHTML = `<span class="text-xs text-slate-700 flex-1">${x.item}</span><span class="text-xs font-bold text-slate-900 ml-2">${x.qty}</span>`;
+            row.className = 'flex justify-between items-start py-0.5 gap-1';
+            row.innerHTML = `<span class="text-xs text-slate-700 flex-1">${x.item}${x.nota ? `<span class="block text-xs text-amber-600 italic">📝 ${x.nota}</span>` : ''}</span><span class="text-xs font-bold text-slate-900 ml-2 shrink-0">${x.qty}</span>`;
             lista.appendChild(row);
           });
           g.sinStock.forEach(x => {
             const row = document.createElement('div');
-            row.className = 'flex justify-between items-center py-0.5';
-            row.innerHTML = `<span class="text-xs text-red-500 flex-1">${x.item}</span><span class="text-xs font-semibold text-red-400 ml-2">sin stock</span>`;
+            row.className = 'flex justify-between items-start py-0.5 gap-1';
+            row.innerHTML = `<span class="text-xs text-red-500 flex-1">${x.item}${x.nota ? `<span class="block text-xs text-amber-600 italic">📝 ${x.nota}</span>` : ''}</span><span class="text-xs font-semibold text-red-400 ml-2 shrink-0">sin stock</span>`;
             lista.appendChild(row);
           });
         });
@@ -7730,7 +7750,7 @@ function lcBuildData() {
         if (!existing.ss && !x.ss) existing.qty = Math.round((existing.qty + (parseFloat(x.qty)||0)) * 100) / 100;
         if (x.ss) existing.ss = true;
       } else {
-        lcData[sec].push({ item: x.item, qty: parseFloat(x.qty)||0, ss: x.ss||false, comprado: false, pedido: '' });
+        lcData[sec].push({ item: x.item, qty: parseFloat(x.qty)||0, ss: x.ss||false, comprado: false, pedido: '', nota: x.nota||'' });
       }
     });
   });
@@ -7781,9 +7801,10 @@ function lcRowClass(r, isCocina) {
 // Devuelve la cantidad final a pedir para un item (null = omitir del export)
 function lcCantFinal(r) {
   if (r.pedido !== '' && r.pedido != null) {
-    const n = parseFloat(String(r.pedido).replace(',','.'));
-    if (!isNaN(n) && n === 0) return null; // explícitamente 0 = no comprar
-    return isNaN(n) ? r.pedido : n;        // texto libre o número
+    const str = String(r.pedido).replace(',','.').trim();
+    // Excluir solo si es puramente cero sin unidad
+    if (/^0+(\.0+)?$/.test(str)) return null;
+    return str; // preservar texto completo: "2 kg", "1 paquete", "1.5 lt", etc.
   }
   if (r.ss) return '⚠️ sin stock';
   return r.qty || null;
@@ -7797,10 +7818,13 @@ function lcItemsParaExportar(sec) {
     .filter(r => r._cant !== null);
 }
 
+// Fix: preservar unidades en lcCantFinal (ej: "2 kg" → "2 kg", no "2")
+// Redefinir para sobrescribir la anterior
+
 function lcCopiarPortapapeles(sec, btn) {
   const items = lcItemsParaExportar(sec);
   if (!items.length) { toast('Sin artículos por comprar en ' + sec); return; }
-  const texto = `${sec}\n` + items.map(r => `${r.item}  ${r._cant}`).join('\n');
+  const texto = `${sec}\n` + items.map(r => `${r.item}  ${r._cant}${r.nota ? `  (${r.nota})` : ''}`).join('\n');
   const escribir = (t) => {
     if (navigator.clipboard) {
       navigator.clipboard.writeText(t).catch(() => {});
@@ -7824,7 +7848,7 @@ function lcCopiarPortapapeles(sec, btn) {
 function lcCopiarProveedor(sec) {
   const items = lcItemsParaExportar(sec);
   if (!items.length) { toast('Sin artículos por comprar en ' + sec); return; }
-  const lineas = items.map(r => `• ${r.item} — ${r._cant}`).join('\n');
+  const lineas = items.map(r => `• ${r.item} — ${r._cant}${r.nota ? ` (${r.nota})` : ''}`).join('\n');
   const texto = `*Pedido Romatella – ${sec}*\n📅 ${lcFecha}\n\n${lineas}\n\n_Romatella Admin_`;
   window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank');
 }
@@ -7838,7 +7862,7 @@ function lcWhatsAppGeneral() {
   sortedSecs.forEach(sec => {
     const items = lcItemsParaExportar(sec);
     if (!items.length) return;
-    const lineas = items.map(r => `  • ${r.item} — ${r._cant}`).join('\n');
+    const lineas = items.map(r => `  • ${r.item} — ${r._cant}${r.nota ? ` (${r.nota})` : ''}`).join('\n');
     bloques.push(`*${sec}*\n${lineas}`);
   });
   if (!bloques.length) { toast('Sin artículos por comprar'); return; }
@@ -7863,7 +7887,7 @@ function lcExportPDF() {
     const rows = items.map(r => `
       <tr>
         <td class="chk"></td>
-        <td class="item">${r.item}</td>
+        <td class="item">${r.item}${r.nota ? `<br><span style="font-size:8.5px;color:#b45309;font-style:italic">📝 ${r.nota}</span>` : ''}</td>
         <td class="${r._cant === '⚠️ sin stock' ? 'tag-ss' : 'qty'}">${r._cant}</td>
       </tr>`).join('');
     grid += `<div class="sec-block">
@@ -7918,10 +7942,10 @@ function lcExportCSV() {
     const ai = LC_SEC_ORDER.indexOf(a), bi = LC_SEC_ORDER.indexOf(b);
     return (ai<0?999:ai)-(bi<0?999:bi);
   });
-  const rows = [['Proveedor','Artículo','Cantidad']];
+  const rows = [['Proveedor','Artículo','Cantidad','Nota']];
   sortedSecs.forEach(sec => {
     lcItemsParaExportar(sec).forEach(r => {
-      rows.push([sec, r.item, r._cant]);
+      rows.push([sec, r.item, r._cant, r.nota || '']);
     });
   });
   if (rows.length === 1) { toast('Sin artículos por comprar'); return; }
