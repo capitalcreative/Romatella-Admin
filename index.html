@@ -7797,6 +7797,30 @@ function lcItemsParaExportar(sec) {
     .filter(r => r._cant !== null);
 }
 
+function lcCopiarPortapapeles(sec, btn) {
+  const items = lcItemsParaExportar(sec);
+  if (!items.length) { toast('Sin artículos por comprar en ' + sec); return; }
+  const texto = `${sec}\n` + items.map(r => `${r.item}  ${r._cant}`).join('\n');
+  const escribir = (t) => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(t).catch(() => {});
+    } else {
+      const ta = document.createElement('textarea');
+      ta.value = t; ta.style.cssText = 'position:fixed;opacity:0';
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    // Feedback visual en el botón
+    if (btn) {
+      const orig = btn.innerHTML;
+      btn.innerHTML = '<span class="ms text-base">check</span> ¡Copiado!';
+      btn.style.background = 'rgba(255,255,255,0.35)';
+      setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; }, 2000);
+    }
+  };
+  escribir(texto);
+}
+
 function lcCopiarProveedor(sec) {
   const items = lcItemsParaExportar(sec);
   if (!items.length) { toast('Sin artículos por comprar en ' + sec); return; }
@@ -7974,9 +7998,9 @@ function lcRender() {
             <div class="font-bold text-sm tracking-wide">${sec}</div>
             <div class="text-xs opacity-70 mt-0.5">${pendCount} artículo${pendCount!==1?'s':''} por comprar</div>
           </div>
-          <button onclick="event.stopPropagation();lcCopiarProveedor('${sec.replace(/'/g,"\\'")}');"
+          <button onclick="event.stopPropagation();lcCopiarPortapapeles('${sec.replace(/'/g,"\\'")}', this);"
             class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-white/20 hover:bg-white/30 transition-colors">
-            <span class="ms text-base">content_copy</span> WhatsApp
+            <span class="ms text-base">content_copy</span> Copiar
           </button>
         </div>
         <div class="flex items-center justify-end px-4 py-1.5 bg-slate-50 border-b border-slate-100">
