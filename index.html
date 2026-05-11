@@ -7684,6 +7684,19 @@ if (window.location.pathname === '/inventario') {
     <!-- Contenido scrollable -->
     <div id="lc-content" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
 
+    <!-- Footer exportar -->
+    <div class="shrink-0 bg-white border-t border-slate-100 px-4 py-3 flex gap-2">
+      <button onclick="lcWhatsAppGeneral()" class="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-green-500 hover:bg-green-600 text-white text-xs font-bold transition-colors">
+        <span class="ms text-base">send</span> WhatsApp general
+      </button>
+      <button onclick="lcExportPDF()" class="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors">
+        <span class="ms text-base">picture_as_pdf</span> PDF
+      </button>
+      <button onclick="lcExportCSV()" class="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-600 text-xs font-semibold hover:bg-slate-50 transition-colors">
+        <span class="ms text-base">table_view</span> Excel
+      </button>
+    </div>
+
   </div>
 </div>
 
@@ -7765,21 +7778,138 @@ function lcRowClass(r, isCocina) {
   return base + (isCocina ? 'bg-white border-slate-200 hover:border-slate-300' : 'bg-white border-blue-100 hover:border-blue-200');
 }
 
+// Devuelve la cantidad final a pedir para un item (null = omitir del export)
+function lcCantFinal(r) {
+  if (r.pedido !== '' && r.pedido != null) {
+    const n = parseFloat(String(r.pedido).replace(',','.'));
+    if (!isNaN(n) && n === 0) return null; // explícitamente 0 = no comprar
+    return isNaN(n) ? r.pedido : n;        // texto libre o número
+  }
+  if (r.ss) return '⚠️ sin stock';
+  return r.qty || null;
+}
+
+// Items de una sección listos para exportar (excluye comprados y qty=0)
+function lcItemsParaExportar(sec) {
+  return (lcData[sec] || [])
+    .filter(r => !r.comprado)
+    .map(r => ({ ...r, _cant: lcCantFinal(r) }))
+    .filter(r => r._cant !== null);
+}
+
 function lcCopiarProveedor(sec) {
-  const rows = lcData[sec] || [];
-  const pendientes = rows.filter(r => !r.comprado);
-  if (!pendientes.length) { toast('Todo está comprado en ' + sec); return; }
-
-  const lineas = pendientes.map(r => {
-    const cantPedir = (r.pedido !== '' && r.pedido != null) ? r.pedido : (r.ss ? '⚠️ sin stock' : r.qty || '?');
-    return `• ${r.item} — ${cantPedir}`;
-  }).join('\n');
-
+  const items = lcItemsParaExportar(sec);
+  if (!items.length) { toast('Sin artículos por comprar en ' + sec); return; }
+  const lineas = items.map(r => `• ${r.item} — ${r._cant}`).join('\n');
   const texto = `*Pedido Romatella – ${sec}*\n📅 ${lcFecha}\n\n${lineas}\n\n_Romatella Admin_`;
+  window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank');
+}
 
-  // Abrir WhatsApp directamente con el mensaje pre-llenado
-  const url = 'https://wa.me/?text=' + encodeURIComponent(texto);
-  window.open(url, '_blank');
+function lcWhatsAppGeneral() {
+  const sortedSecs = Object.keys(lcData).sort((a,b) => {
+    const ai = LC_SEC_ORDER.indexOf(a), bi = LC_SEC_ORDER.indexOf(b);
+    return (ai<0?999:ai)-(bi<0?999:bi);
+  });
+  let bloques = [];
+  sortedSecs.forEach(sec => {
+    const items = lcItemsParaExportar(sec);
+    if (!items.length) return;
+    const lineas = items.map(r => `  • ${r.item} — ${r._cant}`).join('\n');
+    bloques.push(`*${sec}*\n${lineas}`);
+  });
+  if (!bloques.length) { toast('Sin artículos por comprar'); return; }
+  const total = bloques.reduce((s, b) => s + b.split('\n').length - 1, 0);
+  const texto = `*Lista de Compras Romatella*\n📅 ${lcFecha} · ${total} artículos\n\n` + bloques.join('\n\n') + '\n\n_Romatella Admin_';
+  window.open('https://wa.me/?text=' + encodeURIComponent(texto), '_blank');
+}
+
+function lcExportPDF() {
+  const sortedSecs = Object.keys(lcData).sort((a,b) => {
+    const ai = LC_SEC_ORDER.indexOf(a), bi = LC_SEC_ORDER.indexOf(b);
+    return (ai<0?999:ai)-(bi<0?999:bi);
+  });
+  const COCINA_SECS = new Set(['Superama','Costco','Mercado','Carnicería','Mariscos','Quesos Ayala','Semillas y Materias Primas','Productos Italianos','Limpieza cocina','Desechables cocina']);
+  let totalArt = 0;
+  let grid = '<div class="grid">';
+  sortedSecs.forEach(sec => {
+    const items = lcItemsParaExportar(sec);
+    if (!items.length) return;
+    totalArt += items.length;
+    const isCocina = COCINA_SECS.has(sec);
+    const rows = items.map(r => `
+      <tr>
+        <td class="chk"></td>
+        <td class="item">${r.item}</td>
+        <td class="${r._cant === '⚠️ sin stock' ? 'tag-ss' : 'qty'}">${r._cant}</td>
+      </tr>`).join('');
+    grid += `<div class="sec-block">
+      <div class="sec-hdr ${isCocina ? 'hdr-cocina' : 'hdr-barra'}">${sec} <span style="opacity:.6;font-weight:400">(${items.length})</span></div>
+      <table><tbody>${rows}</tbody></table>
+    </div>`;
+  });
+  grid += '</div>';
+  if (!totalArt) { toast('Sin artículos por comprar'); return; }
+
+  const w = window.open('', '_blank');
+  if (!w) { toast('Permite ventanas emergentes'); return; }
+  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Lista de Compras · Romatella</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,Arial,sans-serif;font-size:11px;color:#1a1c1d;background:#fff;padding:20px 24px}
+    .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:2px solid #1a1c1d}
+    .logo{font-size:20px;font-weight:800}.logo span{color:#9b3f00}
+    .logo small{display:block;font-size:9px;font-weight:400;color:#888;margin-top:1px}
+    .meta{text-align:right;font-size:9px;color:#888;line-height:1.8}
+    .meta strong{color:#1a1c1d;font-size:11px}
+    .btn-print{display:inline-flex;align-items:center;gap:6px;margin-bottom:14px;padding:8px 18px;background:#0059b5;color:white;border:none;border-radius:8px;cursor:pointer;font-size:11px;font-weight:600}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:start}
+    .sec-block{border:1px solid #e8e8ea;border-radius:8px;overflow:hidden;break-inside:avoid}
+    .sec-hdr{padding:6px 10px;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+    .hdr-cocina{background:#1a1c1d;color:#fff}
+    .hdr-barra{background:#0059b5;color:#fff}
+    table{width:100%;border-collapse:collapse}
+    tr:last-child td{border-bottom:none}
+    td{padding:5px 8px;font-size:10.5px;border-bottom:1px solid #f3f3f5;vertical-align:middle}
+    .chk{width:16px;padding-right:4px}
+    .chk::before{content:'';display:inline-block;width:11px;height:11px;border:1.5px solid #ccc;border-radius:2px;vertical-align:middle}
+    .item{flex:1;color:#1a1c1d}
+    .qty{font-weight:700;color:#0059b5;text-align:right;white-space:nowrap;width:36px}
+    .tag-ss{font-weight:700;color:#ba1a1a;font-size:9px;text-align:right;white-space:nowrap;width:60px}
+    .footer{margin-top:14px;font-size:8px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:8px}
+    @media print{.btn-print{display:none}body{padding:10px 14px}}
+  </style></head><body>
+  <div class="header">
+    <div class="logo"><span>R</span>omatella<small>Lista de compras · ${lcReqsUsadas.map(r=>r.nombre).join(', ')}</small></div>
+    <div class="meta"><strong>${lcFecha}</strong><br>${totalArt} artículos en ${sortedSecs.filter(s=>lcItemsParaExportar(s).length).length} proveedores</div>
+  </div>
+  <button class="btn-print" onclick="window.print()">🖨️ Guardar PDF / Imprimir</button>
+  ${grid}
+  <div class="footer">Romatella Admin · ${lcFecha}</div>
+  </body></html>`);
+  w.document.close();
+}
+
+function lcExportCSV() {
+  const sortedSecs = Object.keys(lcData).sort((a,b) => {
+    const ai = LC_SEC_ORDER.indexOf(a), bi = LC_SEC_ORDER.indexOf(b);
+    return (ai<0?999:ai)-(bi<0?999:bi);
+  });
+  const rows = [['Proveedor','Artículo','Cantidad']];
+  sortedSecs.forEach(sec => {
+    lcItemsParaExportar(sec).forEach(r => {
+      rows.push([sec, r.item, r._cant]);
+    });
+  });
+  if (rows.length === 1) { toast('Sin artículos por comprar'); return; }
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' }); // BOM para Excel
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Lista_Compras_Romatella_${lcFecha.replace(/\s/g,'_')}.csv`;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+  toast('✓ Excel descargado');
 }
 
 function lcRender() {
