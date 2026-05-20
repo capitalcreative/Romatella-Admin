@@ -40,13 +40,20 @@ export default async function handler(req, res) {
       '    - tasa_iva: numero de la tasa (16, 0, o -1 si es Exento) ' +
       '    - costo_unitario: pon 0, el sistema lo calculara ' +
 
-      'MODO 2 — COSTCO DE MEXICO / COSTCO WHOLESALE: ' +
-      '  tiene_iva = true ' +
-      '  costo_unitario = campo VALOR UNITARIO exacto (ya es neto sin IVA, NO dividas entre 1.16) ' +
-      '  importe, descuento, tasa_iva: no necesarios, puedes omitirlos ' +
-      '  CRITICO para el campo "total": usa el TOTAL FINAL del ticket que ya incluye IVA. ' +
-      '  En el ticket Costco el resumen final muestra: SUBTOTAL / IVA / TOTAL. ' +
-      '  El "total" del JSON = la linea TOTAL (la mas grande, incluye IVA). JAMAS el SUBTOTAL. ' +
+      'MODO 2 — COSTCO DE MEXICO / COSTCO WHOLESALE (CFDI con UUID): ' +
+      '  tiene_iva = "cfdi_walmart" (usa el mismo formato que Walmart CFDI) ' +
+      '  El CFDI de Costco tiene la misma estructura que Walmart: columnas VALOR UNITARIO, IMPORTE, DESCUENTO, TASA. ' +
+      '  Para cada producto extrae: ' +
+      '    - nombre: descripcion legible ' +
+      '    - cantidad: columna CANTIDAD ' +
+      '    - unidad: H87=pza, KGM=kg, LTR=lt, XBX=caja, XPK=paquete, X3H=bidon ' +
+      '    - valor_unitario: columna VALOR UNITARIO exacto ' +
+      '    - importe: columna IMPORTE exacto ' +
+      '    - descuento: columna DESCUENTO (0 si no tiene) ' +
+      '    - tasa_iva: numero de la tasa. Si la columna Tasa dice 0.000000 → tasa_iva=0. Si dice 0.160000 → tasa_iva=16. ' +
+      '    - costo_unitario: pon 0, el sistema lo calculara ' +
+      '  IMPORTANTE: la mayoria de alimentos en Costco tienen tasa 0% (IVA=0). Solo no-alimentos tienen 16%. ' +
+      '  El "total" del JSON = campo TOTAL del resumen final (incluye IVA). ' +
 
       'MODO 3 — TICKET SIMPLE SIN UUID (Walmart ticket, Soriana, Chedraui, La Comer): ' +
       '  tiene_iva = false ' +
@@ -77,9 +84,11 @@ export default async function handler(req, res) {
       '{"nombre":"REVISTA","cantidad":1,"unidad":"pza","valor_unitario":111.00,"importe":111.00,"descuento":0,"tasa_iva":-1,"costo_unitario":0}' +
       ']}. ' +
       'Para otros modos usa: ' +
-      '{"proveedor":"COSTCO DE MEXICO","fecha":"04/05/2026","categoria":"Abarrotes","total":7035.93,"tiene_iva":true,' +
-      '"productos":[{"nombre":"ACEITE OLIVA 3L KIRKLAND","cantidad":1,"unidad":"pza","costo_unitario":357.02}]}. ' +
-      'Nota: 7035.93 = 6065.46 subtotal + 970.47 IVA. El "total" siempre es el que incluye IVA. ' +
+      '{"proveedor":"COSTCO DE MEXICO","fecha":"18/05/2026","categoria":"Lacteos","total":6894.64,"tiene_iva":"cfdi_walmart",' +
+      '"productos":[' +
+      '{"nombre":"QUESO RICOTTA 1KG PORTALES","cantidad":1,"unidad":"pza","valor_unitario":152.42,"importe":152.42,"descuento":3.42,"tasa_iva":0,"costo_unitario":0},' +
+      '{"nombre":"CONTENEDOR COMIDA 50PZ GLAD","cantidad":2,"unidad":"paquete","valor_unitario":166.66,"importe":333.32,"descuento":7.46,"tasa_iva":16,"costo_unitario":0}' +
+      ']}. ' +
       'Categorias: Carniceria, Mariscos, Abarrotes, Lacteos, Frutas y Verduras, Vinos, Licores, Refrescos, Panaderia, Limpieza, Semillas, Otros insumos. ' +
       'Extrae ABSOLUTAMENTE TODOS los renglones del documento.';
 
