@@ -128,30 +128,54 @@ export default async function handler(req, res) {
       }
     }
 
-    // POST-PROCESS: calcular costo_unitario para Walmart CFDI en el backend
-    // Asi el frontend recibe siempre el mismo formato simple
+    // POST-PROCESS: calcular costo_unitario para CFDI (Walmart/Costco) en el backend
+    // ESTRATEGIA: aplicar tasa_iva por item Y prorratear cualquier diferencia
+    // contra el TOTAL real de la factura, para garantizar que suma === total siempre.
     if (parsed.tiene_iva === 'cfdi_walmart' && parsed.productos?.length) {
       parsed.tiene_iva = false; // el frontend no multiplica
-      parsed.productos = parsed.productos.map(p => {
-        const importe    = parseFloat(p.importe)         || 0;
-        const descuento  = parseFloat(p.descuento)       || 0;
-        const cantidad   = parseFloat(p.cantidad)         || 1;
-        const tasa       = parseFloat(p.tasa_iva)         ?? 16;
+      const totalFactura = parseFloat(parsed.total) || 0;
+
+      // Paso 1: calcular subtotalFinal por item usando tasa_iva del AI
+      const items = parsed.productos.map(p => {
+        const importe    = parseFloat(p.importe)   || 0;
+        const descuento  = parseFloat(p.descuento) || 0;
+        const cantidad   = parseFloat(p.cantidad)  || 1;
+        const tasa       = parseFloat(p.tasa_iva);
+        const tasaUsar   = isNaN(tasa) ? 16 : tasa;
         const baseNeta   = importe - descuento;
-        let subtotalFinal;
-        if (tasa === -1) {
-          subtotalFinal = baseNeta; // exento
-        } else {
-          subtotalFinal = baseNeta * (1 + tasa / 100);
-        }
-        const costoUnitario = Math.round((subtotalFinal / cantidad) * 10000) / 10000;
+        const subtotalFinal = tasaUsar === -1
+          ? baseNeta
+          : baseNeta * (1 + tasaUsar / 100);
         return {
-          nombre:         p.nombre,
-          cantidad:       p.cantidad,
-          unidad:         p.unidad,
-          costo_unitario: costoUnitario
+          nombre:    p.nombre,
+          unidad:    p.unidad,
+          cantidad,
+          baseNeta,
+          subtotalFinal
         };
       });
+
+      // Paso 2: si el total de factura existe y la suma no cuadra,
+      // prorratear la diferencia entre items proporcionalmente a su base neta.
+      // Esto compensa errores del AI al leer tasa_iva de items individuales.
+      const sumaCalc    = items.reduce((s, it) => s + it.subtotalFinal, 0);
+      const sumaBase    = items.reduce((s, it) => s + it.baseNeta, 0);
+      const diff        = totalFactura - sumaCalc;
+
+      if (totalFactura > 0 && Math.abs(diff) > 0.5 && sumaBase > 0) {
+        items.forEach(it => {
+          const factor = it.baseNeta / sumaBase;
+          it.subtotalFinal += diff * factor;
+        });
+      }
+
+      // Paso 3: convertir a costo_unitario final
+      parsed.productos = items.map(it => ({
+        nombre:         it.nombre,
+        cantidad:       it.cantidad,
+        unidad:         it.unidad,
+        costo_unitario: Math.round((it.subtotalFinal / it.cantidad) * 10000) / 10000
+      }));
     }
 
 
