@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   if (!URL || !KEY) return res.status(500).json({ error: 'Supabase no configurado' });
 
   try {
-    const { table, action, data, id, filters, email, password } = req.method === 'GET' ? req.query : (req.body || {});
+    const { table, action, data, id, filters, email, password, limit } = req.method === 'GET' ? req.query : (req.body || {});
 
     // Auth login
     if (action === 'auth_login') {
@@ -44,7 +44,11 @@ export default async function handler(req, res) {
       method = 'DELETE';
       url += `?id=eq.${id}`;
     } else if (action === 'select') {
-      url += '?select=*&order=created_at.desc&limit=500';
+      // Tablas con muchos registros por compra necesitan mas limite
+      const tablasGrandes = ['detalle_compras', 'historial_precios', 'pagos', 'inventarios'];
+      const limiteDefault = tablasGrandes.includes(table) ? 10000 : 500;
+      const limiteFinal = limit ? parseInt(limit) : limiteDefault;
+      url += '?select=*&order=created_at.desc&limit=' + limiteFinal;
       if (filters) url += '&' + filters;
     } else if (action === 'upsert') {
       method = 'POST';
