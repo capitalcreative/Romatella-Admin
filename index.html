@@ -4316,17 +4316,11 @@ async function handleFileUpload(event) {
 
         if (cuadreEl) cuadreEl.textContent = '∑ Suma partidas: ' + fmt(sumaPartidas);
 
-        // Para facturas con IVA (Costco/otros CFDIs), el AI a veces extrae el SUBTOTAL
-        // en lugar del TOTAL. Si el ratio suma/total está entre 1.10-1.22 → AI mandó subtotal.
-        // En ese caso usamos la suma de partidas como referencia real (la hemos calculado nosotros).
-        let totalRef = totalFactura;
-        if (tieneIVA && sumaPartidas > 0) {
-          const ratio = sumaPartidas / totalFactura;
-          if (ratio >= 1.10 && ratio <= 1.22) {
-            totalRef = sumaPartidas; // AI mandó subtotal → confiar en nuestra suma
-          }
-        }
-
+        // Para facturas con IVA (Costco/otros CFDIs con tiene_iva=true):
+        // El AI extrae el VALOR UNITARIO sin IVA y nosotros aplicamos ×1.16.
+        // El campo "total" del AI es frecuentemente el SUBTOTAL (sin IVA).
+        // → Para tieneIVA, confiamos en nuestra suma calculada y no comparamos vs AI total.
+        const totalRef = tieneIVA ? sumaPartidas : totalFactura;
         const diferencia = Math.abs(sumaPartidas - totalRef);
         if (descuadreEl && descuadreText) {
           if (diferencia > 1) {
