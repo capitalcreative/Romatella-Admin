@@ -44,6 +44,9 @@ export default async function handler(req, res) {
       '  tiene_iva = true ' +
       '  costo_unitario = campo VALOR UNITARIO exacto (ya es neto sin IVA, NO dividas entre 1.16) ' +
       '  importe, descuento, tasa_iva: no necesarios, puedes omitirlos ' +
+      '  CRITICO para el campo "total": usa el TOTAL FINAL del ticket que ya incluye IVA. ' +
+      '  En el ticket Costco el resumen final muestra: SUBTOTAL / IVA / TOTAL. ' +
+      '  El "total" del JSON = la linea TOTAL (la mas grande, incluye IVA). JAMAS el SUBTOTAL. ' +
 
       'MODO 3 — TICKET SIMPLE SIN UUID (Walmart ticket, Soriana, Chedraui, La Comer): ' +
       '  tiene_iva = false ' +
@@ -74,8 +77,9 @@ export default async function handler(req, res) {
       '{"nombre":"REVISTA","cantidad":1,"unidad":"pza","valor_unitario":111.00,"importe":111.00,"descuento":0,"tasa_iva":-1,"costo_unitario":0}' +
       ']}. ' +
       'Para otros modos usa: ' +
-      '{"proveedor":"COSTCO DE MEXICO","fecha":"04/05/2026","categoria":"Abarrotes","total":6065.46,"tiene_iva":true,' +
+      '{"proveedor":"COSTCO DE MEXICO","fecha":"04/05/2026","categoria":"Abarrotes","total":7035.93,"tiene_iva":true,' +
       '"productos":[{"nombre":"ACEITE OLIVA 3L KIRKLAND","cantidad":1,"unidad":"pza","costo_unitario":357.02}]}. ' +
+      'Nota: 7035.93 = 6065.46 subtotal + 970.47 IVA. El "total" siempre es el que incluye IVA. ' +
       'Categorias: Carniceria, Mariscos, Abarrotes, Lacteos, Frutas y Verduras, Vinos, Licores, Refrescos, Panaderia, Limpieza, Semillas, Otros insumos. ' +
       'Extrae ABSOLUTAMENTE TODOS los renglones del documento.';
 

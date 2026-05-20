@@ -4310,19 +4310,29 @@ async function handleFileUpload(event) {
       // Verificar cuadre: suma de partidas vs total de la factura
       if (totalFactura > 0) {
         const sumaPartidas = getTotal();
-        const diferencia = Math.abs(sumaPartidas - totalFactura);
-        const pctDif = diferencia / totalFactura * 100;
         const descuadreEl = document.getElementById('total-descuadre');
         const descuadreText = document.getElementById('total-descuadre-text');
         const cuadreEl = document.getElementById('total-cuadre');
 
         if (cuadreEl) cuadreEl.textContent = '∑ Suma partidas: ' + fmt(sumaPartidas);
 
+        // Para facturas con IVA (Costco/otros CFDIs), el AI a veces extrae el SUBTOTAL
+        // en lugar del TOTAL. Si el ratio suma/total está entre 1.10-1.22 → AI mandó subtotal.
+        // En ese caso usamos la suma de partidas como referencia real (la hemos calculado nosotros).
+        let totalRef = totalFactura;
+        if (tieneIVA && sumaPartidas > 0) {
+          const ratio = sumaPartidas / totalFactura;
+          if (ratio >= 1.10 && ratio <= 1.22) {
+            totalRef = sumaPartidas; // AI mandó subtotal → confiar en nuestra suma
+          }
+        }
+
+        const diferencia = Math.abs(sumaPartidas - totalRef);
         if (descuadreEl && descuadreText) {
-          if (diferencia > 1) { // tolerancia de $1 por redondeos
+          if (diferencia > 1) {
             descuadreEl.classList.remove('hidden');
             descuadreText.textContent = 'Diferencia de ' + fmt(diferencia) +
-              ' vs total factura (' + fmt(totalFactura) + '). Revisa precios o cantidades.';
+              ' vs total factura (' + fmt(totalRef) + '). Revisa precios o cantidades.';
           } else {
             descuadreEl.classList.add('hidden');
           }
