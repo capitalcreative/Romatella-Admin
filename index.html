@@ -4321,7 +4321,7 @@ async function handleFileUpload(event) {
           if (diferencia > 1) {
             descuadreEl.classList.remove('hidden');
             descuadreText.textContent = 'Diferencia de ' + fmt(diferencia) +
-              ' vs total factura (' + fmt(totalRef) + '). Revisa precios o cantidades.';
+              ' vs total factura (' + fmt(totalFactura) + '). Revisa precios o cantidades.';
           } else {
             descuadreEl.classList.add('hidden');
           }
