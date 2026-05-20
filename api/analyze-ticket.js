@@ -41,8 +41,8 @@ export default async function handler(req, res) {
       '    - costo_unitario: pon 0, el sistema lo calculara ' +
 
       'MODO 2 — COSTCO DE MEXICO / COSTCO WHOLESALE (CFDI con UUID): ' +
-      '  tiene_iva = "cfdi_costco" ' +
-      '  El CFDI de Costco tiene columnas: CANTIDAD | UNIDAD | DESCRIPCION | VALOR UNITARIO | IMPORTE | DESCUENTO | y al final el desglose de TRASLADOS con TASA e IMPORTE del IVA. ' +
+      '  tiene_iva = "cfdi_walmart" (usa el mismo formato que Walmart CFDI) ' +
+      '  El CFDI de Costco lista cada concepto con un bloque de Traslados que dice: Base | Impuesto | Tipo Factor | Tasa o Cuota | Importe. ' +
       '  Para cada producto extrae: ' +
       '    - nombre: descripcion legible ' +
       '    - cantidad: columna CANTIDAD ' +
@@ -50,9 +50,12 @@ export default async function handler(req, res) {
       '    - valor_unitario: columna VALOR UNITARIO exacto ' +
       '    - importe: columna IMPORTE exacto ' +
       '    - descuento: columna DESCUENTO (0 si no tiene) ' +
-      '    - iva_importe: el IMPORTE del traslado IVA para ese renglon (lo que dice la columna Importe del bloque Traslados). Si no tiene traslado IVA → 0 ' +
+      '    - tasa_iva: LEE el numero de la columna "Tasa o Cuota" del bloque Traslados de ESE renglon. ' +
+      '        Si Tasa o Cuota = 0.160000 → tasa_iva = 16. ' +
+      '        Si Tasa o Cuota = 0.000000 → tasa_iva = 0. ' +
+      '        Si el concepto no tiene bloque Traslados (es Exento) → tasa_iva = -1. ' +
+      '        NUNCA adivines la tasa por el tipo de producto. LEE el valor exacto de la columna. ' +
       '    - costo_unitario: pon 0, el sistema lo calculara ' +
-      '  CRITICO: extrae iva_importe del IMPORTE real del traslado, NO calcules. Si el renglon no tiene traslados → iva_importe=0. ' +
       '  El "total" del JSON = campo TOTAL del resumen final (incluye IVA). ' +
 
       'MODO 3 — TICKET SIMPLE SIN UUID (Walmart ticket, Soriana, Chedraui, La Comer): ' +
@@ -83,11 +86,12 @@ export default async function handler(req, res) {
       '{"nombre":"SM ARBORIO","cantidad":1,"unidad":"pza","valor_unitario":72.00,"importe":72.00,"descuento":0,"tasa_iva":0,"costo_unitario":0},' +
       '{"nombre":"REVISTA","cantidad":1,"unidad":"pza","valor_unitario":111.00,"importe":111.00,"descuento":0,"tasa_iva":-1,"costo_unitario":0}' +
       ']}. ' +
-      'Para Costco (cfdi_costco) usa: ' +
-      '{"proveedor":"COSTCO DE MEXICO","fecha":"18/05/2026","categoria":"Lacteos","total":6894.64,"tiene_iva":"cfdi_costco",' +
+      'Para Costco (cfdi_walmart con tasa_iva leido del CFDI): ' +
+      '{"proveedor":"COSTCO DE MEXICO","fecha":"18/05/2026","categoria":"Lacteos","total":6894.64,"tiene_iva":"cfdi_walmart",' +
       '"productos":[' +
-      '{"nombre":"QUESO RICOTTA 1KG PORTALES","cantidad":1,"unidad":"pza","valor_unitario":152.42,"importe":152.42,"descuento":3.42,"iva_importe":0,"costo_unitario":0},' +
-      '{"nombre":"CONTENEDOR COMIDA 50PZ GLAD","cantidad":2,"unidad":"paquete","valor_unitario":166.66,"importe":333.32,"descuento":7.46,"iva_importe":52.28,"costo_unitario":0}' +
+      '{"nombre":"QUESO RICOTTA 1KG PORTALES","cantidad":1,"unidad":"pza","valor_unitario":152.42,"importe":152.42,"descuento":3.42,"tasa_iva":0,"costo_unitario":0},' +
+      '{"nombre":"CONTENEDOR COMIDA 50PZ GLAD","cantidad":2,"unidad":"paquete","valor_unitario":166.66,"importe":333.32,"descuento":7.46,"tasa_iva":16,"costo_unitario":0},' +
+      '{"nombre":"TAPETE ENTRADA TRAFICO","cantidad":1,"unidad":"pza","valor_unitario":291.38,"importe":291.38,"descuento":6.52,"tasa_iva":16,"costo_unitario":0}' +
       ']}. ' +
       'Categorias: Carniceria, Mariscos, Abarrotes, Lacteos, Frutas y Verduras, Vinos, Licores, Refrescos, Panaderia, Limpieza, Semillas, Otros insumos. ' +
       'Extrae ABSOLUTAMENTE TODOS los renglones del documento.';
@@ -150,26 +154,6 @@ export default async function handler(req, res) {
       });
     }
 
-    // POST-PROCESS: Costco CFDI — usa iva_importe real extraido del documento
-    // Esto evita errores de tasa_iva y usa el importe de IVA exacto del CFDI
-    if (parsed.tiene_iva === 'cfdi_costco' && parsed.productos?.length) {
-      parsed.tiene_iva = false; // el frontend no multiplica
-      parsed.productos = parsed.productos.map(p => {
-        const importe    = parseFloat(p.importe)     || 0;
-        const descuento  = parseFloat(p.descuento)   || 0;
-        const ivaImp     = parseFloat(p.iva_importe) || 0;
-        const cantidad   = parseFloat(p.cantidad)     || 1;
-        const baseNeta   = importe - descuento;
-        const subtotalFinal = baseNeta + ivaImp;
-        const costoUnitario = Math.round((subtotalFinal / cantidad) * 10000) / 10000;
-        return {
-          nombre:         p.nombre,
-          cantidad:       p.cantidad,
-          unidad:         p.unidad,
-          costo_unitario: costoUnitario
-        };
-      });
-    }
 
     return res.status(200).json(parsed);
 
