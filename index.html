@@ -2989,27 +2989,55 @@ async function loadFromSupabase() {
     const detalles = await respD.json();
     const detallesArr = Array.isArray(detalles) ? detalles : [];
 
-    // Reemplazar DB.compras completamente con lo que viene de Supabase
-    // (nunca acumular — esto evita duplicados)
-    DB.compras = comprasDB.map(c => ({
-      id: c.id,
-      fecha: c.fecha,
-      proveedor: c.proveedor_nombre || 'Sin proveedor',
-      folio: c.folio || 'S/F',
-      categoria: c.categoria || c.notas || '',
-      forma_pago: c.forma_pago || 'Efectivo',
-      estatus: c.estatus_pago || 'Pendiente',
-      total: parseFloat(c.total) || 0,
-      vencimiento: c.vencimiento || null,
-      items: detallesArr
-        .filter(d => String(d.compra_id) === String(c.id))
-        .map(d => ({
-          nombre: d.nombre_producto || '',
-          unidad: d.unidad || 'pza',
-          cantidad: parseFloat(d.cantidad) || 0,
-          costo_unitario: parseFloat(d.costo_unitario) || 0
-        }))
-    }));
+    // Diagnostico: cuantos detalles llegaron?
+    console.log('[loadFromSupabase] compras:', comprasDB.length, 'detalles:', detallesArr.length);
+
+    // Indexar items por compra_id para lookups rapidos
+    const itemsPorCompra = {};
+    detallesArr.forEach(d => {
+      const key = String(d.compra_id);
+      if (!itemsPorCompra[key]) itemsPorCompra[key] = [];
+      itemsPorCompra[key].push({
+        nombre: d.nombre_producto || '',
+        unidad: d.unidad || 'pza',
+        cantidad: parseFloat(d.cantidad) || 0,
+        costo_unitario: parseFloat(d.costo_unitario) || 0,
+        categoria: d.categoria || ''
+      });
+    });
+
+    // Construir nuevo DB.compras preservando items locales si Supabase no los devolvio
+    // (defensa: si por algun motivo el query detalle_compras pierde items, no los borramos)
+    const comprasAnteriores = {};
+    (DB.compras || []).forEach(c => { comprasAnteriores[String(c.id)] = c; });
+
+    DB.compras = comprasDB.map(c => {
+      const key = String(c.id);
+      const itemsSupa = itemsPorCompra[key] || [];
+      const itemsLocales = comprasAnteriores[key]?.items || [];
+      // Si Supabase no tiene items pero localmente si los teniamos, conservar locales
+      const itemsFinales = itemsSupa.length === 0 && itemsLocales.length > 0
+        ? itemsLocales
+        : itemsSupa;
+      return {
+        id: c.id,
+        fecha: c.fecha,
+        proveedor: c.proveedor_nombre || 'Sin proveedor',
+        folio: c.folio || 'S/F',
+        categoria: c.categoria || c.notas || '',
+        forma_pago: c.forma_pago || 'Efectivo',
+        estatus: c.estatus_pago || 'Pendiente',
+        total: parseFloat(c.total) || 0,
+        vencimiento: c.vencimiento || null,
+        items: itemsFinales
+      };
+    });
+
+    // Diagnostico: cuantas compras quedaron sin items?
+    const sinItems = DB.compras.filter(c => !c.items.length).length;
+    if (sinItems > 0) {
+      console.warn('[loadFromSupabase]', sinItems, 'compras sin items detalle');
+    }
 
     // Reconstruir proveedores LIMPIO desde cero (sin acumular sobre el array anterior)
     const provPreconfigurados = DB.proveedores.filter(p => p._preconfigurado);
@@ -4034,10 +4062,12 @@ async function registerCompra() {
     const compraId = Array.isArray(saved) ? saved[0]?.id : saved?.id;
 
     // 2. Save detalle_compras + historial_precios
+    let detallesGuardados = 0;
+    let detallesFallidos = 0;
     if (compraId && items.length) {
       for (const item of items) {
         if (!item.nombre) continue;
-        await fetch('/api/supabase', {
+        const respD = await fetch('/api/supabase', {
           method: 'POST',
           headers: {'Content-Type':'application/json'},
           body: JSON.stringify({
@@ -4053,12 +4083,22 @@ async function registerCompra() {
             }
           })
         });
+        if (respD.ok) {
+          detallesGuardados++;
+        } else {
+          detallesFallidos++;
+          const errBody = await respD.text();
+          console.error('Error guardando detalle_compras:', respD.status, errBody);
+        }
         if (item.costo_unitario > 0) {
           await saveHistorialPrecio(
             { nombre: item.nombre, unidad: item.unidad, costo_unitario: item.costo_unitario },
             { proveedor, fecha, id: compraId }
           );
         }
+      }
+      if (detallesFallidos > 0) {
+        toast('⚠ ' + detallesFallidos + ' items no se guardaron — revisa consola');
       }
     }
 
