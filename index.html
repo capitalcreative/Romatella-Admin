@@ -3002,7 +3002,7 @@ async function loadFromSupabase() {
       total: parseFloat(c.total) || 0,
       vencimiento: c.vencimiento || null,
       items: detallesArr
-        .filter(d => d.compra_id === c.id)
+        .filter(d => String(d.compra_id) === String(c.id))
         .map(d => ({
           nombre: d.nombre_producto || '',
           unidad: d.unidad || 'pza',
