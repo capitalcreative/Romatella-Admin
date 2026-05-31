@@ -4477,7 +4477,7 @@ function renderBatchList() {
     let bg = 'bg-slate-50 border-slate-100 text-slate-600';
     let icon = '⏳', iconClass = 'text-slate-400';
     let label = item.file.name;
-    let actionBtn = '';
+    let btnLabel = '', btnAction = null, btnCls = '';
 
     if (item.status === 'processing') {
       bg = 'bg-blue-50 border-blue-100 text-blue-700';
@@ -4492,14 +4492,18 @@ function renderBatchList() {
       const d = item.data;
       const n = d.productos?.length || 0;
       label = (d.proveedor || 'Sin proveedor') + ' · ' + fmt(d.total||0) + ' · ' + n + ' items';
-      actionBtn = isActive
-        ? '<span class="ml-auto text-xs font-semibold text-primary">EN FORM</span>'
-        : '<button onclick="batchLoadToForm(\\''+item.id+'\\')" class="ml-auto px-2 py-0.5 rounded bg-primary text-white font-semibold text-xs">Revisar</button>';
+      if (!isActive) {
+        btnLabel = 'Revisar';
+        btnCls = 'ml-auto px-2 py-0.5 rounded bg-primary text-white font-semibold text-xs';
+        btnAction = () => batchLoadToForm(item.id);
+      }
     } else if (item.status === 'error') {
       bg = 'bg-red-50 border-red-100 text-red-700';
       icon = '⚠'; iconClass = 'text-red-500';
       label = 'Error: ' + item.file.name + ' — ' + (item.error || '');
-      actionBtn = '<button onclick="batchRemove(\\''+item.id+'\\')" class="ml-auto px-2 py-0.5 rounded bg-red-500 text-white font-semibold text-xs">Quitar</button>';
+      btnLabel = 'Quitar';
+      btnCls = 'ml-auto px-2 py-0.5 rounded bg-red-500 text-white font-semibold text-xs';
+      btnAction = () => batchRemove(item.id);
     } else if (item.status === 'done') {
       bg = 'bg-slate-50 border-slate-100 text-slate-400 line-through';
       icon = '✓'; iconClass = 'text-slate-300';
@@ -4508,8 +4512,31 @@ function renderBatchList() {
     }
 
     row.className = baseClass + ' ' + bg;
-    row.innerHTML = '<span class="text-base ' + iconClass + '">'+icon+'</span>' +
-                    '<span class="truncate flex-1">'+label+'</span>' + actionBtn;
+
+    const iconSpan = document.createElement('span');
+    iconSpan.className = 'text-base ' + iconClass;
+    iconSpan.textContent = icon;
+    row.appendChild(iconSpan);
+
+    const labelSpan = document.createElement('span');
+    labelSpan.className = 'truncate flex-1';
+    labelSpan.textContent = label;
+    row.appendChild(labelSpan);
+
+    if (isActive && item.status === 'ready') {
+      const tag = document.createElement('span');
+      tag.className = 'ml-auto text-xs font-semibold text-primary';
+      tag.textContent = 'EN FORM';
+      row.appendChild(tag);
+    } else if (btnLabel && btnAction) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = btnCls;
+      btn.textContent = btnLabel;
+      btn.addEventListener('click', btnAction);
+      row.appendChild(btn);
+    }
+
     list.appendChild(row);
   });
 }
