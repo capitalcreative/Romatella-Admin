@@ -471,13 +471,25 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
                 <div class="w-14 h-14 rounded-full bg-blue-50 mx-auto mb-3 flex items-center justify-center">
                   <span class="ms ms-fill text-primary text-2xl">photo_camera</span>
                 </div>
-                <p class="font-semibold text-slate-700 mb-1">Fotografía o sube tu factura</p>
-                <p class="text-xs text-slate-400">PDF · JPG · PNG — la IA extrae los datos automáticamente</p>
-                <input id="file-input" type="file" accept="image/*,.pdf,application/pdf" class="hidden" onchange="handleFileUpload(event)"/>
+                <p class="font-semibold text-slate-700 mb-1">Fotografía o sube tus facturas</p>
+                <p class="text-xs text-slate-400">PDF · JPG · PNG — puedes seleccionar varias a la vez</p>
+                <input id="file-input" type="file" multiple accept="image/*,.pdf,application/pdf" class="hidden" onchange="handleFileUpload(event)"/>
               </div>
               <div id="upload-status" class="hidden mt-3 p-3 bg-blue-50 rounded-xl text-sm text-primary font-medium flex items-center gap-2">
                 <span class="ms ms-fill text-lg">auto_awesome</span>
                 <span id="upload-text">Analizando imagen con IA...</span>
+              </div>
+
+              <!-- ── COLA DE BATCH ── -->
+              <div id="batch-queue" class="hidden mt-4">
+                <div class="flex items-center justify-between mb-2">
+                  <h4 class="text-sm font-bold text-slate-700">Cola de facturas</h4>
+                  <div class="flex items-center gap-2">
+                    <span id="batch-progress" class="text-xs text-slate-500"></span>
+                    <button type="button" onclick="batchCancel()" class="text-xs text-red-500 font-semibold hover:underline">Cancelar lote</button>
+                  </div>
+                </div>
+                <div id="batch-list" class="space-y-1.5 max-h-72 overflow-y-auto"></div>
               </div>
             </div>
             <!-- Form -->
@@ -4125,10 +4137,15 @@ async function registerCompra() {
 
     toast('Compra guardada: ' + proveedor + ' ' + fmt(total));
     resetForm();
+
+    // Si esta compra venia del modo batch, avanzar al siguiente
+    const enBatch = typeof batchAdvanceAfterRegister === 'function' && batchAdvanceAfterRegister();
+
     // Recargar desde Supabase para garantizar consistencia (evita duplicados)
     setTimeout(async () => {
       await loadFromSupabase();
-      showSec('home');
+      // Solo cambiar a home si NO estamos avanzando un lote
+      if (!enBatch) showSec('home');
     }, 800);
 
   } catch(e) {
@@ -4140,7 +4157,8 @@ async function registerCompra() {
     DB.compras.push(compra);
     toast('Guardado local (sin conexion)');
     resetForm();
-    setTimeout(() => showSec('home'), 1200);
+    const enBatch = typeof batchAdvanceAfterRegister === 'function' && batchAdvanceAfterRegister();
+    if (!enBatch) setTimeout(() => showSec('home'), 1200);
   }
 }
 
@@ -4264,118 +4282,293 @@ async function borrarCompra(id) {
 // ============================================================
 // FILE UPLOAD / AI TICKET READING
 // ============================================================
-async function handleFileUpload(event) {
-  const file = event.target.files[0];
-  if (!file) return;
 
+// Estado del lote en memoria
+const BATCH = {
+  items: [],           // [{id, file, status, data, error, isPDF}]
+  activeId: null,      // id del ticket cargado actualmente al form
+  cancelled: false
+};
+const BATCH_CONCURRENCY = 3;
+
+// Helper: leer archivo como base64
+function fileToBase64(file) {
+  return new Promise((res, rej) => {
+    const r = new FileReader();
+    r.onload = () => res(r.result.split(',')[1]);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+// Helper: analizar un solo archivo via API y devolver data parsed
+async function analyzeFile(file) {
+  const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+  const base64 = await fileToBase64(file);
+  const resp = await fetch('/api/analyze-ticket', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ imageBase64: base64, mediaType: isPDF ? 'application/pdf' : (file.type || 'image/jpeg') })
+  });
+  const data = await resp.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+// Helper: llenar el form con datos extraídos
+function fillFormFromData(data) {
+  if (data.proveedor) document.getElementById('f-proveedor').value = data.proveedor;
+  if (data.fecha) {
+    const parts = data.fecha.split('/');
+    if (parts.length === 3) {
+      document.getElementById('f-fecha').value = parts[2] + '-' + parts[1].padStart(2,'0') + '-' + parts[0].padStart(2,'0');
+    }
+  }
+  if (data.categoria) {
+    const sel = document.getElementById('f-categoria');
+    if (sel) sel.value = data.categoria;
+  }
+  if (data.forma_pago) {
+    const sel = document.getElementById('f-pago');
+    if (sel) { sel.value = data.forma_pago; calcVencimiento(); }
+  }
+
+  const totalFactura = parseFloat(data.total) || 0;
+
+  if (data.productos?.length) {
+    document.getElementById('items-container').innerHTML = '';
+    const tieneIVA = data.tiene_iva === true;
+    data.productos.forEach(p => {
+      const precioNeto = parseFloat(p.costo_unitario) || 0;
+      const precioFinal = tieneIVA ? Math.round(precioNeto * 1.16 * 100) / 100 : precioNeto;
+      addItem(p.nombre || '', p.unidad || 'bot', precioFinal, inferirCategoria(p.nombre || ''));
+    });
+    const filasValidas = Array.from(document.querySelectorAll('#items-container .relative'))
+      .filter(row => row.querySelectorAll('input[type="number"]').length > 0);
+    data.productos.forEach((p, i) => {
+      const row = filasValidas[i];
+      if (!row) return;
+      const nums = row.querySelectorAll('input[type="number"]');
+      if (nums[0]) {
+        nums[0].value = p.cantidad || 1;
+        nums[0].dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    });
+    calcTotal();
+
+    if (totalFactura > 0) {
+      const sumaPartidas = getTotal();
+      const descuadreEl = document.getElementById('total-descuadre');
+      const descuadreText = document.getElementById('total-descuadre-text');
+      const cuadreEl = document.getElementById('total-cuadre');
+      if (cuadreEl) cuadreEl.textContent = '∑ Suma partidas: ' + fmt(sumaPartidas);
+      const diferencia = Math.abs(sumaPartidas - totalFactura);
+      if (descuadreEl && descuadreText) {
+        if (diferencia > 1) {
+          descuadreEl.classList.remove('hidden');
+          descuadreText.textContent = 'Diferencia de ' + fmt(diferencia) +
+            ' vs total factura (' + fmt(totalFactura) + '). Revisa precios o cantidades.';
+        } else {
+          descuadreEl.classList.add('hidden');
+        }
+      }
+    }
+  }
+}
+
+// Punto de entrada del input: detecta 1 vs multiples archivos
+async function handleFileUpload(event) {
+  const files = Array.from(event.target.files || []);
+  if (!files.length) return;
+  // Limpiar input para que onchange dispare aunque seleccionen el mismo archivo despues
+  event.target.value = '';
+
+  if (files.length === 1) {
+    // Flujo individual de siempre — sin cola
+    BATCH.items = [];
+    BATCH.activeId = null;
+    document.getElementById('batch-queue').classList.add('hidden');
+    return handleSingleFile(files[0]);
+  }
+
+  // Modo batch
+  return handleBatchUpload(files);
+}
+
+// Flujo de 1 archivo (sin cola)
+async function handleSingleFile(file) {
   const status = document.getElementById('upload-status');
   const txt    = document.getElementById('upload-text');
   status.classList.remove('hidden');
-
   const isPDF = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
-  txt.textContent = isPDF ? 'Leyendo PDF...' : 'Leyendo imagen...';
+  txt.textContent = isPDF ? 'Analizando factura PDF con IA...' : 'Analizando ticket con IA...';
 
   try {
-    const base64 = await new Promise((res, rej) => {
-      const r = new FileReader();
-      r.onload = () => res(r.result.split(',')[1]);
-      r.onerror = rej;
-      r.readAsDataURL(file);
-    });
-
-    txt.textContent = isPDF ? 'Analizando factura PDF con IA...' : 'Analizando ticket con IA...';
-
-    // Llamar al endpoint serverless de Vercel (evita CORS)
-    const resp = await fetch('/api/analyze-ticket', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageBase64: base64, mediaType: isPDF ? 'application/pdf' : (file.type || 'image/jpeg') })
-    });
-
-    const data = await resp.json();
-    if (data.error) throw new Error(data.error);
-
-    if (data.proveedor) document.getElementById('f-proveedor').value = data.proveedor;
-    if (data.fecha) {
-      const parts = data.fecha.split('/');
-      if (parts.length === 3) {
-        document.getElementById('f-fecha').value = parts[2] + '-' + parts[1].padStart(2,'0') + '-' + parts[0].padStart(2,'0');
-      }
-    }
-    if (data.categoria) {
-      const sel = document.getElementById('f-categoria');
-      if (sel) sel.value = data.categoria;
-    }
-    if (data.forma_pago) {
-      const sel = document.getElementById('f-pago');
-      if (sel) { sel.value = data.forma_pago; calcVencimiento(); }
-    }
-
-    // Guardar el total real de la factura para verificar cuadre
-    const totalFactura = parseFloat(data.total) || 0;
-
-    if (data.productos?.length) {
-      document.getElementById('items-container').innerHTML = '';
-
-      // ¿La factura tiene IVA desglosado?
-      // Si el backend devuelve tiene_iva=true, los precios unitarios son NETOS → multiplicar × 1.16
-      // Si no, los precios ya incluyen todo → usar tal cual
-      const tieneIVA = data.tiene_iva === true;
-
-      // Paso 1: agregar todas las filas primero
-      data.productos.forEach(p => {
-        const precioNeto = parseFloat(p.costo_unitario) || 0;
-        const precioFinal = tieneIVA
-          ? Math.round(precioNeto * 1.16 * 100) / 100
-          : precioNeto;
-        addItem(p.nombre || '', p.unidad || 'bot', precioFinal, inferirCategoria(p.nombre || ''));
-      });
-
-      // Paso 2: filtrar solo filas con inputs numéricos (excluye divs de sugerencias)
-      const filasValidas = Array.from(document.querySelectorAll('#items-container .relative'))
-        .filter(row => row.querySelectorAll('input[type="number"]').length > 0);
-
-      // Paso 3: llenar cantidades por índice
-      data.productos.forEach((p, i) => {
-        const row = filasValidas[i];
-        if (!row) return;
-        const nums = row.querySelectorAll('input[type="number"]');
-        if (nums[0]) {
-          nums[0].value = p.cantidad || 1;
-          nums[0].dispatchEvent(new Event('input', { bubbles: true }));
-        }
-      });
-      calcTotal();
-
-      // Verificar cuadre: suma de partidas vs total de la factura
-      if (totalFactura > 0) {
-        const sumaPartidas = getTotal();
-        const descuadreEl = document.getElementById('total-descuadre');
-        const descuadreText = document.getElementById('total-descuadre-text');
-        const cuadreEl = document.getElementById('total-cuadre');
-
-        if (cuadreEl) cuadreEl.textContent = '∑ Suma partidas: ' + fmt(sumaPartidas);
-
-        const diferencia = Math.abs(sumaPartidas - totalFactura);
-        if (descuadreEl && descuadreText) {
-          if (diferencia > 1) {
-            descuadreEl.classList.remove('hidden');
-            descuadreText.textContent = 'Diferencia de ' + fmt(diferencia) +
-              ' vs total factura (' + fmt(totalFactura) + '). Revisa precios o cantidades.';
-          } else {
-            descuadreEl.classList.add('hidden');
-          }
-        }
-      }
-    }
-
+    const data = await analyzeFile(file);
+    fillFormFromData(data);
     const n = data.productos?.length || 0;
     txt.textContent = '✓ ' + (isPDF ? 'PDF' : 'Ticket') + ' analizado — ' + n + ' producto' + (n !== 1 ? 's' : '') + ' · revisa y confirma';
     toast('✓ ' + (isPDF ? 'Factura PDF' : 'Ticket') + ' analizado correctamente');
-
   } catch(e) {
     txt.textContent = '⚠ ' + (e.message || 'Error al analizar') + ' — llena los campos manualmente';
   }
+}
+
+// ============================================================
+// MODO BATCH (multiples facturas)
+// ============================================================
+async function handleBatchUpload(files) {
+  BATCH.cancelled = false;
+  BATCH.activeId = null;
+  BATCH.items = files.map((f, i) => ({
+    id: 'b' + Date.now() + '-' + i,
+    file: f,
+    status: 'pending',  // pending | processing | ready | error | done
+    data: null,
+    error: null,
+    isPDF: f.type === 'application/pdf' || f.name.toLowerCase().endsWith('.pdf')
+  }));
+
+  document.getElementById('batch-queue').classList.remove('hidden');
+  document.getElementById('upload-status').classList.add('hidden');
+  renderBatchList();
+  toast('Procesando ' + files.length + ' facturas en paralelo...');
+
+  // Procesar con concurrencia limitada
+  let cursor = 0;
+  const workers = Array(Math.min(BATCH_CONCURRENCY, files.length)).fill(null).map(async () => {
+    while (cursor < BATCH.items.length && !BATCH.cancelled) {
+      const idx = cursor++;
+      const item = BATCH.items[idx];
+      item.status = 'processing';
+      renderBatchList();
+      try {
+        item.data = await analyzeFile(item.file);
+        item.status = 'ready';
+      } catch(e) {
+        item.error = e.message || 'Error al analizar';
+        item.status = 'error';
+      }
+      renderBatchList();
+    }
+  });
+  await Promise.all(workers);
+
+  const oks = BATCH.items.filter(it => it.status === 'ready').length;
+  toast('✓ Lote listo: ' + oks + ' de ' + BATCH.items.length + ' procesadas');
+
+  // Cargar automaticamente la primera lista al form
+  const first = BATCH.items.find(it => it.status === 'ready');
+  if (first) batchLoadToForm(first.id);
+}
+
+function renderBatchList() {
+  const list = document.getElementById('batch-list');
+  const prog = document.getElementById('batch-progress');
+  if (!list) return;
+  const done = BATCH.items.filter(it => it.status === 'ready' || it.status === 'error' || it.status === 'done').length;
+  if (prog) prog.textContent = done + ' / ' + BATCH.items.length;
+
+  list.innerHTML = '';
+  BATCH.items.forEach(item => {
+    const row = document.createElement('div');
+    const isActive = item.id === BATCH.activeId;
+    const baseClass = 'flex items-center gap-2 px-3 py-2 rounded-xl text-xs border';
+    let bg = 'bg-slate-50 border-slate-100 text-slate-600';
+    let icon = '⏳', iconClass = 'text-slate-400';
+    let label = item.file.name;
+    let actionBtn = '';
+
+    if (item.status === 'processing') {
+      bg = 'bg-blue-50 border-blue-100 text-blue-700';
+      icon = '⏳'; iconClass = 'text-blue-500 animate-pulse';
+      label = 'Analizando: ' + item.file.name;
+    } else if (item.status === 'ready') {
+      bg = isActive
+        ? 'bg-primary/10 border-primary/30 text-slate-700'
+        : 'bg-emerald-50 border-emerald-100 text-emerald-800';
+      icon = isActive ? '👁' : '✓';
+      iconClass = isActive ? 'text-primary' : 'text-emerald-600';
+      const d = item.data;
+      const n = d.productos?.length || 0;
+      label = (d.proveedor || 'Sin proveedor') + ' · ' + fmt(d.total||0) + ' · ' + n + ' items';
+      actionBtn = isActive
+        ? '<span class="ml-auto text-xs font-semibold text-primary">EN FORM</span>'
+        : '<button onclick="batchLoadToForm(\\''+item.id+'\\')" class="ml-auto px-2 py-0.5 rounded bg-primary text-white font-semibold text-xs">Revisar</button>';
+    } else if (item.status === 'error') {
+      bg = 'bg-red-50 border-red-100 text-red-700';
+      icon = '⚠'; iconClass = 'text-red-500';
+      label = 'Error: ' + item.file.name + ' — ' + (item.error || '');
+      actionBtn = '<button onclick="batchRemove(\\''+item.id+'\\')" class="ml-auto px-2 py-0.5 rounded bg-red-500 text-white font-semibold text-xs">Quitar</button>';
+    } else if (item.status === 'done') {
+      bg = 'bg-slate-50 border-slate-100 text-slate-400 line-through';
+      icon = '✓'; iconClass = 'text-slate-300';
+      const d = item.data;
+      label = (d?.proveedor || 'Sin proveedor') + ' · ' + fmt(d?.total||0) + ' · registrada';
+    }
+
+    row.className = baseClass + ' ' + bg;
+    row.innerHTML = '<span class="text-base ' + iconClass + '">'+icon+'</span>' +
+                    '<span class="truncate flex-1">'+label+'</span>' + actionBtn;
+    list.appendChild(row);
+  });
+}
+
+window.batchLoadToForm = function(id) {
+  const item = BATCH.items.find(it => it.id === id);
+  if (!item || item.status !== 'ready') return;
+  resetForm();
+  fillFormFromData(item.data);
+  BATCH.activeId = id;
+  renderBatchList();
+  // Scroll al form
+  document.getElementById('items-container')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+window.batchRemove = function(id) {
+  BATCH.items = BATCH.items.filter(it => it.id !== id);
+  if (!BATCH.items.length) {
+    document.getElementById('batch-queue').classList.add('hidden');
+  } else {
+    renderBatchList();
+  }
+};
+
+window.batchCancel = function() {
+  BATCH.cancelled = true;
+  BATCH.items = [];
+  BATCH.activeId = null;
+  document.getElementById('batch-queue').classList.add('hidden');
+  toast('Lote cancelado');
+};
+
+// Llamada despues de registrar exitosamente una compra que viene del batch
+// Marca la activa como done y avanza a la siguiente ready
+function batchAdvanceAfterRegister() {
+  if (!BATCH.activeId) return false;
+  const idx = BATCH.items.findIndex(it => it.id === BATCH.activeId);
+  if (idx >= 0) BATCH.items[idx].status = 'done';
+  BATCH.activeId = null;
+
+  const next = BATCH.items.find(it => it.status === 'ready');
+  if (next) {
+    renderBatchList();
+    setTimeout(() => batchLoadToForm(next.id), 400);
+    return true;
+  }
+
+  // Ya no hay pendientes
+  renderBatchList();
+  const pendientes = BATCH.items.filter(it => it.status === 'processing' || it.status === 'pending').length;
+  if (pendientes === 0) {
+    const oks = BATCH.items.filter(it => it.status === 'done').length;
+    toast('✓ Lote completo: ' + oks + ' compras registradas');
+    setTimeout(() => {
+      BATCH.items = [];
+      document.getElementById('batch-queue').classList.add('hidden');
+    }, 2000);
+  }
+  return false;
 }
 
 // ============================================================
