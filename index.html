@@ -6059,6 +6059,10 @@ function exportarCSV() {
       </div>`;
   }
 
+  // Items personalizados (no en la lista) por tab
+  // Estructura: reqCustom[tab] = [{item, qty}]
+  const reqCustom = { barra: [], cocina: [] };
+
   function renderChecklist() {
     const data = tabActual === 'barra' ? BARRA : COCINA;
     const body = document.getElementById('req-checklist-body');
@@ -6118,7 +6122,95 @@ function exportarCSV() {
       secDiv.appendChild(itemsBody);
       body.appendChild(secDiv);
     });
+
+    // ── Seccion OTROS: items personalizados (libres) ──
+    renderCustomSection(body);
+
     updateProgress();
+  }
+
+  function renderCustomSection(body) {
+    const customs = reqCustom[tabActual] || [];
+
+    const secDiv = document.createElement('div');
+    const secHeader = document.createElement('div');
+    secHeader.style.cssText = 'position:sticky;top:48px;z-index:5;';
+    secHeader.className = 'px-4 py-2.5 flex items-center justify-between border-b border-slate-100 bg-amber-50';
+    secHeader.innerHTML =
+      '<span class="text-xs font-semibold uppercase tracking-wider text-amber-700">Otros / Adicionales</span>' +
+      '<span class="text-xs font-bold text-amber-600">' + customs.length + ' agregado' + (customs.length === 1 ? '' : 's') + '</span>';
+    secDiv.appendChild(secHeader);
+
+    const helper = document.createElement('div');
+    helper.className = 'px-4 py-2 bg-amber-50/40 border-b border-slate-50';
+    helper.innerHTML = '<p class="text-xs text-slate-500">Agrega aquí productos que no están en la lista (esporadicos, especiales, etc).</p>';
+    secDiv.appendChild(helper);
+
+    // Lista de customs ya agregados
+    customs.forEach((c, idx) => {
+      const row = document.createElement('div');
+      row.className = 'flex items-center gap-2 px-4 py-2 border-b border-slate-50 bg-white';
+      const nombreSpan = document.createElement('span');
+      nombreSpan.className = 'flex-1 text-sm text-slate-700';
+      nombreSpan.textContent = c.item;
+      const qtyInput = document.createElement('input');
+      qtyInput.type = 'text';
+      qtyInput.inputMode = 'decimal';
+      qtyInput.value = c.qty;
+      qtyInput.className = 'w-16 text-center text-sm bg-amber-50 rounded-lg px-2 py-1.5 outline-none font-semibold';
+      qtyInput.placeholder = '0';
+      qtyInput.addEventListener('input', e => {
+        const v = String(e.target.value).replace(',', '.');
+        c.qty = v;
+      });
+      const delBtn = document.createElement('button');
+      delBtn.type = 'button';
+      delBtn.className = 'w-8 h-8 rounded-full bg-red-50 text-red-500 flex items-center justify-center';
+      delBtn.innerHTML = '<span class="ms text-sm">close</span>';
+      delBtn.addEventListener('click', () => {
+        reqCustom[tabActual].splice(idx, 1);
+        renderChecklist();
+      });
+      row.appendChild(nombreSpan);
+      row.appendChild(qtyInput);
+      row.appendChild(delBtn);
+      secDiv.appendChild(row);
+    });
+
+    // Fila para agregar nuevo
+    const addRow = document.createElement('div');
+    addRow.className = 'flex items-center gap-2 px-4 py-2.5 bg-white border-b border-slate-50';
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.placeholder = 'Producto…';
+    nameInput.className = 'flex-1 text-sm bg-amber-50/60 rounded-lg px-3 py-2 outline-none border border-dashed border-amber-200 focus:border-amber-400';
+    const qtyInputNew = document.createElement('input');
+    qtyInputNew.type = 'text';
+    qtyInputNew.inputMode = 'decimal';
+    qtyInputNew.placeholder = 'Cant.';
+    qtyInputNew.className = 'w-16 text-center text-sm bg-amber-50/60 rounded-lg px-2 py-2 outline-none border border-dashed border-amber-200 focus:border-amber-400';
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button';
+    addBtn.className = 'w-9 h-9 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold shadow-sm';
+    addBtn.innerHTML = '<span class="ms text-base">add</span>';
+    const doAdd = () => {
+      const nombre = nameInput.value.trim();
+      const qtyRaw = String(qtyInputNew.value).replace(',', '.').trim();
+      if (!nombre) { nameInput.focus(); return; }
+      reqCustom[tabActual].push({ item: nombre, qty: qtyRaw || '1' });
+      nameInput.value = '';
+      qtyInputNew.value = '';
+      renderChecklist();
+    };
+    addBtn.addEventListener('click', doAdd);
+    nameInput.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); qtyInputNew.focus(); } });
+    qtyInputNew.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); doAdd(); } });
+    addRow.appendChild(nameInput);
+    addRow.appendChild(qtyInputNew);
+    addRow.appendChild(addBtn);
+    secDiv.appendChild(addRow);
+
+    body.appendChild(secDiv);
   }
 
   function updateProgress() {
@@ -6313,6 +6405,13 @@ function exportarCSV() {
         else if (v.bien) bien.push({ item, area: t });
         else if (v.qty > 0) solicitados.push({ item, qty: v.qty, area: t, ...(v.nota ? { nota: v.nota } : {}) });
       });
+      // Incluir items custom de la seccion Otros
+      (reqCustom[t] || []).forEach(c => {
+        const qtyNum = parseFloat(String(c.qty).replace(',','.')) || 0;
+        if (c.item && qtyNum > 0) {
+          solicitados.push({ item: c.item, qty: qtyNum, area: t, custom: true });
+        }
+      });
     });
 
     if (!solicitados.length && !sinStock.length && !bien.length) { alert('Anota al menos un producto antes de continuar.'); return; }
@@ -6370,20 +6469,17 @@ function exportarCSV() {
     showEmp('confirm');
   };
 
-  window.reqEnviarWhatsApp = function() {
-    const p = window._reqPayload;
-    if (!p) return;
+  // Construye el mensaje de WhatsApp desde el payload
+  function reqBuildMessage(p) {
     const fechaStr = new Date(p.fecha).toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
     let msg = `*Inventario Romatella*\n${p.nombre} · ${fechaStr}\n`;
-
     const porArea = { barra: [], cocina: [] };
     p.solicitados.forEach(x => { if (porArea[x.area]) porArea[x.area].push(x); });
-
     if (porArea.barra.length) {
-      msg += `\n🍹 *Barra*\n` + porArea.barra.map(x => `• ${x.item}: *${x.qty}*`).join('\n');
+      msg += `\n🍹 *Barra*\n` + porArea.barra.map(x => `• ${x.item}: *${x.qty}*` + (x.nota ? ` (${x.nota})` : '')).join('\n');
     }
     if (porArea.cocina.length) {
-      msg += `\n\n🍳 *Cocina*\n` + porArea.cocina.map(x => `• ${x.item}: *${x.qty}*`).join('\n');
+      msg += `\n\n🍳 *Cocina*\n` + porArea.cocina.map(x => `• ${x.item}: *${x.qty}*` + (x.nota ? ` (${x.nota})` : '')).join('\n');
     }
     if (p.sinStock.length) {
       const ssBarra = p.sinStock.filter(x => x.area === 'barra');
@@ -6396,17 +6492,56 @@ function exportarCSV() {
       msg += `\n\n✅ *Bien/Suficiente:* ` + p.bien.map(x => x.item).join(', ');
     }
     msg += `\n\n_Enviado desde Romatella Admin_`;
+    return msg;
+  }
 
-    // Abrir WhatsApp inmediatamente
-    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
-
-    // Guardado en Supabase en paralelo (silencioso)
-    reqGuardarSupabase();
-  };
-
-  window.reqGuardarSupabase = async function() {
+  // Guardar PRIMERO a Supabase (await). Si falla, NO abrimos WhatsApp.
+  // Esto resuelve el bug donde el guardado se perdia porque al abrir WhatsApp
+  // el navegador movil suspendia la pestaña y el fetch nunca completaba.
+  window.reqEnviarWhatsApp = async function() {
     const p = window._reqPayload;
     if (!p) return;
+
+    const btn = event?.currentTarget;
+    const origHTML = btn?.innerHTML;
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '<span class="ms animate-spin">progress_activity</span> Guardando...';
+    }
+
+    try {
+      await reqGuardarSupabase();
+    } catch(e) {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = origHTML;
+      }
+      // Mostrar error claro al empleado
+      const msg = '⚠ No se pudo guardar la requisición.\n\n' +
+                  'Error: ' + (e.message || 'sin conexión') + '\n\n' +
+                  '¿Reintentar?';
+      if (confirm(msg)) {
+        return window.reqEnviarWhatsApp();
+      }
+      return;
+    }
+
+    // Guardado exitoso. AHORA si abrimos WhatsApp.
+    const whatsappMsg = reqBuildMessage(p);
+    window.open('https://wa.me/?text=' + encodeURIComponent(whatsappMsg), '_blank');
+
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span class="ms">check_circle</span> Guardado y enviado';
+      btn.classList.remove('bg-green-500');
+      btn.classList.add('bg-emerald-600');
+    }
+  };
+
+  // Devuelve promesa que falla si no se guardo correctamente
+  window.reqGuardarSupabase = async function() {
+    const p = window._reqPayload;
+    if (!p) throw new Error('No hay datos para guardar');
     const badge = document.getElementById('conf-guardado-badge');
     const req = {
       nombre: p.nombre,
@@ -6415,24 +6550,21 @@ function exportarCSV() {
       sin_stock: JSON.stringify(p.sinStock),
       estatus: 'Pendiente'
     };
-    try {
-      const resp = await fetch('/api/supabase', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'insert', table: 'requisiciones', data: req })
-      });
-      const result = await resp.json();
-      if (!resp.ok || result.error) throw new Error(result.error || 'Error al guardar');
-      if (!DB.requisiciones) DB.requisiciones = [];
-      DB.requisiciones.unshift({ ...req, id: Date.now(), area: 'Múltiple', producto: p.solicitados.length + ' artículos', urgencia: 'Normal' });
-      const pendCount = DB.requisiciones.filter(r => r.estatus === 'Pendiente').length;
-      ['req-badge','mob-req-badge'].forEach(id => { const b = document.getElementById(id); if (b) { b.textContent = pendCount; b.classList.remove('hidden'); } });
-      // Mostrar badge de guardado en el header
-      if (badge) badge.classList.remove('hidden');
-    } catch(e) {
-      // Guardado falló silenciosamente — el empleado aún puede usar WhatsApp
-      console.warn('Autoguardado falló:', e.message);
+    const resp = await fetch('/api/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'insert', table: 'requisiciones', data: req })
+    });
+    const result = await resp.json();
+    if (!resp.ok || result.error) {
+      throw new Error(result.error?.message || result.error || ('HTTP ' + resp.status));
     }
+    if (!DB.requisiciones) DB.requisiciones = [];
+    DB.requisiciones.unshift({ ...req, id: Date.now(), area: 'Múltiple', producto: p.solicitados.length + ' artículos', urgencia: 'Normal' });
+    const pendCount = DB.requisiciones.filter(r => r.estatus === 'Pendiente').length;
+    ['req-badge','mob-req-badge'].forEach(id => { const b = document.getElementById(id); if (b) { b.textContent = pendCount; b.classList.remove('hidden'); } });
+    if (badge) badge.classList.remove('hidden');
+    return result;
   };
 
   // Lookup: item name → { section, area } — usado en admin para agrupar por proveedor
