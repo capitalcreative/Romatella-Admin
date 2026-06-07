@@ -616,25 +616,49 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
 
     <!-- HISTORIAL DE COMPRAS -->
     <section id="sec-historial" class="sec p-5 fade">
-      <div class="flex justify-between items-center mb-5">
+      <div class="flex justify-between items-center mb-5 flex-wrap gap-3">
         <div>
           <h2 class="text-2xl font-bold text-slate-900">Historial de Compras</h2>
           <p class="text-sm text-slate-400">Todas las compras registradas</p>
         </div>
-        <!-- Toggle vista -->
-        <div class="flex gap-1 bg-slate-100 p-1 rounded-xl">
-          <button type="button" id="hist-vista-lista-btn" onclick="setHistVista('lista',this)"
-            class="px-3 py-1.5 rounded-lg bg-white text-slate-900 text-xs font-semibold shadow-sm flex items-center gap-1">
-            <span class="ms text-sm">list</span>Lista
+        <div class="flex items-center gap-2 flex-wrap">
+          <button type="button" onclick="abrirAuditorFechas()" class="px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold flex items-center gap-1 hover:bg-amber-100">
+            <span class="ms text-sm">fact_check</span>Auditor de fechas
           </button>
-          <button type="button" id="hist-vista-prov-btn" onclick="setHistVista('proveedor',this)"
-            class="px-3 py-1.5 rounded-lg text-slate-500 text-xs font-semibold flex items-center gap-1 hover:bg-white/60 transition-colors">
-            <span class="ms text-sm">store</span>Por Proveedor
-          </button>
-          <button type="button" id="hist-vista-fecha-btn" onclick="setHistVista('fecha',this)"
-            class="px-3 py-1.5 rounded-lg text-slate-500 text-xs font-semibold flex items-center gap-1 hover:bg-white/60 transition-colors">
-            <span class="ms text-sm">calendar_today</span>Por Fecha
-          </button>
+          <!-- Toggle vista -->
+          <div class="flex gap-1 bg-slate-100 p-1 rounded-xl">
+            <button type="button" id="hist-vista-lista-btn" onclick="setHistVista('lista',this)"
+              class="px-3 py-1.5 rounded-lg bg-white text-slate-900 text-xs font-semibold shadow-sm flex items-center gap-1">
+              <span class="ms text-sm">list</span>Lista
+            </button>
+            <button type="button" id="hist-vista-prov-btn" onclick="setHistVista('proveedor',this)"
+              class="px-3 py-1.5 rounded-lg text-slate-500 text-xs font-semibold flex items-center gap-1 hover:bg-white/60 transition-colors">
+              <span class="ms text-sm">store</span>Por Proveedor
+            </button>
+            <button type="button" id="hist-vista-fecha-btn" onclick="setHistVista('fecha',this)"
+              class="px-3 py-1.5 rounded-lg text-slate-500 text-xs font-semibold flex items-center gap-1 hover:bg-white/60 transition-colors">
+              <span class="ms text-sm">calendar_today</span>Por Fecha
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal auditor de fechas -->
+      <div id="modal-auditor" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-5 w-full max-w-3xl shadow-2xl max-h-[90vh] overflow-y-auto">
+          <div class="flex justify-between items-center mb-4">
+            <div>
+              <h3 class="font-bold text-lg">Auditor de fechas</h3>
+              <p class="text-xs text-slate-400">Compara fecha de compra vs fecha de inserción en base de datos</p>
+            </div>
+            <button type="button" onclick="closeModal('modal-auditor')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center"><span class="ms">close</span></button>
+          </div>
+          <div id="auditor-resumen" class="grid grid-cols-3 gap-2 mb-4"></div>
+          <div class="flex gap-2 mb-3">
+            <button type="button" onclick="auditorFiltro('todos')" id="aud-btn-todos" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white">Todas</button>
+            <button type="button" onclick="auditorFiltro('sospechosos')" id="aud-btn-sosp" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600">Solo sospechosas</button>
+          </div>
+          <div id="auditor-tabla" class="text-xs"></div>
         </div>
       </div>
       <!-- Filters -->
@@ -6626,6 +6650,121 @@ function clearEl(id) {
 // ============================================================
 // HISTORIAL DE COMPRAS
 // ============================================================
+// ============================================================
+// AUDITOR DE FECHAS — compara fecha vs created_at
+// ============================================================
+let auditorData = [];
+let auditorFiltroActivo = 'todos';
+
+async function abrirAuditorFechas() {
+  document.getElementById('modal-auditor').classList.remove('hidden');
+  document.getElementById('auditor-tabla').innerHTML = '<p class="text-center text-slate-400 py-8">Cargando datos...</p>';
+  document.getElementById('auditor-resumen').innerHTML = '';
+
+  try {
+    // Traer TODAS las compras con created_at
+    const resp = await fetch('/api/supabase', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ table:'compras', action:'select', limit: 10000 })
+    });
+    const compras = await resp.json();
+    if (!Array.isArray(compras)) {
+      document.getElementById('auditor-tabla').innerHTML = '<p class="text-red-500 py-4">Error obteniendo datos: ' + JSON.stringify(compras).slice(0,200) + '</p>';
+      return;
+    }
+
+    auditorData = compras.map(c => {
+      const fechaPurchaseStr = c.fecha || '';
+      const fechaInsertStr = c.created_at || '';
+      const fechaPurchase = fechaPurchaseStr ? new Date(fechaPurchaseStr + 'T12:00:00') : null;
+      const fechaInsert = fechaInsertStr ? new Date(fechaInsertStr) : null;
+      let diffDays = null;
+      if (fechaPurchase && fechaInsert) {
+        diffDays = Math.round((fechaInsert.getTime() - fechaPurchase.getTime()) / (1000*60*60*24));
+      }
+      return {
+        id: c.id,
+        proveedor: c.proveedor_nombre || 'Sin proveedor',
+        fecha: fechaPurchaseStr,
+        created_at: fechaInsertStr,
+        diffDays,
+        total: parseFloat(c.total) || 0,
+        // Sospechoso si la fecha de compra es más de 90 días antes O después del insert
+        sospechoso: diffDays !== null && Math.abs(diffDays) > 90
+      };
+    }).sort((a,b) => {
+      // Ordenar por sospechosos primero, luego por diff descendente
+      if (a.sospechoso !== b.sospechoso) return a.sospechoso ? -1 : 1;
+      return (Math.abs(b.diffDays || 0)) - (Math.abs(a.diffDays || 0));
+    });
+
+    auditorRender();
+  } catch(e) {
+    document.getElementById('auditor-tabla').innerHTML = '<p class="text-red-500 py-4">Error: ' + e.message + '</p>';
+  }
+}
+
+window.auditorFiltro = function(modo) {
+  auditorFiltroActivo = modo;
+  const todosBtn = document.getElementById('aud-btn-todos');
+  const sospBtn = document.getElementById('aud-btn-sosp');
+  if (modo === 'todos') {
+    todosBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 text-white';
+    sospBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600';
+  } else {
+    todosBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 text-slate-600';
+    sospBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 text-white';
+  }
+  auditorRender();
+};
+
+function auditorRender() {
+  const sospechosos = auditorData.filter(x => x.sospechoso);
+  const resumenEl = document.getElementById('auditor-resumen');
+  resumenEl.innerHTML =
+    '<div class="bg-slate-50 rounded-xl p-3 text-center"><p class="text-2xl font-bold">' + auditorData.length + '</p><p class="text-xs text-slate-400">compras totales</p></div>' +
+    '<div class="bg-amber-50 border border-amber-100 rounded-xl p-3 text-center"><p class="text-2xl font-bold text-amber-700">' + sospechosos.length + '</p><p class="text-xs text-amber-600">sospechosas</p></div>' +
+    '<div class="bg-emerald-50 border border-emerald-100 rounded-xl p-3 text-center"><p class="text-2xl font-bold text-emerald-700">' + (auditorData.length - sospechosos.length) + '</p><p class="text-xs text-emerald-600">consistentes</p></div>';
+
+  const filas = auditorFiltroActivo === 'sospechosos' ? sospechosos : auditorData;
+  if (!filas.length) {
+    document.getElementById('auditor-tabla').innerHTML = '<p class="text-center text-emerald-600 py-6">✓ Sin compras sospechosas</p>';
+    return;
+  }
+
+  let html = '<div class="overflow-x-auto"><table class="w-full text-xs">' +
+    '<thead><tr class="text-slate-400 uppercase tracking-wider border-b border-slate-100">' +
+    '<th class="text-left py-2 px-2">Proveedor</th>' +
+    '<th class="text-left py-2 px-2">Fecha compra</th>' +
+    '<th class="text-left py-2 px-2">Insertada</th>' +
+    '<th class="text-center py-2 px-2">Δ días</th>' +
+    '<th class="text-right py-2 px-2">Total</th>' +
+    '<th class="text-center py-2 px-2"></th>' +
+    '</tr></thead><tbody>';
+
+  filas.slice(0, 200).forEach(x => {
+    const insertDate = x.created_at ? new Date(x.created_at).toLocaleDateString('es-MX',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+    const purchDate = x.fecha ? fmtDate(x.fecha) : '—';
+    const diffText = x.diffDays === null ? '—' : (x.diffDays > 0 ? '+' + x.diffDays : x.diffDays);
+    const rowCls = x.sospechoso ? 'bg-amber-50/60' : '';
+    html +=
+      '<tr class="border-b border-slate-50 ' + rowCls + '">' +
+      '<td class="py-2 px-2 font-medium">' + (x.proveedor || '—') + '</td>' +
+      '<td class="py-2 px-2 ' + (x.sospechoso ? 'text-amber-700 font-semibold' : 'text-slate-600') + '">' + purchDate + '</td>' +
+      '<td class="py-2 px-2 text-slate-500">' + insertDate + '</td>' +
+      '<td class="py-2 px-2 text-center ' + (x.sospechoso ? 'text-amber-700 font-bold' : 'text-slate-400') + '">' + diffText + '</td>' +
+      '<td class="py-2 px-2 text-right font-semibold">' + fmt(x.total) + '</td>' +
+      '<td class="py-2 px-2 text-center"><button type="button" onclick="closeModal(\'modal-auditor\');abrirEditar(\'' + x.id + '\')" class="text-primary font-semibold text-xs hover:underline">Editar</button></td>' +
+      '</tr>';
+  });
+
+  html += '</tbody></table></div>';
+  if (filas.length > 200) html += '<p class="text-xs text-slate-400 text-center mt-3">Mostrando 200 de ' + filas.length + ' (las más sospechosas primero)</p>';
+
+  document.getElementById('auditor-tabla').innerHTML = html;
+}
+
 function renderHistorial(filtro) {
   // Si viene un filtro explícito, usarlo. Si no, respetar el que ya estaba activo.
   if (filtro !== undefined) DB.histFiltro = filtro;
