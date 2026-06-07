@@ -7149,7 +7149,7 @@ function toggleHistProv(id) {
 }
 
 
-function verDetalle(id) {
+async function verDetalle(id) {
   const c = DB.compras.find(x => String(x.id) === String(id));
   if (!c) return;
 
@@ -7173,10 +7173,57 @@ function verDetalle(id) {
   if (c.vencimiento) addRow('Vencimiento', fmtDate(c.vencimiento));
   addRow('Total', fmt(c.total));
 
-  if (c.items && c.items.length) {
-    const titulo = el('p', { cls: 'text-xs text-slate-400 uppercase tracking-wider font-semibold mt-4 mb-2', text: 'Productos' });
-    container.appendChild(titulo);
-    c.items.forEach(item => {
+  // Abrir el modal antes de fetchear, mostrar loading
+  document.getElementById('modal-detalle').classList.remove('hidden');
+
+  const titulo = el('p', { cls: 'text-xs text-slate-400 uppercase tracking-wider font-semibold mt-4 mb-2', text: 'Productos' });
+  container.appendChild(titulo);
+
+  const productosWrap = el('div', { id: 'detalle-productos-wrap' });
+  productosWrap.innerHTML = '<p class="text-xs text-slate-300 py-2">Cargando productos...</p>';
+  container.appendChild(productosWrap);
+
+  // Fetch dirigido: traer SOLO los items de esta compra
+  let items = [];
+  try {
+    const resp = await fetch('/api/supabase', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        table: 'detalle_compras',
+        action: 'select',
+        filters: 'compra_id=eq.' + encodeURIComponent(c.id),
+        limit: 1000,
+        order: 'none'  // no necesitamos ordenar, evita error si la columna no existe
+      })
+    });
+    const data = await resp.json();
+    if (Array.isArray(data)) {
+      items = data.map(d => ({
+        nombre: d.nombre_producto || '',
+        unidad: d.unidad || 'pza',
+        cantidad: parseFloat(d.cantidad) || 0,
+        costo_unitario: parseFloat(d.costo_unitario) || 0
+      }));
+    } else {
+      console.error('[verDetalle] respuesta no es array:', data);
+    }
+  } catch(e) {
+    console.error('[verDetalle] error fetching detalle_compras:', e);
+  }
+
+  // Fallback: si fetch fallo o vino vacio, usar lo que tengamos en memoria local
+  if (!items.length && c.items?.length) {
+    items = c.items;
+    console.warn('[verDetalle] usando items locales como fallback');
+  }
+
+  // Actualizar la copia local en DB para futuros usos (resumen en historial, etc)
+  if (items.length) c.items = items;
+
+  productosWrap.innerHTML = '';
+  if (items.length) {
+    items.forEach(item => {
       const subtotal = (item.cantidad || 0) * (item.costo_unitario || 0);
       const row = el('div', { cls: 'flex justify-between items-center py-1.5 border-b border-slate-50' }, [
         el('div', {}, [
@@ -7185,15 +7232,15 @@ function verDetalle(id) {
         ]),
         el('span', { cls: 'text-sm font-semibold', text: fmt(subtotal) })
       ]);
-      container.appendChild(row);
+      productosWrap.appendChild(row);
     });
+  } else {
+    productosWrap.innerHTML = '<p class="text-xs text-amber-600 py-2 bg-amber-50 px-3 rounded-lg">No se encontraron items registrados para esta compra. Revisa la consola del navegador (F12) para diagnostico.</p>';
   }
 
   const payBtn = el('button', { cls: 'mt-5 w-full bg-primary-container text-white py-3 rounded-2xl font-semibold text-sm', type: 'button', text: 'Registrar Pago' });
   payBtn.addEventListener('click', () => { closeModal('modal-detalle'); openPayModal(id); });
   if (c.estatus !== 'Pagado') container.appendChild(payBtn);
-
-  document.getElementById('modal-detalle').classList.remove('hidden');
 }
 
 function abrirEditar(id) {

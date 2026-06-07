@@ -9,7 +9,7 @@ export default async function handler(req, res) {
   if (!URL || !KEY) return res.status(500).json({ error: 'Supabase no configurado' });
 
   try {
-    const { table, action, data, id, filters, email, password, limit } = req.method === 'GET' ? req.query : (req.body || {});
+    const { table, action, data, id, filters, email, password, limit, order } = req.method === 'GET' ? req.query : (req.body || {});
 
     // Auth login
     if (action === 'auth_login') {
@@ -48,7 +48,10 @@ export default async function handler(req, res) {
       const tablasGrandes = ['detalle_compras', 'historial_precios', 'pagos', 'inventarios'];
       const limiteDefault = tablasGrandes.includes(table) ? 10000 : 500;
       const limiteFinal = limit ? parseInt(limit) : limiteDefault;
-      url += '?select=*&order=created_at.desc&limit=' + limiteFinal;
+      // El order puede romper si la columna no existe en la tabla.
+      // order=null o order='none' lo desactiva. Default sigue siendo created_at.desc.
+      const orderClause = (order === null || order === 'none' || order === '') ? '' : ('&order=' + (order || 'created_at.desc'));
+      url += '?select=*&limit=' + limiteFinal + orderClause;
       if (filters) url += '&' + filters;
     } else if (action === 'upsert') {
       method = 'POST';
