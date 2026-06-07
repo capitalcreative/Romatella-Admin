@@ -4074,6 +4074,8 @@ async function registerCompra() {
     const compraId = Array.isArray(saved) ? saved[0]?.id : saved?.id;
 
     // 2. Save detalle_compras + historial_precios
+    // NOTA: NO incluir 'categoria' — la tabla no tiene esa columna y el
+    // insert falla en silencio rechazando TODO el row.
     let detallesGuardados = 0;
     let detallesFallidos = 0;
     if (compraId && items.length) {
@@ -4090,8 +4092,7 @@ async function registerCompra() {
               nombre_producto: item.nombre,
               unidad: item.unidad,
               cantidad: item.cantidad,
-              costo_unitario: item.costo_unitario,
-              categoria: item.categoria || ''
+              costo_unitario: item.costo_unitario
             }
           })
         });
@@ -7153,8 +7154,6 @@ async function verDetalle(id) {
   const c = DB.compras.find(x => String(x.id) === String(id));
   if (!c) return;
 
-  const escapeHTML = s => String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-
   const container = document.getElementById('detalle-content');
   if (!container) return;
   container.innerHTML = '';
@@ -7187,7 +7186,6 @@ async function verDetalle(id) {
 
   // Fetch dirigido: traer SOLO los items de esta compra
   let items = [];
-  let debugInfo = { compraId: c.id, compraIdType: typeof c.id, status: null, raw: null, error: null };
   try {
     const resp = await fetch('/api/supabase', {
       method: 'POST',
@@ -7200,9 +7198,7 @@ async function verDetalle(id) {
         order: 'none'
       })
     });
-    debugInfo.status = resp.status;
     const data = await resp.json();
-    debugInfo.raw = data;
     if (Array.isArray(data)) {
       items = data.map(d => ({
         nombre: d.nombre_producto || '',
@@ -7212,36 +7208,10 @@ async function verDetalle(id) {
       }));
     }
   } catch(e) {
-    debugInfo.error = e.message;
+    console.error('[verDetalle] error:', e);
   }
 
-  // ── Fetch diagnostico: traer una muestra de detalle_compras para ver columnas ──
-  let sampleColumns = null;
-  if (!items.length) {
-    try {
-      const respSample = await fetch('/api/supabase', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table: 'detalle_compras', action: 'select', limit: 1, order: 'none' })
-      });
-      const sampleData = await respSample.json();
-      if (Array.isArray(sampleData) && sampleData.length) {
-        sampleColumns = Object.keys(sampleData[0]);
-        debugInfo.sampleRow = sampleData[0];
-        debugInfo.totalRowsInTable = sampleData.length + '+ (al menos 1)';
-      } else if (Array.isArray(sampleData)) {
-        debugInfo.totalRowsInTable = 0;
-      } else {
-        debugInfo.sampleError = sampleData;
-      }
-    } catch(e) { debugInfo.sampleError = e.message; }
-  }
-
-  // Fallback: si fetch fallo o vino vacio, usar lo que tengamos en memoria local
-  if (!items.length && c.items?.length) {
-    items = c.items;
-  }
-
+  if (!items.length && c.items?.length) items = c.items;
   if (items.length) c.items = items;
 
   productosWrap.innerHTML = '';
@@ -7258,20 +7228,19 @@ async function verDetalle(id) {
       productosWrap.appendChild(row);
     });
   } else {
-    // Mostrar diagnostico directo en el modal (sin necesidad de consola)
-    productosWrap.innerHTML =
-      '<div class="text-xs space-y-2 mt-2">' +
-      '<div class="bg-amber-50 border border-amber-200 text-amber-800 px-3 py-2 rounded-lg">No se encontraron items para esta compra.</div>' +
-      '<details class="bg-slate-50 border border-slate-200 rounded-lg p-2"><summary class="cursor-pointer font-semibold text-slate-600">🔍 Ver diagnóstico (mostrar a soporte)</summary>' +
-      '<div class="mt-2 space-y-1 text-slate-600 font-mono text-[10px]">' +
-      '<div><b>compra.id:</b> ' + escapeHTML(String(c.id)) + ' (' + debugInfo.compraIdType + ')</div>' +
-      '<div><b>HTTP status:</b> ' + (debugInfo.status || 'N/A') + '</div>' +
-      '<div><b>Respuesta cruda:</b> ' + escapeHTML(JSON.stringify(debugInfo.raw, null, 2)).slice(0, 500) + '</div>' +
-      (sampleColumns ? '<div class="mt-2"><b>Columnas en detalle_compras:</b> ' + sampleColumns.join(', ') + '</div>' : '') +
-      (debugInfo.sampleRow ? '<div><b>Ejemplo de fila:</b><br><pre class="whitespace-pre-wrap">' + escapeHTML(JSON.stringify(debugInfo.sampleRow, null, 2)) + '</pre></div>' : '') +
-      (debugInfo.totalRowsInTable === 0 ? '<div class="text-red-600 font-bold">⚠ La tabla detalle_compras está COMPLETAMENTE VACÍA</div>' : '') +
-      (debugInfo.sampleError ? '<div class="text-red-600"><b>Sample error:</b> ' + escapeHTML(JSON.stringify(debugInfo.sampleError)) + '</div>' : '') +
-      '</div></details></div>';
+    // No hay items registrados — ofrecer agregarlos desde el modal de edicion
+    const empty = document.createElement('div');
+    empty.className = 'text-xs bg-amber-50 border border-amber-200 text-amber-800 px-3 py-3 rounded-lg space-y-2';
+    empty.innerHTML =
+      '<p>No hay items detallados para esta compra.</p>' +
+      '<p class="text-amber-600">Compra registrada antes del fix de guardado de items. Puedes agregarlos manualmente.</p>';
+    const editBtn = document.createElement('button');
+    editBtn.type = 'button';
+    editBtn.className = 'mt-1 text-xs font-semibold px-3 py-1.5 rounded-lg bg-amber-500 text-white';
+    editBtn.textContent = '+ Agregar items manualmente';
+    editBtn.addEventListener('click', () => { closeModal('modal-detalle'); abrirEditar(c.id); });
+    empty.appendChild(editBtn);
+    productosWrap.appendChild(empty);
   }
 
   const payBtn = el('button', { cls: 'mt-5 w-full bg-primary-container text-white py-3 rounded-2xl font-semibold text-sm', type: 'button', text: 'Registrar Pago' });
