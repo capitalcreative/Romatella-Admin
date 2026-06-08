@@ -8458,63 +8458,58 @@ function lcExportPDF() {
     const ai = LC_SEC_ORDER.indexOf(a), bi = LC_SEC_ORDER.indexOf(b);
     return (ai<0?999:ai)-(bi<0?999:bi);
   });
-  const COCINA_SECS = new Set(['Superama','Costco','Mercado','Carnicería','Mariscos','Quesos Ayala','Semillas y Materias Primas','Productos Italianos','Limpieza cocina','Desechables cocina']);
   let totalArt = 0;
-  let grid = '<div class="grid">';
+  let blocks = '';
   sortedSecs.forEach(sec => {
     const items = lcItemsParaExportar(sec);
     if (!items.length) return;
     totalArt += items.length;
-    const isCocina = COCINA_SECS.has(sec);
-    const rows = items.map(r => `
-      <tr>
-        <td class="chk"></td>
-        <td class="item">${r.item}${r.nota ? `<br><span style="font-size:8.5px;color:#b45309;font-style:italic">📝 ${r.nota}</span>` : ''}</td>
-        <td class="${r._cant === '⚠️ sin stock' ? 'tag-ss' : 'qty'}">${r._cant}</td>
-      </tr>`).join('');
-    grid += `<div class="sec-block">
-      <div class="sec-hdr ${isCocina ? 'hdr-cocina' : 'hdr-barra'}">${sec} <span style="opacity:.6;font-weight:400">(${items.length})</span></div>
-      <table><tbody>${rows}</tbody></table>
+    const rows = items.map(r => {
+      const isSS = r._cant === '⚠️ sin stock';
+      const qtyHtml = isSS
+        ? `<span class="qty ss">SIN STOCK</span>`
+        : `<span class="qty">${r._cant}</span>`;
+      const noteHtml = r.nota ? `<span class="note">${r.nota}</span>` : '';
+      return `<div class="row">
+        <span class="name">${r.item}</span>
+        ${qtyHtml}
+        ${noteHtml}
+      </div>`;
+    }).join('');
+    blocks += `<div class="sec-block">
+      <div class="sec-hdr">${sec.toUpperCase()}</div>
+      ${rows}
     </div>`;
   });
-  grid += '</div>';
   if (!totalArt) { toast('Sin artículos por comprar'); return; }
+
+  const fechaCorta = new Date().toLocaleDateString('es-MX', {day:'2-digit', month:'2-digit', year:'numeric'});
+  const provs = sortedSecs.filter(s => lcItemsParaExportar(s).length).length;
 
   const w = window.open('', '_blank');
   if (!w) { toast('Permite ventanas emergentes'); return; }
   w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"/><title>Lista de Compras · Romatella</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:-apple-system,Arial,sans-serif;font-size:11px;color:#1a1c1d;background:#fff;padding:20px 24px}
-    .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding-bottom:12px;border-bottom:2px solid #1a1c1d}
-    .logo{font-size:20px;font-weight:800}.logo span{color:#9b3f00}
-    .logo small{display:block;font-size:9px;font-weight:400;color:#888;margin-top:1px}
-    .meta{text-align:right;font-size:9px;color:#888;line-height:1.8}
-    .meta strong{color:#1a1c1d;font-size:11px}
-    .btn-print{display:inline-flex;align-items:center;gap:6px;margin-bottom:14px;padding:8px 18px;background:#0059b5;color:white;border:none;border-radius:8px;cursor:pointer;font-size:11px;font-weight:600}
-    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;align-items:start}
-    .sec-block{border:1px solid #e8e8ea;border-radius:8px;overflow:hidden;break-inside:avoid}
-    .sec-hdr{padding:6px 10px;font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
-    .hdr-cocina{background:#1a1c1d;color:#fff}
-    .hdr-barra{background:#0059b5;color:#fff}
-    table{width:100%;border-collapse:collapse}
-    tr:last-child td{border-bottom:none}
-    td{padding:5px 8px;font-size:10.5px;border-bottom:1px solid #f3f3f5;vertical-align:middle}
-    .chk{width:16px;padding-right:4px}
-    .chk::before{content:'';display:inline-block;width:11px;height:11px;border:1.5px solid #ccc;border-radius:2px;vertical-align:middle}
-    .item{flex:1;color:#1a1c1d}
-    .qty{font-weight:700;color:#0059b5;text-align:right;white-space:nowrap;width:36px}
-    .tag-ss{font-weight:700;color:#ba1a1a;font-size:9px;text-align:right;white-space:nowrap;width:60px}
-    .footer{margin-top:14px;font-size:8px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:8px}
+    body{font-family:-apple-system,Helvetica,Arial,sans-serif;font-size:10.5px;color:#1a1c1d;background:#fff;padding:18px 22px;line-height:1.4}
+    .header{font-size:11px;font-weight:600;color:#666;text-align:center;margin-bottom:14px;padding-bottom:10px;border-bottom:1.5px solid #1a1c1d}
+    .header strong{color:#1a1c1d;font-weight:700}
+    .btn-print{display:inline-flex;align-items:center;gap:6px;margin-bottom:14px;padding:7px 16px;background:#0059b5;color:white;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600}
+    .grid{column-count:3;column-gap:18px;column-fill:balance}
+    .sec-block{break-inside:avoid;page-break-inside:avoid;margin-bottom:10px;padding-bottom:4px}
+    .sec-hdr{font-size:10.5px;font-weight:800;letter-spacing:.04em;color:#1a1c1d;padding:3px 0 4px;border-bottom:1.5px solid #1a1c1d;margin-bottom:3px}
+    .row{display:flex;align-items:baseline;gap:6px;padding:1.5px 0;font-size:10px}
+    .name{flex:1;color:#1a1c1d}
+    .qty{font-weight:700;color:#1a1c1d;white-space:nowrap;text-align:right;min-width:28px}
+    .qty.ss{color:#ba1a1a;font-size:8.5px;letter-spacing:.05em}
+    .note{font-style:italic;color:#888;font-size:9px;white-space:nowrap;margin-left:4px}
+    .footer{margin-top:14px;font-size:8.5px;color:#aaa;text-align:center;border-top:1px solid #eee;padding-top:6px}
     @media print{.btn-print{display:none}body{padding:10px 14px}}
   </style></head><body>
-  <div class="header">
-    <div class="logo"><span>R</span>omatella<small>Lista de compras · ${lcReqsUsadas.map(r=>r.nombre).join(', ')}</small></div>
-    <div class="meta"><strong>${lcFecha}</strong><br>${totalArt} artículos en ${sortedSecs.filter(s=>lcItemsParaExportar(s).length).length} proveedores</div>
-  </div>
+  <div class="header">Lista de Compras · <strong>Romatella</strong> · ${fechaCorta} · <strong>${totalArt}</strong> artículos en <strong>${provs}</strong> proveedores</div>
   <button class="btn-print" onclick="window.print()">🖨️ Guardar PDF / Imprimir</button>
-  ${grid}
-  <div class="footer">Romatella Admin · ${lcFecha}</div>
+  <div class="grid">${blocks}</div>
+  <div class="footer">Romatella Admin · ${lcFecha}${lcReqsUsadas.length ? ' · Basado en requisiciones de ' + lcReqsUsadas.map(r=>r.nombre).join(', ') : ''}</div>
   </body></html>`);
   w.document.close();
 }
