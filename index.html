@@ -6047,7 +6047,7 @@ function exportarCSV() {
   function secProgress(t, section) {
     const data = t === 'barra' ? BARRA : COCINA;
     const items = data[section] || [];
-    const filled = items.filter(item => { const s = reqState[t][item]; return s && (s.qty > 0 || s.noStock); }).length;
+    const filled = items.filter(item => { const s = reqState[t][item]; return s && (s.qty > 0 || s.noStock || s.bien); }).length;
     return { filled, total: items.length };
   }
 
@@ -6122,7 +6122,7 @@ function exportarCSV() {
       items.forEach(item => {
         const s = reqState[tabActual][item] || { qty: 0, noStock: false };
         const id = enc(item);
-        const isFilled = s.qty > 0 || s.noStock;
+        const isFilled = s.qty > 0 || s.noStock || s.bien;
         const safeItem = item.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         const row = document.createElement('div');
         row.id = 'rrow-' + id;
@@ -6241,7 +6241,7 @@ function exportarCSV() {
   function updateProgress() {
     const items = reqState[tabActual] || {};
     const total = Object.keys(items).length;
-    const filled = Object.values(items).filter(v => v.qty > 0 || v.noStock).length;
+    const filled = Object.values(items).filter(v => v.qty > 0 || v.noStock || v.bien).length;
     const bar = document.getElementById('req-prog-bar');
     if (bar) bar.style.width = (total ? (filled / total * 100) : 0).toFixed(0) + '%';
     const badge = document.getElementById('req-encargado-badge');
@@ -6391,7 +6391,7 @@ function exportarCSV() {
     const data = tabActual === 'barra' ? BARRA : COCINA;
     Object.values(data).flat().forEach(item => {
       const s = reqState[tabActual][item];
-      const isFilled = s && (s.qty > 0 || s.noStock);
+      const isFilled = s && (s.qty > 0 || s.noStock || s.bien);
       if (isFilled) {
         const row = document.getElementById('rrow-' + enc(item));
         if (row) row.classList.toggle('hidden', soloP);
