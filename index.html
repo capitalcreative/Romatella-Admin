@@ -6013,8 +6013,8 @@ function exportarCSV() {
 
   const COCINA = {
     'Superama': ['Anchoas','Arroz Risotto','Corn Flakes','Encendedores','Fettuccine','Galletas para Salame','Galletas Salmas','Gas para Rellenar','Grenetina','Mayonesa','Microdin','Mostaza','Pan Bimbo','Papel Cocina','Pasta Lasagna','Penne','Polvo Camarón','Salsa Soya','Spaghetti','Tortiglioni','Vinagre Balsámico','Vino Blanco Cocina'],
-    'Costco': ['Aceite Oliva','Aceite Regular','Aceitunas Negras','Aceitunas Verdes','Alcaparras','Arúgula','Chocolate Hershey','Helado Vainilla','Jamón Serrano','Jitomate Deshidratado','Leche Entera','Lechugas','Manteca Vegetal para Freír','Mascarpone','Philadelphia','Puré Tomate','Queso Azul','Queso Chihuahua','Queso de Cabra','Queso Mozzarella Fresco','Queso Ricotta','Vodka Cocina'],
-    'Mercado': ['Ajo','Albahaca','Apio','Arándano Fresco','Berenjena','Calabaza','Cebolla Blanca','Cebolla Morada','Champiñón','Chile Habanero Chocolate','Chips Betabel','Espárrago','Fresa a Granel','Fresa Cajita','Hierbabuena','Huevo','Jitomate Bola','Jitomate Cherry','Jitomate Salsa Pomodoro','Limón','Limón Eureka','Mantequilla Desy','Manzana Amarilla','Naranja','Papa Cambray','Perejil','Pimiento Morrón','Romero','Zanahoria','Gas'],
+    'Costco': ['Aceite Oliva','Aceite Regular','Aceitunas Negras','Aceitunas Verdes','Alcaparras','Arúgula','Chocolate Hershey','Helado Vainilla','Jamón Serrano','Jitomate Bola','Jitomate Deshidratado','Leche Entera','Lechugas','Manteca Vegetal para Freír','Mascarpone','Philadelphia','Puré Tomate','Queso Azul','Queso Chihuahua','Queso de Cabra','Queso Mozzarella Fresco','Queso Ricotta','Vodka Cocina'],
+    'Mercado': ['Ajo','Albahaca','Apio','Arándano Fresco','Berenjena','Calabaza','Cebolla Blanca','Cebolla Morada','Champiñón','Chile Habanero Chocolate','Chips Betabel','Espárrago','Fresa a Granel','Fresa Cajita','Hierbabuena','Huevo','Jitomate Cherry','Jitomate Salsa Pomodoro','Limón','Limón Eureka','Mantequilla Desy','Manzana Amarilla','Naranja','Papa Cambray','Perejil','Pimiento Morrón','Romero','Zanahoria','Gas'],
     'Semillas y Materias Primas': ['Azúcar Glass','Almendra','Arándano Deshidratado','Azúcar','Chile de Árbol','Chile Guajillo','Chile Negro','Chocolate Semi Amargo','Gotas de Chocolate','Harina','Miel','Nuez de la India','Nuez Granillo','Pan Molido','Pimienta en Grano','Pistacho','Sal de Grano','Sal Fina','Vainilla'],
     'Carnicería': ['Carne Carpaccio','Carne Molida Res','Pollo Porción','Pollo Scaloppine','Tocino','Arrachera'],
     'Mariscos': ['Almejas','Aros Calamar','Atún','Camarón Grande','Mejillones','Nuggets','Pulpo','Salmón'],
@@ -6111,7 +6111,7 @@ function exportarCSV() {
       secHeader.innerHTML = `
         <span id="rsect-${secId}" class="text-xs font-semibold uppercase tracking-wider ${allDone ? 'text-green-700' : 'text-slate-500'}">${section}</span>
         <div class="flex items-center gap-2">
-          ${!allDone && filled < total ? `<button type="button" onclick="event.stopPropagation();reqJumpPending('${safeSecJ}')" class="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 flex items-center gap-0.5"><span class="ms text-sm leading-none">arrow_downward</span>${total - filled}</button>` : ''}
+          <button type="button" id="rjump-${secId}" onclick="event.stopPropagation();reqJumpPending('${safeSecJ}')" class="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 flex items-center gap-0.5${allDone || filled >= total ? ' hidden' : ''}"><span class="ms text-sm leading-none">arrow_downward</span><span id="rjumpn-${secId}">${total - filled}</span></button>
           <span id="rsc-${secId}" class="text-xs font-bold ${allDone ? 'text-green-600' : filled > 0 ? 'text-primary' : 'text-slate-300'}">${filled}/${total}</span>
           <span class="ms text-base text-slate-400" id="rchev-${secId}" style="display:inline-block;transition:transform 0.2s;transform:rotate(${isCollapsed ? '0' : '180'}deg)">expand_less</span>
         </div>`;
@@ -6378,6 +6378,12 @@ function exportarCSV() {
         hdr.className = `px-4 py-2.5 flex items-center justify-between cursor-pointer select-none border-b border-slate-100 ${allDone ? 'bg-green-50' : 'bg-slate-50'}`;
         const sectEl = document.getElementById('rsect-' + secId);
         if (sectEl) sectEl.className = `text-xs font-semibold uppercase tracking-wider ${allDone ? 'text-green-700' : 'text-slate-500'}`;
+      }
+      const jumpEl = document.getElementById('rjump-' + secId);
+      if (jumpEl) {
+        jumpEl.classList.toggle('hidden', filled >= total);
+        const jn = document.getElementById('rjumpn-' + secId);
+        if (jn) jn.textContent = total - filled;
       }
     }
     updateProgress();
@@ -8361,7 +8367,7 @@ const PROVEEDOR_MAP = {
   'Leche Entera':'COSTCO','Queso Mozzarella Fresco':'COSTCO','Queso de Cabra':'COSTCO','Chocolate Hershey':'COSTCO',
   'Manteca Vegetal para Freír':'COSTCO','Pollo Porción':'COSTCO','Pollo Scaloppine':'COSTCO','Carne Molida Res':'COSTCO',
   'Peñafiel 600ml':'COSTCO','Peñafiel 355ml':'COSTCO','Kirkland':'COSTCO','Aceite Oliva':'COSTCO','Aceite Regular':'COSTCO',
-  'Aceitunas Negras':'COSTCO','Aceitunas Verdes':'COSTCO','Helado Vainilla':'COSTCO',
+  'Aceitunas Negras':'COSTCO','Aceitunas Verdes':'COSTCO','Helado Vainilla':'COSTCO','Jitomate Bola':'COSTCO',
   'Jamón Serrano':'COSTCO','Jitomate Deshidratado':'COSTCO','Mascarpone':'COSTCO',
   'Philadelphia':'COSTCO','Puré Tomate':'COSTCO','Queso Azul':'COSTCO','Queso Chihuahua':'COSTCO',
   'Queso Ricotta':'COSTCO','Vodka Cocina':'COSTCO','Desechables Costco con Tapa':'COSTCO',
@@ -8381,7 +8387,7 @@ const PROVEEDOR_MAP = {
   'Cebolla Morada':'MERCADO','Cebolla Blanca':'MERCADO','Apio':'MERCADO','Limón':'MERCADO','Huevo':'MERCADO',
   'Albahaca':'MERCADO','Perejil':'MERCADO','Romero':'MERCADO','Hierbabuena':'MERCADO','Ajo':'MERCADO',
   'Calabaza':'MERCADO','Chile Habanero Chocolate':'MERCADO','Chips Betabel':'MERCADO','Espárrago':'MERCADO',
-  'Fresa a Granel':'MERCADO','Jitomate Bola':'MERCADO','Limón Eureka':'MERCADO','Manzana Amarilla':'MERCADO',
+  'Fresa a Granel':'MERCADO','Limón Eureka':'MERCADO','Manzana Amarilla':'MERCADO',
   'Naranja':'MERCADO','Papa Cambray':'MERCADO','Pimiento Morrón':'MERCADO',
 
   // ── JITOMATE (POMODORO) ──
