@@ -6107,9 +6107,11 @@ function exportarCSV() {
       secHeader.className = `px-4 py-2.5 flex items-center justify-between cursor-pointer select-none border-b border-slate-100 ${allDone ? 'bg-green-50' : 'bg-slate-50'}`;
       secHeader.id = 'rshdr-' + secId;
       secHeader.onclick = () => reqToggleSection(section);
+      const safeSecJ = section.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
       secHeader.innerHTML = `
         <span id="rsect-${secId}" class="text-xs font-semibold uppercase tracking-wider ${allDone ? 'text-green-700' : 'text-slate-500'}">${section}</span>
         <div class="flex items-center gap-2">
+          ${!allDone && filled < total ? `<button type="button" onclick="event.stopPropagation();reqJumpPending('${safeSecJ}')" class="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 flex items-center gap-0.5"><span class="ms text-sm leading-none">arrow_downward</span>${total - filled}</button>` : ''}
           <span id="rsc-${secId}" class="text-xs font-bold ${allDone ? 'text-green-600' : filled > 0 ? 'text-primary' : 'text-slate-300'}">${filled}/${total}</span>
           <span class="ms text-base text-slate-400" id="rchev-${secId}" style="display:inline-block;transition:transform 0.2s;transform:rotate(${isCollapsed ? '0' : '180'}deg)">expand_less</span>
         </div>`;
@@ -6126,6 +6128,7 @@ function exportarCSV() {
         const safeItem = item.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
         const row = document.createElement('div');
         row.id = 'rrow-' + id;
+        row.style.scrollMarginTop = '110px'; // que no quede oculta tras los headers sticky
         row.className = `flex items-center px-4 py-2.5 border-b border-slate-50 gap-3 transition-colors ${isFilled ? 'bg-green-50' : 'bg-white'}${soloP && isFilled ? ' hidden' : ''}`;
         row.innerHTML = rowHTML(item, safeItem, id, s, isFilled);
         itemsBody.appendChild(row);
@@ -6407,6 +6410,27 @@ function exportarCSV() {
     const isCollapsed = !!collapsedSecs[tabActual][section];
     if (body) body.style.display = isCollapsed ? 'none' : '';
     if (chev) chev.style.transform = isCollapsed ? 'rotate(0deg)' : 'rotate(180deg)';
+  };
+
+  window.reqJumpPending = function(section) {
+    // Asegurar que la sección esté expandida
+    if (collapsedSecs[tabActual][section]) reqToggleSection(section);
+    const data = tabActual === 'barra' ? BARRA : COCINA;
+    const items = data[section] || [];
+    // Buscar el primer item NO completado
+    const pendiente = items.find(item => {
+      const s = reqState[tabActual][item];
+      return !(s && (s.qty > 0 || s.noStock || s.bien));
+    });
+    if (!pendiente) return;
+    const row = document.getElementById('rrow-' + enc(pendiente));
+    if (!row) return;
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    // Flash de resaltado
+    const prev = row.style.boxShadow;
+    row.style.transition = 'box-shadow 0.3s';
+    row.style.boxShadow = 'inset 0 0 0 2px #f59e0b';
+    setTimeout(() => { row.style.boxShadow = prev || ''; }, 1600);
   };
 
   window.reqResetTab = function() {
