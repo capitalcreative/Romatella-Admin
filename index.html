@@ -8307,6 +8307,125 @@ if (window.location.pathname === '/inventario') {
 const LC_SEC_ORDER = ['Superama','Costco','Mercado','Carnicería','Mariscos','Quesos Ayala','Semillas y Materias Primas','Productos Italianos','Limpieza cocina','Desechables cocina','Refrescos','Pulpas','Cerveza','Vino Tinto','Vino Blanco','Vino Rosado','Vino Espumoso','Destilados','Frutas barra','Abarrotes barra','Semillas barra','Papelería','Limpieza barra','Desechables barra'];
 const LC_COCINA_SECS = new Set(['Superama','Costco','Mercado','Carnicería','Mariscos','Quesos Ayala','Semillas y Materias Primas','Productos Italianos','Limpieza cocina','Desechables cocina']);
 
+// ══════════ AGRUPACIÓN POR PROVEEDOR (orden de compra real) ══════════
+const PROVEEDOR_ORDER = [
+  'SUPERAMA','COSTCO',"SAM'S",'MERCADO','JITOMATE (POMODORO)','CREMERÍA',
+  'QUESOS AYALA','CARNICERÍA DIANA','JORGE (ARRACHERA)','KRILL (MARISCOS)',
+  'LA HORMIGUITA','PANADERÍA','PULPA MÍA','TADA (CERVEZA)','VIPARMEX (VINOS)',
+  'FERNANDO FIGUEROA','DESTILADOS','BIOCUP (DESECHABLES)','PAPELERÍA','GAS DE LAGO','OTROS'
+];
+
+// Mapa producto → proveedor. Si un producto no está aquí cae en "OTROS".
+const PROVEEDOR_MAP = {
+  // ── SUPERAMA (pasta, abarrotes básicos, refrescos, limpieza ligera) ──
+  'Encendedores':'SUPERAMA','Fettuccine':'SUPERAMA','Penne':'SUPERAMA','Spaghetti':'SUPERAMA',
+  'Tortiglioni':'SUPERAMA','Arroz Risotto':'SUPERAMA','Pasta Lasagna':'SUPERAMA','Vinagre Balsámico':'SUPERAMA',
+  'Papel Cocina':'SUPERAMA','Anchoas':'SUPERAMA','Alcaparras':'SUPERAMA','Galletas para Salame':'SUPERAMA',
+  'Galletas Salmas':'SUPERAMA','Gas para Rellenar':'SUPERAMA','Grenetina':'SUPERAMA','Mayonesa':'SUPERAMA',
+  'Microdin':'SUPERAMA','Mostaza':'SUPERAMA','Pan Bimbo':'SUPERAMA','Polvo Camarón':'SUPERAMA','Salsa Soya':'SUPERAMA',
+  'Coca Cola Zero':'SUPERAMA','Coca Cola Regular':'SUPERAMA','Coca Cola 235ml':'SUPERAMA','Manzanita 2L':'SUPERAMA',
+  'Sprite 600ml':'SUPERAMA','Sprite 2L':'SUPERAMA','Squirt 2L':'SUPERAMA','Agua Mineral 2L':'SUPERAMA',
+  'Agua Tónica':'SUPERAMA','Botella de Agua 500ml':'SUPERAMA','Topo Chico 600ml':'SUPERAMA',
+  'Guantes':'SUPERAMA','Cloro':'SUPERAMA','Fabuloso':'SUPERAMA','Desengrasante':'SUPERAMA','Jabón Roma':'SUPERAMA',
+  'Fibra de Metal':'SUPERAMA','Papel Transparente':'SUPERAMA','Bolsa Basura 90x120':'SUPERAMA','Windex':'SUPERAMA',
+  'Sanitas':'SUPERAMA','Papel de Baño':'SUPERAMA','Jabón para Manos':'SUPERAMA','Aromatizante de Baño':'SUPERAMA',
+  'Bolsa Botes Baño':'SUPERAMA','Café':'SUPERAMA','Café Descafeinado':'SUPERAMA','Té Fresa Vainilla':'SUPERAMA',
+  'Té Frutos del Bosque':'SUPERAMA','Stevia':'SUPERAMA',
+
+  // ── COSTCO ──
+  'Leche Entera':'COSTCO','Queso Mozzarella Fresco':'COSTCO','Queso de Cabra':'COSTCO','Chocolate Hershey':'COSTCO',
+  'Manteca Vegetal para Freír':'COSTCO','Pollo Porción':'COSTCO','Pollo Scaloppine':'COSTCO','Carne Molida Res':'COSTCO',
+  'Peñafiel 600ml':'COSTCO','Peñafiel 355ml':'COSTCO','Kirkland':'COSTCO','Aceite Oliva':'COSTCO','Aceite Regular':'COSTCO',
+  'Aceitunas Negras':'COSTCO','Aceitunas Verdes':'COSTCO','Arúgula':'COSTCO','Helado Vainilla':'COSTCO',
+  'Jamón Serrano':'COSTCO','Jitomate Deshidratado':'COSTCO','Lechugas':'COSTCO','Mascarpone':'COSTCO',
+  'Philadelphia':'COSTCO','Puré Tomate':'COSTCO','Queso Azul':'COSTCO','Queso Chihuahua':'COSTCO',
+  'Queso Ricotta':'COSTCO','Vodka Cocina':'COSTCO','Desechables Costco con Tapa':'COSTCO',
+
+  // ── SAM'S ──
+  'Vino Blanco Cocina':"SAM'S",'Arándano Fresco':"SAM'S",'Fresa Cajita':"SAM'S",'Vino Clericot':"SAM'S",
+  'Esponjas Trastes':"SAM'S",'Jabón para Trastes':"SAM'S",
+
+  // ── MERCADO (frutas y verduras) ──
+  'Berenjena':'MERCADO','Jitomate Cherry':'MERCADO','Champiñón':'MERCADO','Zanahoria':'MERCADO',
+  'Cebolla Morada':'MERCADO','Cebolla Blanca':'MERCADO','Apio':'MERCADO','Limón':'MERCADO','Huevo':'MERCADO',
+  'Albahaca':'MERCADO','Perejil':'MERCADO','Romero':'MERCADO','Hierbabuena':'MERCADO','Ajo':'MERCADO',
+  'Calabaza':'MERCADO','Chile Habanero Chocolate':'MERCADO','Chips Betabel':'MERCADO','Espárrago':'MERCADO',
+  'Fresa a Granel':'MERCADO','Jitomate Bola':'MERCADO','Limón Eureka':'MERCADO','Manzana Amarilla':'MERCADO',
+  'Naranja':'MERCADO','Papa Cambray':'MERCADO','Pimiento Morrón':'MERCADO',
+
+  // ── JITOMATE (POMODORO) ──
+  'Jitomate Salsa Pomodoro':'JITOMATE (POMODORO)',
+
+  // ── CREMERÍA ──
+  'Mantequilla Desy':'CREMERÍA',
+
+  // ── QUESOS AYALA ──
+  'Crema':'QUESOS AYALA','Queso Mozzarella':'QUESOS AYALA','Queso Gouda':'QUESOS AYALA','Queso Parmesano':'QUESOS AYALA',
+
+  // ── CARNICERÍA DIANA ──
+  'Tocino':'CARNICERÍA DIANA','Carne Carpaccio':'CARNICERÍA DIANA',
+
+  // ── JORGE (ARRACHERA) ──
+  'Arrachera':'JORGE (ARRACHERA)',
+
+  // ── KRILL (MARISCOS) ──
+  'Almejas':'KRILL (MARISCOS)','Aros Calamar':'KRILL (MARISCOS)','Mejillones':'KRILL (MARISCOS)','Atún':'KRILL (MARISCOS)',
+  'Camarón Grande':'KRILL (MARISCOS)','Nuggets':'KRILL (MARISCOS)','Pulpo':'KRILL (MARISCOS)','Salmón':'KRILL (MARISCOS)',
+
+  // ── LA HORMIGUITA (semillas, especias, materias primas secas) ──
+  'Harina':'LA HORMIGUITA','Sal de Grano':'LA HORMIGUITA','Chile Guajillo':'LA HORMIGUITA','Chile Negro':'LA HORMIGUITA',
+  'Arándano Deshidratado':'LA HORMIGUITA','Azúcar Glass':'LA HORMIGUITA','Almendra':'LA HORMIGUITA','Azúcar':'LA HORMIGUITA',
+  'Chile de Árbol':'LA HORMIGUITA','Chocolate Semi Amargo':'LA HORMIGUITA','Gotas de Chocolate':'LA HORMIGUITA',
+  'Miel':'LA HORMIGUITA','Nuez de la India':'LA HORMIGUITA','Nuez Granillo':'LA HORMIGUITA','Pan Molido':'LA HORMIGUITA',
+  'Pimienta en Grano':'LA HORMIGUITA','Pistacho':'LA HORMIGUITA','Sal Fina':'LA HORMIGUITA','Vainilla':'LA HORMIGUITA',
+  'Jamaica':'LA HORMIGUITA',
+
+  // ── PANADERÍA ──
+  'Baguette':'PANADERÍA',
+
+  // ── PULPA MÍA ──
+  'Pulpa Fresa':'PULPA MÍA','Pulpa Frutos Rojos':'PULPA MÍA','Pulpa Maracuyá':'PULPA MÍA',
+
+  // ── TADA (CERVEZA) ──
+  'Corona':'TADA (CERVEZA)','Jabalí Bock':'TADA (CERVEZA)','Jabalí IPA':'TADA (CERVEZA)','Modelo Especial':'TADA (CERVEZA)',
+  'Negra Modelo':'TADA (CERVEZA)','Sin Alcohol Modelo':'TADA (CERVEZA)','Stella Artois':'TADA (CERVEZA)','Victoria':'TADA (CERVEZA)',
+
+  // ── VIPARMEX (VINOS) ──
+  'Cal y Canto':'VIPARMEX (VINOS)','Gran Passione Tinto':'VIPARMEX (VINOS)','Gran Passione Espumoso':'VIPARMEX (VINOS)',
+  'Soave':'VIPARMEX (VINOS)','Rincones Rosé':'VIPARMEX (VINOS)','Desvarío':'VIPARMEX (VINOS)','Cinzano Espumoso':'VIPARMEX (VINOS)',
+
+  // ── FERNANDO FIGUEROA ──
+  'Apapcho':'FERNANDO FIGUEROA',
+
+  // ── DESTILADOS ──
+  'Absolut':'DESTILADOS','Aperol':'DESTILADOS','Bacardí':'DESTILADOS','Baileys':'DESTILADOS','Campari':'DESTILADOS',
+  'Centenario Plata':'DESTILADOS','Cinzano Vermouth Rosso':'DESTILADOS','Controy':'DESTILADOS','Frangelico':'DESTILADOS',
+  'Grey Goose':'DESTILADOS','Licor del 43':'DESTILADOS','Maestro Dobel':'DESTILADOS','Mezcal Joven 38':'DESTILADOS',
+  'Red Label':'DESTILADOS','Stoli':'DESTILADOS','Tanqueray':'DESTILADOS','Torres 5':'DESTILADOS','Vaccari':'DESTILADOS',
+
+  // ── BIOCUP (DESECHABLES) ──
+  'Bolsa de Kilo 20x30':'BIOCUP (DESECHABLES)','Bolsa Asa P/Llevar Ch':'BIOCUP (DESECHABLES)',
+  'Bolsa Asa P/Llevar Med':'BIOCUP (DESECHABLES)','Hamburgesero':'BIOCUP (DESECHABLES)','Tapa 2 Pz':'BIOCUP (DESECHABLES)',
+  'Bolsa Basura':'BIOCUP (DESECHABLES)','Bolsa Papel Pan':'BIOCUP (DESECHABLES)','Cuchara':'BIOCUP (DESECHABLES)',
+  'Cuchillo':'BIOCUP (DESECHABLES)','Servilleta Larga':'BIOCUP (DESECHABLES)','Tapa 16 Oz':'BIOCUP (DESECHABLES)',
+  'Tenedor':'BIOCUP (DESECHABLES)','Vaso 16 Oz':'BIOCUP (DESECHABLES)','Vaso 2 Oz':'BIOCUP (DESECHABLES)',
+  'Cristal Grande':'BIOCUP (DESECHABLES)','Redondo Sopa con Tapa':'BIOCUP (DESECHABLES)',
+
+  // ── PAPELERÍA ──
+  'Bolígrafos':'PAPELERÍA','Cinta Masking':'PAPELERÍA','Grapas':'PAPELERÍA','Rollos Impresora':'PAPELERÍA',
+  'Rollos Terminales PDV':'PAPELERÍA',
+
+  // ── GAS DE LAGO ──
+  'Gas':'GAS DE LAGO',
+
+  // ── OTROS / sin proveedor fijo aún ──
+  'Savoiardi':'OTROS'
+};
+
+function itemProveedor(itemName) {
+  return PROVEEDOR_MAP[itemName] || 'OTROS';
+}
+
 let lcData = {};       // { sec: [{item, qty, ss, comprado}] }
 let lcFecha = '';
 let lcReqsUsadas = [];
@@ -8324,7 +8443,7 @@ function lcBuildData() {
 
     [...items, ...sinStock.map(x => ({...x, qty: 0, ss: true}))].forEach(x => {
       if (x.bien) return; // los "bien" no se compran
-      const sec = (window.reqItemSection && window.reqItemSection(x.item, x.area)) || (x.area === 'barra' ? 'Barra' : 'Cocina');
+      const sec = itemProveedor(x.item); // agrupar por PROVEEDOR, no por sección
       if (!lcData[sec]) lcData[sec] = [];
       // evitar duplicados (mismo item de varias requisiciones → sumar qty)
       const existing = lcData[sec].find(e => e.item === x.item);
@@ -8437,7 +8556,7 @@ function lcCopiarProveedor(sec) {
 
 function lcWhatsAppGeneral() {
   const sortedSecs = Object.keys(lcData).sort((a,b) => {
-    const ai = LC_SEC_ORDER.indexOf(a), bi = LC_SEC_ORDER.indexOf(b);
+    const ai = PROVEEDOR_ORDER.indexOf(a), bi = PROVEEDOR_ORDER.indexOf(b);
     return (ai<0?999:ai)-(bi<0?999:bi);
   });
   let bloques = [];
@@ -8455,7 +8574,7 @@ function lcWhatsAppGeneral() {
 
 function lcExportPDF() {
   const sortedSecs = Object.keys(lcData).sort((a,b) => {
-    const ai = LC_SEC_ORDER.indexOf(a), bi = LC_SEC_ORDER.indexOf(b);
+    const ai = PROVEEDOR_ORDER.indexOf(a), bi = PROVEEDOR_ORDER.indexOf(b);
     return (ai<0?999:ai)-(bi<0?999:bi);
   });
   let totalArt = 0;
@@ -8516,7 +8635,7 @@ function lcExportPDF() {
 
 function lcExportCSV() {
   const sortedSecs = Object.keys(lcData).sort((a,b) => {
-    const ai = LC_SEC_ORDER.indexOf(a), bi = LC_SEC_ORDER.indexOf(b);
+    const ai = PROVEEDOR_ORDER.indexOf(a), bi = PROVEEDOR_ORDER.indexOf(b);
     return (ai<0?999:ai)-(bi<0?999:bi);
   });
   const rows = [['Proveedor','Artículo','Cantidad','Nota']];
@@ -8540,7 +8659,7 @@ function lcExportCSV() {
 function lcRender() {
   const cont = document.getElementById('lc-content');
   const sortedSecs = Object.keys(lcData).sort((a,b) => {
-    const ai = LC_SEC_ORDER.indexOf(a), bi = LC_SEC_ORDER.indexOf(b);
+    const ai = PROVEEDOR_ORDER.indexOf(a), bi = PROVEEDOR_ORDER.indexOf(b);
     return (ai<0?999:ai) - (bi<0?999:bi);
   });
 
