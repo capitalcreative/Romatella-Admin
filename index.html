@@ -6103,7 +6103,6 @@ function exportarCSV() {
       secDiv.id = 'rsec-' + secId;
 
       const secHeader = document.createElement('div');
-      secHeader.style.cssText = 'position:sticky;top:48px;z-index:5;';
       secHeader.className = `px-4 py-2.5 flex items-center justify-between cursor-pointer select-none border-b border-slate-100 ${allDone ? 'bg-green-50' : 'bg-slate-50'}`;
       secHeader.id = 'rshdr-' + secId;
       secHeader.onclick = () => reqToggleSection(section);
