@@ -8309,10 +8309,10 @@ const LC_COCINA_SECS = new Set(['Superama','Costco','Mercado','Carnicería','Mar
 
 // ══════════ AGRUPACIÓN POR PROVEEDOR (orden de compra real) ══════════
 const PROVEEDOR_ORDER = [
-  'SUPERAMA','COSTCO',"SAM'S",'MERCADO','JITOMATE (POMODORO)','CREMERÍA',
+  'SUPERAMA','COSTCO',"SAM'S",'LA COMER','MERCADO','JITOMATE (POMODORO)','CREMERÍA',
   'QUESOS AYALA','CARNICERÍA DIANA','JORGE (ARRACHERA)','KRILL (MARISCOS)',
-  'LA HORMIGUITA','PANADERÍA','PULPA MÍA','TADA (CERVEZA)','VIPARMEX (VINOS)',
-  'FERNANDO FIGUEROA','DESTILADOS','BIOCUP (DESECHABLES)','PAPELERÍA','GAS DE LAGO','OTROS'
+  'LA HORMIGUITA','PANADERÍA','PULPA MÍA','CAFE EUROPA','TADA (CERVEZA)','VIPARMEX (VINOS)',
+  'FERNANDO FIGUEROA','CAVA 1911','BIOCUP (DESECHABLES)','OFFICE DEPOT','GAS DE LAGO','OTROS'
 ];
 
 // Mapa producto → proveedor. Si un producto no está aquí cae en "OTROS".
@@ -8320,30 +8320,37 @@ const PROVEEDOR_MAP = {
   // ── SUPERAMA (pasta, abarrotes básicos, refrescos, limpieza ligera) ──
   'Encendedores':'SUPERAMA','Fettuccine':'SUPERAMA','Penne':'SUPERAMA','Spaghetti':'SUPERAMA',
   'Tortiglioni':'SUPERAMA','Arroz Risotto':'SUPERAMA','Pasta Lasagna':'SUPERAMA','Vinagre Balsámico':'SUPERAMA',
-  'Papel Cocina':'SUPERAMA','Anchoas':'SUPERAMA','Alcaparras':'SUPERAMA','Galletas para Salame':'SUPERAMA',
-  'Galletas Salmas':'SUPERAMA','Gas para Rellenar':'SUPERAMA','Grenetina':'SUPERAMA','Mayonesa':'SUPERAMA',
+  'Papel Cocina':'SUPERAMA','Anchoas':'SUPERAMA','Galletas para Salame':'SUPERAMA',
+  'Galletas Salmas':'SUPERAMA','Gas para Rellenar':'SUPERAMA','Grenetina':'SUPERAMA',
   'Microdin':'SUPERAMA','Mostaza':'SUPERAMA','Pan Bimbo':'SUPERAMA','Polvo Camarón':'SUPERAMA','Salsa Soya':'SUPERAMA',
-  'Coca Cola Zero':'SUPERAMA','Coca Cola Regular':'SUPERAMA','Coca Cola 235ml':'SUPERAMA','Manzanita 2L':'SUPERAMA',
+  'Coca Cola Zero':'SUPERAMA','Coca Cola 235ml':'SUPERAMA','Manzanita 2L':'SUPERAMA',
   'Sprite 600ml':'SUPERAMA','Sprite 2L':'SUPERAMA','Squirt 2L':'SUPERAMA','Agua Mineral 2L':'SUPERAMA',
   'Agua Tónica':'SUPERAMA','Botella de Agua 500ml':'SUPERAMA','Topo Chico 600ml':'SUPERAMA',
   'Guantes':'SUPERAMA','Cloro':'SUPERAMA','Fabuloso':'SUPERAMA','Desengrasante':'SUPERAMA','Jabón Roma':'SUPERAMA',
   'Fibra de Metal':'SUPERAMA','Papel Transparente':'SUPERAMA','Bolsa Basura 90x120':'SUPERAMA','Windex':'SUPERAMA',
   'Sanitas':'SUPERAMA','Papel de Baño':'SUPERAMA','Jabón para Manos':'SUPERAMA','Aromatizante de Baño':'SUPERAMA',
-  'Bolsa Botes Baño':'SUPERAMA','Café':'SUPERAMA','Café Descafeinado':'SUPERAMA','Té Fresa Vainilla':'SUPERAMA',
+  'Bolsa Botes Baño':'SUPERAMA','Té Fresa Vainilla':'SUPERAMA',
   'Té Frutos del Bosque':'SUPERAMA','Stevia':'SUPERAMA',
+  'Jabalí Bock':'SUPERAMA','Jabalí IPA':'SUPERAMA',
 
   // ── COSTCO ──
   'Leche Entera':'COSTCO','Queso Mozzarella Fresco':'COSTCO','Queso de Cabra':'COSTCO','Chocolate Hershey':'COSTCO',
   'Manteca Vegetal para Freír':'COSTCO','Pollo Porción':'COSTCO','Pollo Scaloppine':'COSTCO','Carne Molida Res':'COSTCO',
   'Peñafiel 600ml':'COSTCO','Peñafiel 355ml':'COSTCO','Kirkland':'COSTCO','Aceite Oliva':'COSTCO','Aceite Regular':'COSTCO',
-  'Aceitunas Negras':'COSTCO','Aceitunas Verdes':'COSTCO','Arúgula':'COSTCO','Helado Vainilla':'COSTCO',
-  'Jamón Serrano':'COSTCO','Jitomate Deshidratado':'COSTCO','Lechugas':'COSTCO','Mascarpone':'COSTCO',
+  'Aceitunas Negras':'COSTCO','Aceitunas Verdes':'COSTCO','Helado Vainilla':'COSTCO',
+  'Jamón Serrano':'COSTCO','Jitomate Deshidratado':'COSTCO','Mascarpone':'COSTCO',
   'Philadelphia':'COSTCO','Puré Tomate':'COSTCO','Queso Azul':'COSTCO','Queso Chihuahua':'COSTCO',
   'Queso Ricotta':'COSTCO','Vodka Cocina':'COSTCO','Desechables Costco con Tapa':'COSTCO',
+  'Alcaparras':'COSTCO','Mayonesa':'COSTCO','Coca Cola Regular':'COSTCO',
+  'Chocolate Semi Amargo':'COSTCO','Gotas de Chocolate':'COSTCO',
+  'Aperol':'COSTCO','Licor del 43':'COSTCO','Baileys':'COSTCO','Servilleta Larga':'COSTCO',
 
   // ── SAM'S ──
   'Vino Blanco Cocina':"SAM'S",'Arándano Fresco':"SAM'S",'Fresa Cajita':"SAM'S",'Vino Clericot':"SAM'S",
-  'Esponjas Trastes':"SAM'S",'Jabón para Trastes':"SAM'S",
+  'Esponjas Trastes':"SAM'S",'Jabón para Trastes':"SAM'S",'Lechugas':"SAM'S",'Arúgula':"SAM'S",
+
+  // ── LA COMER ──
+  'Savoiardi':'LA COMER',
 
   // ── MERCADO (frutas y verduras) ──
   'Berenjena':'MERCADO','Jitomate Cherry':'MERCADO','Champiñón':'MERCADO','Zanahoria':'MERCADO',
@@ -8375,7 +8382,7 @@ const PROVEEDOR_MAP = {
   // ── LA HORMIGUITA (semillas, especias, materias primas secas) ──
   'Harina':'LA HORMIGUITA','Sal de Grano':'LA HORMIGUITA','Chile Guajillo':'LA HORMIGUITA','Chile Negro':'LA HORMIGUITA',
   'Arándano Deshidratado':'LA HORMIGUITA','Azúcar Glass':'LA HORMIGUITA','Almendra':'LA HORMIGUITA','Azúcar':'LA HORMIGUITA',
-  'Chile de Árbol':'LA HORMIGUITA','Chocolate Semi Amargo':'LA HORMIGUITA','Gotas de Chocolate':'LA HORMIGUITA',
+  'Chile de Árbol':'LA HORMIGUITA',
   'Miel':'LA HORMIGUITA','Nuez de la India':'LA HORMIGUITA','Nuez Granillo':'LA HORMIGUITA','Pan Molido':'LA HORMIGUITA',
   'Pimienta en Grano':'LA HORMIGUITA','Pistacho':'LA HORMIGUITA','Sal Fina':'LA HORMIGUITA','Vainilla':'LA HORMIGUITA',
   'Jamaica':'LA HORMIGUITA',
@@ -8386,8 +8393,11 @@ const PROVEEDOR_MAP = {
   // ── PULPA MÍA ──
   'Pulpa Fresa':'PULPA MÍA','Pulpa Frutos Rojos':'PULPA MÍA','Pulpa Maracuyá':'PULPA MÍA',
 
+  // ── CAFE EUROPA ──
+  'Café':'CAFE EUROPA','Café Descafeinado':'CAFE EUROPA',
+
   // ── TADA (CERVEZA) ──
-  'Corona':'TADA (CERVEZA)','Jabalí Bock':'TADA (CERVEZA)','Jabalí IPA':'TADA (CERVEZA)','Modelo Especial':'TADA (CERVEZA)',
+  'Corona':'TADA (CERVEZA)','Modelo Especial':'TADA (CERVEZA)',
   'Negra Modelo':'TADA (CERVEZA)','Sin Alcohol Modelo':'TADA (CERVEZA)','Stella Artois':'TADA (CERVEZA)','Victoria':'TADA (CERVEZA)',
 
   // ── VIPARMEX (VINOS) ──
@@ -8397,29 +8407,26 @@ const PROVEEDOR_MAP = {
   // ── FERNANDO FIGUEROA ──
   'Apapcho':'FERNANDO FIGUEROA',
 
-  // ── DESTILADOS ──
-  'Absolut':'DESTILADOS','Aperol':'DESTILADOS','Bacardí':'DESTILADOS','Baileys':'DESTILADOS','Campari':'DESTILADOS',
-  'Centenario Plata':'DESTILADOS','Cinzano Vermouth Rosso':'DESTILADOS','Controy':'DESTILADOS','Frangelico':'DESTILADOS',
-  'Grey Goose':'DESTILADOS','Licor del 43':'DESTILADOS','Maestro Dobel':'DESTILADOS','Mezcal Joven 38':'DESTILADOS',
-  'Red Label':'DESTILADOS','Stoli':'DESTILADOS','Tanqueray':'DESTILADOS','Torres 5':'DESTILADOS','Vaccari':'DESTILADOS',
+  // ── CAVA 1911 (destilados) ──
+  'Absolut':'CAVA 1911','Bacardí':'CAVA 1911','Campari':'CAVA 1911',
+  'Centenario Plata':'CAVA 1911','Cinzano Vermouth Rosso':'CAVA 1911','Controy':'CAVA 1911','Frangelico':'CAVA 1911',
+  'Grey Goose':'CAVA 1911','Maestro Dobel':'CAVA 1911','Mezcal Joven 38':'CAVA 1911',
+  'Red Label':'CAVA 1911','Stoli':'CAVA 1911','Tanqueray':'CAVA 1911','Torres 5':'CAVA 1911','Vaccari':'CAVA 1911',
 
   // ── BIOCUP (DESECHABLES) ──
   'Bolsa de Kilo 20x30':'BIOCUP (DESECHABLES)','Bolsa Asa P/Llevar Ch':'BIOCUP (DESECHABLES)',
   'Bolsa Asa P/Llevar Med':'BIOCUP (DESECHABLES)','Hamburgesero':'BIOCUP (DESECHABLES)','Tapa 2 Pz':'BIOCUP (DESECHABLES)',
   'Bolsa Basura':'BIOCUP (DESECHABLES)','Bolsa Papel Pan':'BIOCUP (DESECHABLES)','Cuchara':'BIOCUP (DESECHABLES)',
-  'Cuchillo':'BIOCUP (DESECHABLES)','Servilleta Larga':'BIOCUP (DESECHABLES)','Tapa 16 Oz':'BIOCUP (DESECHABLES)',
+  'Cuchillo':'BIOCUP (DESECHABLES)','Tapa 16 Oz':'BIOCUP (DESECHABLES)',
   'Tenedor':'BIOCUP (DESECHABLES)','Vaso 16 Oz':'BIOCUP (DESECHABLES)','Vaso 2 Oz':'BIOCUP (DESECHABLES)',
   'Cristal Grande':'BIOCUP (DESECHABLES)','Redondo Sopa con Tapa':'BIOCUP (DESECHABLES)',
 
-  // ── PAPELERÍA ──
-  'Bolígrafos':'PAPELERÍA','Cinta Masking':'PAPELERÍA','Grapas':'PAPELERÍA','Rollos Impresora':'PAPELERÍA',
-  'Rollos Terminales PDV':'PAPELERÍA',
+  // ── OFFICE DEPOT (papelería) ──
+  'Bolígrafos':'OFFICE DEPOT','Cinta Masking':'OFFICE DEPOT','Grapas':'OFFICE DEPOT','Rollos Impresora':'OFFICE DEPOT',
+  'Rollos Terminales PDV':'OFFICE DEPOT',
 
   // ── GAS DE LAGO ──
-  'Gas':'GAS DE LAGO',
-
-  // ── OTROS / sin proveedor fijo aún ──
-  'Savoiardi':'OTROS'
+  'Gas':'GAS DE LAGO'
 };
 
 function itemProveedor(itemName) {
