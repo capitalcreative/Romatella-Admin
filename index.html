@@ -3214,6 +3214,53 @@ function monLoad() {
 function monSave(arr) { localStorage.setItem('monInsumos', JSON.stringify(arr)); }
 function monNum(v) { const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? 0 : n; }
 
+// ── Sincronización con Supabase (para que el cron de Telegram lea la config) ──
+async function monPushRemote(insumo) {
+  try {
+    await fetch('/api/supabase', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table: 'insumos_monitor', action: 'upsert', data: {
+        id: insumo.id, nombre: insumo.nombre, unidad: insumo.unidad,
+        base: insumo.base, umbral: insumo.umbral, fecha: insumo.fecha,
+        reglas: insumo.reglas
+      }})
+    });
+  } catch(e) { /* offline: queda en localStorage */ }
+}
+async function monDeleteRemote(id) {
+  try {
+    await fetch('/api/supabase', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table: 'insumos_monitor', action: 'delete', id })
+    });
+  } catch(e) {}
+}
+// Trae config de Supabase y la fusiona con localStorage (migra los locales que aún no estén)
+async function monSyncFromSupabase() {
+  let remote;
+  try {
+    const resp = await fetch('/api/supabase', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table: 'insumos_monitor', action: 'select' })
+    });
+    remote = await resp.json();
+  } catch(e) { return; }
+  if (!Array.isArray(remote)) return; // tabla no existe aún → seguir con localStorage
+  const byId = {};
+  remote.forEach(r => {
+    byId[r.id] = {
+      id: r.id, nombre: r.nombre, unidad: r.unidad,
+      base: r.base, umbral: r.umbral, fecha: r.fecha,
+      reglas: Array.isArray(r.reglas) ? r.reglas : (() => { try { return JSON.parse(r.reglas||'[]'); } catch { return []; } })()
+    };
+  });
+  // migrar locales que aún no están en Supabase
+  for (const l of monLoad()) {
+    if (!byId[l.id]) { byId[l.id] = l; monPushRemote(l); }
+  }
+  monSave(Object.values(byId));
+}
+
 // Texto buscable de un modificador (defensivo ante variaciones del API)
 function monModTexto(m) {
   return [m.option, m.name, m.modifier_option, m.modifier_name].filter(Boolean).join(' ');
@@ -3261,6 +3308,7 @@ async function monFetchReceipts() {
 async function monRender() {
   const cont = document.getElementById('mon-cards');
   if (!cont) return;
+  await monSyncFromSupabase();
   const insumos = monLoad();
   if (!insumos.length) {
     cont.innerHTML = `<div class="col-span-full text-center py-16 text-slate-400">
@@ -3336,6 +3384,7 @@ function monUpdateBadge(n) {
 
 // Chequeo en background (al cargar la app) para encender el badge sin entrar a la sección
 async function monCheckAlertas() {
+  await monSyncFromSupabase();
   const insumos = monLoad();
   if (!insumos.length) return;
   try {
@@ -3405,6 +3454,7 @@ window.monGuardar = function() {
   const idx = arr.findIndex(x => x.id === id);
   if (idx >= 0) arr[idx] = insumo; else arr.push(insumo);
   monSave(arr);
+  monPushRemote(insumo);
   closeModal('modal-mon');
   toast('✓ Insumo guardado');
   monRender();
@@ -3414,6 +3464,7 @@ window.monEliminar = function() {
   const id = document.getElementById('mon-id').value;
   if (!id) return;
   monSave(monLoad().filter(x => x.id !== id));
+  monDeleteRemote(id);
   closeModal('modal-mon');
   toast('Insumo eliminado');
   monRender();

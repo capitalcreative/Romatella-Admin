@@ -1,5 +1,8 @@
 {
   "rewrites": [
     { "source": "/inventario", "destination": "/index.html" }
+  ],
+  "crons": [
+    { "path": "/api/cron-insumos", "schedule": "0 22 * * *" }
   ]
 }
