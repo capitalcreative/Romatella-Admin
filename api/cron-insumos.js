@@ -85,7 +85,16 @@ export default async function handler(req, res) {
   }
   if (!SUP_URL || !SUP_KEY) return res.status(500).json({ error: 'Supabase no configurado' });
   if (!LOY_TOKEN)           return res.status(500).json({ error: 'Loyverse no configurado' });
-  if (!TG_TOKEN || !TG_CHAT) return res.status(500).json({ error: 'Telegram no configurado' });
+  if (!TG_TOKEN || !TG_CHAT) {
+    return res.status(500).json({
+      error: 'Telegram no configurado',
+      detalle: {
+        TELEGRAM_BOT_TOKEN: TG_TOKEN ? 'presente' : 'FALTA',
+        TELEGRAM_CHAT_ID:   TG_CHAT  ? 'presente' : 'FALTA'
+      },
+      vars_telegram_detectadas: Object.keys(process.env).filter(k => k.toUpperCase().includes('TELEGRAM'))
+    });
+  }
 
   try {
     const insumos = await supSelect('insumos_monitor');
