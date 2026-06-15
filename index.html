@@ -3241,7 +3241,7 @@ async function monSyncFromSupabase() {
   try {
     const resp = await fetch('/api/supabase', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ table: 'insumos_monitor', action: 'select' })
+      body: JSON.stringify({ table: 'insumos_monitor', action: 'select', order: 'none' })
     });
     remote = await resp.json();
   } catch(e) { return; }
