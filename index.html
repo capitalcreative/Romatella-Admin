@@ -1479,46 +1479,74 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         </div>
       </div>
 
-      <!-- ═══ TERMÓMETRO DE FOOD COST (Capa 1a) ═══ -->
+      <!-- ═══ TERMÓMETRO DE COSTOS (Capa 1a) — Food vs Bebidas ═══ -->
       <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 mb-6">
         <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
           <div>
-            <h3 class="font-bold text-slate-900 flex items-center gap-2"><span class="ms text-primary">thermostat</span>Control de Food Cost</h3>
-            <p class="text-xs text-slate-400">Real vs tu meta — del período seleccionado arriba</p>
+            <h3 class="font-bold text-slate-900 flex items-center gap-2"><span class="ms text-primary">thermostat</span>Control de Costos</h3>
+            <p class="text-xs text-slate-400">Food y Bebidas por separado — del período seleccionado arriba</p>
           </div>
           <div class="flex items-center gap-2">
-            <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Meta %</label>
-            <input id="fc-meta" type="text" inputmode="decimal" value="32" onchange="fcGuardarMeta(this.value)"
+            <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Meta Food %</label>
+            <input id="fc-meta" type="text" inputmode="decimal" value="30" onchange="fcGuardarMeta(this.value)"
               class="w-16 text-center text-sm font-bold border border-slate-200 rounded-xl px-2 py-1.5 outline-none focus:border-primary"/>
           </div>
         </div>
 
-        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
-          <div class="bg-surface-container-low rounded-xl p-3">
-            <p class="text-xs text-slate-400 mb-1">Food cost real</p>
-            <p class="text-2xl font-bold" id="fc-real">—</p>
+        <!-- FOOD (termómetro principal con meta) -->
+        <div class="border border-slate-100 rounded-2xl p-4 mb-3 bg-surface-container-low/40">
+          <div class="flex items-center gap-2 mb-3">
+            <span class="ms text-base text-emerald-600">restaurant</span>
+            <span class="text-sm font-bold text-slate-700">Food Cost (comida)</span>
+            <span class="text-[11px] text-slate-400">— Carnes, mariscos, lácteos, verduras, abarrotes, panadería, semillas</span>
           </div>
-          <div class="bg-surface-container-low rounded-xl p-3">
-            <p class="text-xs text-slate-400 mb-1">Meta</p>
-            <p class="text-2xl font-bold text-slate-500" id="fc-meta-disp">—</p>
+          <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <div class="bg-white rounded-xl p-3 border border-slate-100">
+              <p class="text-xs text-slate-400 mb-1">Real</p>
+              <p class="text-2xl font-bold" id="fc-real">—</p>
+            </div>
+            <div class="bg-white rounded-xl p-3 border border-slate-100">
+              <p class="text-xs text-slate-400 mb-1">Meta</p>
+              <p class="text-2xl font-bold text-slate-500" id="fc-meta-disp">—</p>
+            </div>
+            <div class="bg-white rounded-xl p-3 border border-slate-100">
+              <p class="text-xs text-slate-400 mb-1">Brecha</p>
+              <p class="text-2xl font-bold" id="fc-brecha-pct">—</p>
+            </div>
+            <div class="bg-white rounded-xl p-3 border border-slate-100">
+              <p class="text-xs text-slate-400 mb-1">Exceso/ahorro $</p>
+              <p class="text-2xl font-bold" id="fc-brecha-pesos">—</p>
+            </div>
           </div>
-          <div class="bg-surface-container-low rounded-xl p-3">
-            <p class="text-xs text-slate-400 mb-1">Brecha</p>
-            <p class="text-2xl font-bold" id="fc-brecha-pct">—</p>
+          <div id="fc-veredicto" class="text-sm rounded-xl px-4 py-3 mt-3 hidden"></div>
+        </div>
+
+        <!-- BEBIDAS (informativo) + TOTAL -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-3 mb-4">
+          <div class="border border-purple-100 bg-purple-50/40 rounded-2xl p-4 lg:col-span-2">
+            <div class="flex items-center gap-2 mb-2">
+              <span class="ms text-base text-purple-600">wine_bar</span>
+              <span class="text-sm font-bold text-slate-700">Beverage Cost (bebidas)</span>
+              <span class="text-[11px] text-slate-400">— Vinos, licores, refrescos</span>
+            </div>
+            <div class="flex items-end gap-4">
+              <div><p class="text-xs text-slate-400 mb-1">Gastado</p><p class="text-2xl font-bold text-purple-700" id="fc-bebida-pesos">—</p></div>
+              <div><p class="text-xs text-slate-400 mb-1">% de ventas</p><p class="text-2xl font-bold text-slate-600" id="fc-bebida-pct">—</p></div>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-2">El vino/licor se compra en bulto y rota lento. Esta cifra es ruidosa por semana — míralla por mes o con inventario (Capa 1b). Por eso va separada, para no contaminar tu Food Cost.</p>
           </div>
-          <div class="bg-surface-container-low rounded-xl p-3">
-            <p class="text-xs text-slate-400 mb-1">Exceso/ahorro $</p>
-            <p class="text-2xl font-bold" id="fc-brecha-pesos">—</p>
+          <div class="border border-slate-100 rounded-2xl p-4 flex flex-col justify-center">
+            <p class="text-xs text-slate-400 mb-1">Costo total insumos / ventas</p>
+            <p class="text-2xl font-bold text-slate-800" id="fc-total-pct">—</p>
+            <p class="text-xs text-slate-400 mt-1" id="fc-total-sub">food + bebidas</p>
           </div>
         </div>
 
-        <div id="fc-veredicto" class="text-sm rounded-xl px-4 py-3 mb-4 hidden"></div>
-
-        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Tendencia — últimas 6 semanas</p>
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Tendencia Food Cost — últimas 6 semanas (lun-dom)</p>
         <div id="fc-trend" class="flex items-end gap-2 h-32"></div>
         <p class="text-[11px] text-slate-400 mt-3 leading-relaxed">
           <span class="ms text-xs align-middle">info</span>
-          Capa 1a: food cost = compras de insumos ÷ ventas. Es el termómetro direccional — una semana que te surtiste de más lo infla y una que vaciaste alacena lo desinfla; se promedia en el mes. Para el número quirúrgico (sin distorsión de inventario) sigue la Capa 1b.
+          Capa 1a: costo = compras ÷ ventas. La tendencia muestra solo Food (el número confiable semanal). Una semana que te surtiste de más infla el dato y una que vaciaste alacena lo desinfla; se promedia en el mes. El número quirúrgico viene con la Capa 1b (inventario) o la Capa 2 (varianza por insumo).
         </p>
       </div>
 
@@ -2817,46 +2845,54 @@ async function confirmarSalida() {
 // ============================================================
 // P&L SEMANAL + ALERTAS DE PRECIOS
 // ============================================================
-// Categorización de compras: insumos (food cost) vs gastos fijos. Reutilizable.
-const FC_CATS_INSUMOS = ['Carnicería','Mariscos','Lácteos','Frutas y Verduras','Abarrotes','Vinos','Licores','Refrescos','Panadería','Semillas'];
+// Categorización de compras: food vs bebidas vs gastos fijos. Reutilizable.
+const FC_CATS_BEBIDA  = ['Vinos','Licores','Refrescos'];
+const FC_CATS_FOOD    = ['Carnicería','Mariscos','Lácteos','Frutas y Verduras','Abarrotes','Panadería','Semillas'];
+const FC_CATS_INSUMOS = [...FC_CATS_FOOD, ...FC_CATS_BEBIDA];
 const FC_CATS_FIJOS   = ['Nómina','Renta','Música','Gastos Fijos','Limpieza','Otros insumos'];
 function fcCostoInsumos(compras) {
-  let costoInsumos = 0, costoFijos = 0;
+  let costoFood = 0, costoBebida = 0, costoFijos = 0;
+  // Clasifica un monto a su balde según la categoría
+  const clasifica = (cat, monto) => {
+    if (FC_CATS_BEBIDA.includes(cat)) costoBebida += monto;
+    else if (FC_CATS_FIJOS.includes(cat)) costoFijos += monto;
+    else costoFood += monto; // food, o sin categoría → conservador como food
+  };
   compras.forEach(c => {
     const catTicket = c.categoria || '';
-    if (FC_CATS_INSUMOS.includes(catTicket)) {
-      costoInsumos += c.total || 0;
-    } else if (FC_CATS_FIJOS.includes(catTicket)) {
-      costoFijos += c.total || 0;
+    if (FC_CATS_INSUMOS.includes(catTicket) || FC_CATS_FIJOS.includes(catTicket)) {
+      clasifica(catTicket, c.total || 0);
     } else if (c.items && c.items.length > 0) {
       let sumaItems = 0;
       c.items.forEach(it => {
         const sub = (it.cantidad || 0) * (it.costo_unitario || 0);
-        const catItem = it.categoria || '';
-        if (FC_CATS_INSUMOS.includes(catItem)) costoInsumos += sub;
-        else if (FC_CATS_FIJOS.includes(catItem)) costoFijos += sub;
-        else costoInsumos += sub;
+        clasifica(it.categoria || '', sub);
         sumaItems += sub;
       });
       const resto = (c.total || 0) - sumaItems;
-      if (resto > 0.5) costoInsumos += resto;
+      if (resto > 0.5) clasifica(catTicket, resto);
     } else {
-      costoInsumos += c.total || 0;
+      clasifica(catTicket, c.total || 0);
     }
   });
-  return { costoInsumos, costoFijos };
+  return { costoFood, costoBebida, costoInsumos: costoFood + costoBebida, costoFijos };
 }
 
-// Calcula food cost de un rango (compras insumos ÷ ventas Loyverse)
+// Calcula costos de un rango (food y bebidas por separado ÷ ventas Loyverse)
 async function fcCalcPeriodo(desde, hasta) {
   const compras = DB.compras.filter(c => c.fecha >= desde && c.fecha <= hasta);
-  const { costoInsumos } = fcCostoInsumos(compras);
+  const { costoFood, costoBebida, costoInsumos } = fcCostoInsumos(compras);
   let ventas = 0;
   try { const r = await fetchReceipts(desde, hasta); ventas = r.reduce((a,x) => a + (x.total_money || 0), 0); } catch(e) {}
-  return { costoInsumos, ventas, fc: ventas > 0 ? costoInsumos / ventas * 100 : 0 };
+  return {
+    costoFood, costoBebida, costoInsumos, ventas,
+    fcFood:  ventas > 0 ? costoFood / ventas * 100 : 0,
+    fcBebida:ventas > 0 ? costoBebida / ventas * 100 : 0,
+    fc:      ventas > 0 ? costoInsumos / ventas * 100 : 0
+  };
 }
 
-function fcMeta() { return parseFloat(localStorage.getItem('fcMeta') || '32') || 32; }
+function fcMeta() { return parseFloat(localStorage.getItem('fcMeta') || '30') || 30; }
 window.fcGuardarMeta = function(v) {
   const n = parseFloat(String(v).replace(',', '.')) || 32;
   localStorage.setItem('fcMeta', n);
@@ -2874,15 +2910,22 @@ async function renderFoodCostTermometro() {
   const setCls = (id, cls) => { const e = document.getElementById(id); if (e) e.className = cls; };
 
   if (!desde || !hasta) return;
-  const { costoInsumos, ventas, fc } = await fcCalcPeriodo(desde, hasta);
+  const { costoFood, costoBebida, ventas, fcFood, fcBebida, fc } = await fcCalcPeriodo(desde, hasta);
 
-  const colorFc = fc <= meta ? 'text-green-700' : fc <= meta + 3 ? 'text-amber-600' : 'text-red-600';
-  set('fc-real', ventas > 0 ? fc.toFixed(1) + '%' : '—');
+  // FOOD (termómetro principal vs meta)
+  const colorFc = fcFood <= meta ? 'text-green-700' : fcFood <= meta + 3 ? 'text-amber-600' : 'text-red-600';
+  set('fc-real', ventas > 0 ? fcFood.toFixed(1) + '%' : '—');
   setCls('fc-real', 'text-2xl font-bold ' + colorFc);
   set('fc-meta-disp', meta.toFixed(0) + '%');
 
-  const brechaPct = fc - meta;
-  // Exceso en pesos: cuánto de más (o de menos) gastaste vs si hubieras cumplido la meta
+  // BEBIDAS (informativo) + TOTAL
+  set('fc-bebida-pesos', ventas > 0 || costoBebida > 0 ? fmt(costoBebida) : '—');
+  set('fc-bebida-pct', ventas > 0 ? fcBebida.toFixed(1) + '%' : '—');
+  set('fc-total-pct', ventas > 0 ? fc.toFixed(1) + '%' : '—');
+  set('fc-total-sub', 'Food ' + (ventas>0?fcFood.toFixed(1):'—') + '% + Bebidas ' + (ventas>0?fcBebida.toFixed(1):'—') + '%');
+
+  const brechaPct = fcFood - meta;
+  // Exceso en pesos: cuánto de más (o de menos) gastaste en FOOD vs si hubieras cumplido la meta
   const excesoPesos = ventas * (brechaPct / 100);
   set('fc-brecha-pct', (brechaPct >= 0 ? '+' : '') + brechaPct.toFixed(1) + ' pts');
   setCls('fc-brecha-pct', 'text-2xl font-bold ' + (brechaPct <= 0 ? 'text-green-700' : brechaPct <= 3 ? 'text-amber-600' : 'text-red-600'));
@@ -2914,7 +2957,7 @@ async function renderFoodCostTermometro() {
       const fin = new Date(ini); fin.setDate(ini.getDate() + 6);
       const d = ini.toISOString().split('T')[0], h = fin.toISOString().split('T')[0];
       const r = await fcCalcPeriodo(d, h);
-      semanas.push({ etiqueta: ini.toLocaleDateString('es-MX', { day:'2-digit', month:'short' }), fc: r.fc, ventas: r.ventas });
+      semanas.push({ etiqueta: ini.toLocaleDateString('es-MX', { day:'2-digit', month:'short' }), fc: r.fcFood, ventas: r.ventas });
     }
     const maxFc = Math.max(meta + 5, ...semanas.map(s => s.fc));
     trend.innerHTML = semanas.map(s => {
