@@ -2391,9 +2391,25 @@ function setSalidasPeriodo(tipo, btnEl) {
 
 function initPnL() { setPnLPeriodo('semana'); }
 
+// Semana del P&L = LUNES → DOMINGO (el lunes es día de compras; no hay ventas).
+// Así las compras del lunes se alinean con las ventas martes-domingo que surten.
+function getRangoSemanaPnL(tipo) {
+  const hoy = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  const toStr = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  const dow = hoy.getDay(); // 0=dom,1=lun,...6=sab
+  const diasDesdeLunes = (dow + 6) % 7; // dom→6, lun→0, mar→1...
+  const lunes = new Date(hoy); lunes.setDate(hoy.getDate() - diasDesdeLunes);
+  const domingo = new Date(lunes); domingo.setDate(lunes.getDate() + 6);
+  if (tipo === 'actual') return { desde: toStr(lunes), hasta: toStr(domingo) };
+  const lunesAnt = new Date(lunes); lunesAnt.setDate(lunes.getDate() - 7);
+  const domAnt = new Date(lunesAnt); domAnt.setDate(lunesAnt.getDate() + 6);
+  return { desde: toStr(lunesAnt), hasta: toStr(domAnt) };
+}
+
 function setPnLPeriodo(tipo) {
   const rangoTipo = tipo === 'semana' ? 'actual' : 'pasada';
-  const { desde, hasta } = getRangoSemana(rangoTipo);
+  const { desde, hasta } = getRangoSemanaPnL(rangoTipo);
   const desdeEl = document.getElementById('pnl-desde');
   const hastaEl = document.getElementById('pnl-hasta');
   if (desdeEl) desdeEl.value = desde;
@@ -2890,12 +2906,15 @@ async function renderFoodCostTermometro() {
   if (trend) {
     trend.innerHTML = '<span class="text-xs text-slate-300">Calculando…</span>';
     const semanas = [];
+    const hoyT = new Date();
+    const diasDesdeLunes = (hoyT.getDay() + 6) % 7;
+    const lunesActual = new Date(hoyT); lunesActual.setDate(hoyT.getDate() - diasDesdeLunes);
     for (let i = 5; i >= 0; i--) {
-      const fin = new Date(); fin.setDate(fin.getDate() - i * 7);
-      const ini = new Date(fin); ini.setDate(ini.getDate() - 6);
+      const ini = new Date(lunesActual); ini.setDate(lunesActual.getDate() - i * 7);
+      const fin = new Date(ini); fin.setDate(ini.getDate() + 6);
       const d = ini.toISOString().split('T')[0], h = fin.toISOString().split('T')[0];
       const r = await fcCalcPeriodo(d, h);
-      semanas.push({ etiqueta: fin.toLocaleDateString('es-MX', { day:'2-digit', month:'short' }), fc: r.fc, ventas: r.ventas });
+      semanas.push({ etiqueta: ini.toLocaleDateString('es-MX', { day:'2-digit', month:'short' }), fc: r.fc, ventas: r.ventas });
     }
     const maxFc = Math.max(meta + 5, ...semanas.map(s => s.fc));
     trend.innerHTML = semanas.map(s => {
