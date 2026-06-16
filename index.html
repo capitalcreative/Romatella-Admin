@@ -2537,9 +2537,15 @@ async function fetchReceipts(desde, hasta) {
     return new Promise(resolve => { RECEIPTS_CACHE_GLOBAL.waiters.push(resolve); });
   }
   RECEIPTS_CACHE_GLOBAL = { desde, hasta, data: null, loading: true, waiters: [] };
+  // México es UTC-6. Convertimos los límites del día (hora México) a UTC para
+  // que las ventas de la noche (>6 PM) NO se carguen al día siguiente.
+  // Mediodía-noche México 00:00 = 06:00 UTC; fin del día 23:59:59 México = 05:59:59 UTC del día siguiente.
+  const addDia = (s, n) => { const d = new Date(s + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().split('T')[0]; };
+  const fromUTC = desde + 'T06:00:00.000Z';
+  const toUTC   = addDia(hasta, 1) + 'T05:59:59.999Z';
   const resp = await fetch('/api/loyverse?endpoint=summary&date_from='
-    + encodeURIComponent(desde + 'T00:00:00.000Z')
-    + '&date_to=' + encodeURIComponent(hasta + 'T23:59:59.000Z'));
+    + encodeURIComponent(fromUTC)
+    + '&date_to=' + encodeURIComponent(toUTC));
   const data = await resp.json();
   const receipts = data.receipts || [];
   RECEIPTS_CACHE_GLOBAL.data = receipts;
