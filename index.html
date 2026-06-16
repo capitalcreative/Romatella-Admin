@@ -1479,6 +1479,49 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         </div>
       </div>
 
+      <!-- ═══ TERMÓMETRO DE FOOD COST (Capa 1a) ═══ -->
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 mb-6">
+        <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <div>
+            <h3 class="font-bold text-slate-900 flex items-center gap-2"><span class="ms text-primary">thermostat</span>Control de Food Cost</h3>
+            <p class="text-xs text-slate-400">Real vs tu meta — del período seleccionado arriba</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Meta %</label>
+            <input id="fc-meta" type="text" inputmode="decimal" value="32" onchange="fcGuardarMeta(this.value)"
+              class="w-16 text-center text-sm font-bold border border-slate-200 rounded-xl px-2 py-1.5 outline-none focus:border-primary"/>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+          <div class="bg-surface-container-low rounded-xl p-3">
+            <p class="text-xs text-slate-400 mb-1">Food cost real</p>
+            <p class="text-2xl font-bold" id="fc-real">—</p>
+          </div>
+          <div class="bg-surface-container-low rounded-xl p-3">
+            <p class="text-xs text-slate-400 mb-1">Meta</p>
+            <p class="text-2xl font-bold text-slate-500" id="fc-meta-disp">—</p>
+          </div>
+          <div class="bg-surface-container-low rounded-xl p-3">
+            <p class="text-xs text-slate-400 mb-1">Brecha</p>
+            <p class="text-2xl font-bold" id="fc-brecha-pct">—</p>
+          </div>
+          <div class="bg-surface-container-low rounded-xl p-3">
+            <p class="text-xs text-slate-400 mb-1">Exceso/ahorro $</p>
+            <p class="text-2xl font-bold" id="fc-brecha-pesos">—</p>
+          </div>
+        </div>
+
+        <div id="fc-veredicto" class="text-sm rounded-xl px-4 py-3 mb-4 hidden"></div>
+
+        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Tendencia — últimas 6 semanas</p>
+        <div id="fc-trend" class="flex items-end gap-2 h-32"></div>
+        <p class="text-[11px] text-slate-400 mt-3 leading-relaxed">
+          <span class="ms text-xs align-middle">info</span>
+          Capa 1a: food cost = compras de insumos ÷ ventas. Es el termómetro direccional — una semana que te surtiste de más lo infla y una que vaciaste alacena lo desinfla; se promedia en el mes. Para el número quirúrgico (sin distorsión de inventario) sigue la Capa 1b.
+        </p>
+      </div>
+
       <!-- Alertas de precios -->
       <div id="pnl-alertas-precios" class="mb-5 space-y-2"></div>
 
@@ -2758,6 +2801,115 @@ async function confirmarSalida() {
 // ============================================================
 // P&L SEMANAL + ALERTAS DE PRECIOS
 // ============================================================
+// Categorización de compras: insumos (food cost) vs gastos fijos. Reutilizable.
+const FC_CATS_INSUMOS = ['Carnicería','Mariscos','Lácteos','Frutas y Verduras','Abarrotes','Vinos','Licores','Refrescos','Panadería','Semillas'];
+const FC_CATS_FIJOS   = ['Nómina','Renta','Música','Gastos Fijos','Limpieza','Otros insumos'];
+function fcCostoInsumos(compras) {
+  let costoInsumos = 0, costoFijos = 0;
+  compras.forEach(c => {
+    const catTicket = c.categoria || '';
+    if (FC_CATS_INSUMOS.includes(catTicket)) {
+      costoInsumos += c.total || 0;
+    } else if (FC_CATS_FIJOS.includes(catTicket)) {
+      costoFijos += c.total || 0;
+    } else if (c.items && c.items.length > 0) {
+      let sumaItems = 0;
+      c.items.forEach(it => {
+        const sub = (it.cantidad || 0) * (it.costo_unitario || 0);
+        const catItem = it.categoria || '';
+        if (FC_CATS_INSUMOS.includes(catItem)) costoInsumos += sub;
+        else if (FC_CATS_FIJOS.includes(catItem)) costoFijos += sub;
+        else costoInsumos += sub;
+        sumaItems += sub;
+      });
+      const resto = (c.total || 0) - sumaItems;
+      if (resto > 0.5) costoInsumos += resto;
+    } else {
+      costoInsumos += c.total || 0;
+    }
+  });
+  return { costoInsumos, costoFijos };
+}
+
+// Calcula food cost de un rango (compras insumos ÷ ventas Loyverse)
+async function fcCalcPeriodo(desde, hasta) {
+  const compras = DB.compras.filter(c => c.fecha >= desde && c.fecha <= hasta);
+  const { costoInsumos } = fcCostoInsumos(compras);
+  let ventas = 0;
+  try { const r = await fetchReceipts(desde, hasta); ventas = r.reduce((a,x) => a + (x.total_money || 0), 0); } catch(e) {}
+  return { costoInsumos, ventas, fc: ventas > 0 ? costoInsumos / ventas * 100 : 0 };
+}
+
+function fcMeta() { return parseFloat(localStorage.getItem('fcMeta') || '32') || 32; }
+window.fcGuardarMeta = function(v) {
+  const n = parseFloat(String(v).replace(',', '.')) || 32;
+  localStorage.setItem('fcMeta', n);
+  renderFoodCostTermometro();
+};
+
+// Render del termómetro: usa el período seleccionado en P&L + tendencia 6 semanas
+async function renderFoodCostTermometro() {
+  const desde = document.getElementById('pnl-desde')?.value;
+  const hasta = document.getElementById('pnl-hasta')?.value;
+  const meta = fcMeta();
+  const metaInput = document.getElementById('fc-meta');
+  if (metaInput && metaInput.value != meta) metaInput.value = meta;
+  const set = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  const setCls = (id, cls) => { const e = document.getElementById(id); if (e) e.className = cls; };
+
+  if (!desde || !hasta) return;
+  const { costoInsumos, ventas, fc } = await fcCalcPeriodo(desde, hasta);
+
+  const colorFc = fc <= meta ? 'text-green-700' : fc <= meta + 3 ? 'text-amber-600' : 'text-red-600';
+  set('fc-real', ventas > 0 ? fc.toFixed(1) + '%' : '—');
+  setCls('fc-real', 'text-2xl font-bold ' + colorFc);
+  set('fc-meta-disp', meta.toFixed(0) + '%');
+
+  const brechaPct = fc - meta;
+  // Exceso en pesos: cuánto de más (o de menos) gastaste vs si hubieras cumplido la meta
+  const excesoPesos = ventas * (brechaPct / 100);
+  set('fc-brecha-pct', (brechaPct >= 0 ? '+' : '') + brechaPct.toFixed(1) + ' pts');
+  setCls('fc-brecha-pct', 'text-2xl font-bold ' + (brechaPct <= 0 ? 'text-green-700' : brechaPct <= 3 ? 'text-amber-600' : 'text-red-600'));
+  set('fc-brecha-pesos', (excesoPesos >= 0 ? '+' : '−') + fmt(Math.abs(excesoPesos)).replace('$',''));
+  setCls('fc-brecha-pesos', 'text-2xl font-bold ' + (excesoPesos <= 0 ? 'text-green-700' : 'text-red-600'));
+
+  const ver = document.getElementById('fc-veredicto');
+  if (ver && ventas > 0) {
+    ver.classList.remove('hidden');
+    if (brechaPct <= 0) {
+      ver.className = 'text-sm rounded-xl px-4 py-3 mb-4 bg-green-50 text-green-800 border border-green-100';
+      ver.innerHTML = `✅ Vas <b>${Math.abs(brechaPct).toFixed(1)} puntos bajo tu meta</b>. Estás ahorrando ~${fmt(Math.abs(excesoPesos))} en el período.`;
+    } else {
+      ver.className = 'text-sm rounded-xl px-4 py-3 mb-4 bg-red-50 text-red-800 border border-red-100';
+      ver.innerHTML = `⚠️ Vas <b>${brechaPct.toFixed(1)} puntos arriba de tu meta</b>. Son ~<b>${fmt(excesoPesos)}</b> de más en insumos este período. Revisa compras, porciones o merma.`;
+    }
+  }
+
+  // ── Tendencia últimas 6 semanas (bloques de 7 días hacia atrás desde hoy) ──
+  const trend = document.getElementById('fc-trend');
+  if (trend) {
+    trend.innerHTML = '<span class="text-xs text-slate-300">Calculando…</span>';
+    const semanas = [];
+    for (let i = 5; i >= 0; i--) {
+      const fin = new Date(); fin.setDate(fin.getDate() - i * 7);
+      const ini = new Date(fin); ini.setDate(ini.getDate() - 6);
+      const d = ini.toISOString().split('T')[0], h = fin.toISOString().split('T')[0];
+      const r = await fcCalcPeriodo(d, h);
+      semanas.push({ etiqueta: fin.toLocaleDateString('es-MX', { day:'2-digit', month:'short' }), fc: r.fc, ventas: r.ventas });
+    }
+    const maxFc = Math.max(meta + 5, ...semanas.map(s => s.fc));
+    trend.innerHTML = semanas.map(s => {
+      const h = maxFc > 0 ? Math.max(4, (s.fc / maxFc) * 100) : 4;
+      const col = s.ventas === 0 ? 'bg-slate-200' : s.fc <= meta ? 'bg-green-500' : s.fc <= meta + 3 ? 'bg-amber-400' : 'bg-red-500';
+      return `<div class="flex-1 flex flex-col items-center justify-end gap-1 h-full">
+        <span class="text-[10px] font-bold text-slate-600">${s.ventas === 0 ? '—' : s.fc.toFixed(0) + '%'}</span>
+        <div class="w-full ${col} rounded-t" style="height:${h}%"></div>
+        <span class="text-[9px] text-slate-400">${s.etiqueta}</span>
+      </div>`;
+    }).join('');
+  }
+}
+
 async function cargarPnL() {
   const desde = document.getElementById('pnl-desde')?.value;
   const hasta  = document.getElementById('pnl-hasta')?.value;
@@ -2778,36 +2930,7 @@ async function cargarPnL() {
 
   // ── KPIs ──────────────────────────────────────────────────
   // Separar insumos (food cost real) de gastos fijos/operativos
-  const CATS_INSUMOS = ['Carnicería','Mariscos','Lácteos','Frutas y Verduras','Abarrotes','Vinos','Licores','Refrescos','Panadería','Semillas'];
-  const CATS_FIJOS   = ['Nómina','Renta','Música','Gastos Fijos','Limpieza','Otros insumos'];
-
-  let costoInsumos = 0;
-  let costoFijos   = 0;
-  compras.forEach(c => {
-    const catTicket = c.categoria || '';
-    if (CATS_INSUMOS.includes(catTicket)) {
-      costoInsumos += c.total || 0;
-    } else if (CATS_FIJOS.includes(catTicket)) {
-      costoFijos += c.total || 0;
-    } else if (c.items && c.items.length > 0) {
-      // Compra mixta o sin categoría en cabecera: clasificar por item
-      let sumaItems = 0;
-      c.items.forEach(it => {
-        const sub = (it.cantidad || 0) * (it.costo_unitario || 0);
-        const catItem = it.categoria || '';
-        if (CATS_INSUMOS.includes(catItem)) costoInsumos += sub;
-        else if (CATS_FIJOS.includes(catItem)) costoFijos += sub;
-        else costoInsumos += sub; // sin categoría → conservador: cuenta como insumo
-        sumaItems += sub;
-      });
-      // Si los items no cubren el total del ticket (ej. diferencia por IVA), prorratea el resto
-      const resto = (c.total || 0) - sumaItems;
-      if (resto > 0.5) costoInsumos += resto; // atribuir resto a insumos conservadoramente
-    } else {
-      // Sin items y sin categoría reconocida → contar como insumo (no omitir)
-      costoInsumos += c.total || 0;
-    }
-  });
+  const { costoInsumos, costoFijos } = fcCostoInsumos(compras);
   const totalCostosPnL = costoInsumos + costoFijos;
   // Food cost = solo insumos / ventas (estándar de industria restaurantera)
   const fc       = totalVentas > 0 ? (costoInsumos / totalVentas * 100) : 0;
@@ -2830,6 +2953,9 @@ async function cargarPnL() {
     utEl.className   = 'text-2xl font-bold ' + (utilidad >= 0 ? 'text-green-700' : 'text-red-600');
   }
   s('pnl-utilidad-pct', utilPct.toFixed(1) + '% sobre ventas');
+
+  // ── Termómetro de Food Cost (Capa 1a) ─────────────────────
+  renderFoodCostTermometro();
 
   // ── Alertas de precios ────────────────────────────────────
   renderAlertasPrecios(desde, hasta);
