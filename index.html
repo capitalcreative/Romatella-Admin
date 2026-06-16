@@ -1550,6 +1550,54 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         </p>
       </div>
 
+      <!-- ═══ GASTOS FIJOS RECURRENTES ═══ -->
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 mb-6">
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div>
+            <h3 class="font-bold text-slate-900 flex items-center gap-2"><span class="ms text-primary">receipt_long</span>Gastos Fijos Recurrentes</h3>
+            <p class="text-xs text-slate-400">Se suman solos al P&L (prorrateados al período). Defínelos una vez.</p>
+          </div>
+          <button type="button" onclick="gfAbrirEditar()" class="px-3 py-1.5 rounded-xl bg-primary-container text-white text-xs font-semibold flex items-center gap-1">
+            <span class="ms text-sm">add</span>Agregar
+          </button>
+        </div>
+        <div id="gf-lista" class="space-y-1.5"></div>
+        <div class="flex items-center justify-between mt-3 pt-3 border-t border-slate-100">
+          <span class="text-sm font-semibold text-slate-500">Total gastos fijos del período</span>
+          <span class="text-lg font-bold text-slate-900" id="gf-total">—</span>
+        </div>
+      </div>
+
+      <!-- Modal gasto fijo -->
+      <div id="modal-gf" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="font-bold text-lg" id="gf-modal-titulo">Gasto fijo</h3>
+            <button type="button" onclick="closeModal('modal-gf')" class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center"><span class="ms">close</span></button>
+          </div>
+          <input type="hidden" id="gf-id"/>
+          <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Concepto</label>
+          <input id="gf-concepto" type="text" placeholder="Nómina" class="w-full px-3 py-2.5 bg-surface-container-low rounded-xl text-sm outline-none mb-3"/>
+          <div class="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Monto $</label>
+              <input id="gf-monto" type="text" inputmode="decimal" placeholder="10300" class="w-full px-3 py-2.5 bg-surface-container-low rounded-xl text-sm outline-none"/>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Frecuencia</label>
+              <select id="gf-frecuencia" class="w-full px-3 py-2.5 bg-surface-container-low rounded-xl text-sm outline-none">
+                <option value="semanal">Semanal</option>
+                <option value="mensual">Mensual</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button type="button" onclick="gfGuardar()" class="flex-1 bg-primary-container text-white py-3 rounded-2xl font-semibold text-sm">Guardar</button>
+            <button type="button" id="gf-del-btn" onclick="gfEliminar()" class="px-4 py-3 rounded-2xl border border-red-200 text-red-500 font-semibold text-sm hidden">Eliminar</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Alertas de precios -->
       <div id="pnl-alertas-precios" class="mb-5 space-y-2"></div>
 
@@ -2892,6 +2940,98 @@ async function fcCalcPeriodo(desde, hasta) {
   };
 }
 
+// ── GASTOS FIJOS RECURRENTES ──────────────────────────────
+function gfDefault() {
+  return [
+    { id:'gf-nomina',     concepto:'Nómina',     monto:10300, frecuencia:'semanal' },
+    { id:'gf-musica',     concepto:'Música',     monto:550,   frecuencia:'semanal' },
+    { id:'gf-renta',      concepto:'Renta',      monto:8000,  frecuencia:'mensual' },
+    { id:'gf-luz',        concepto:'Luz',        monto:2000,  frecuencia:'mensual' },
+    { id:'gf-publicidad', concepto:'Publicidad', monto:2000,  frecuencia:'mensual' },
+    { id:'gf-gas',        concepto:'Gas',        monto:1000,  frecuencia:'mensual' },
+    { id:'gf-contador',   concepto:'Contador',   monto:850,   frecuencia:'mensual' },
+  ];
+}
+function gfLoad() {
+  const r = localStorage.getItem('gastosFijos');
+  if (r === null) return gfDefault();
+  try { return JSON.parse(r); } catch { return gfDefault(); }
+}
+function gfSave(arr) { localStorage.setItem('gastosFijos', JSON.stringify(arr)); }
+function gfNum(v) { const n = parseFloat(String(v).replace(',', '.')); return isNaN(n) ? 0 : n; }
+
+// Costo fijo prorrateado a un rango de fechas
+function gfCostoPeriodo(desde, hasta) {
+  if (!desde || !hasta) return 0;
+  const dias = Math.round((new Date(hasta) - new Date(desde)) / 86400000) + 1;
+  let total = 0;
+  gfLoad().forEach(g => {
+    const m = gfNum(g.monto);
+    if (g.frecuencia === 'semanal') total += m * (dias / 7);
+    else total += m * (dias / 30.44); // mensual prorrateado
+  });
+  return Math.round(total * 100) / 100;
+}
+
+function renderGastosFijos() {
+  const cont = document.getElementById('gf-lista');
+  if (!cont) return;
+  const desde = document.getElementById('pnl-desde')?.value;
+  const hasta = document.getElementById('pnl-hasta')?.value;
+  const dias = (desde && hasta) ? Math.round((new Date(hasta) - new Date(desde)) / 86400000) + 1 : 7;
+  const arr = gfLoad();
+  if (!arr.length) { cont.innerHTML = '<p class="text-xs text-slate-300 py-2">Sin gastos fijos. Agrega el primero.</p>'; }
+  else cont.innerHTML = arr.map(g => {
+    const m = gfNum(g.monto);
+    const prorr = g.frecuencia === 'semanal' ? m * (dias/7) : m * (dias/30.44);
+    return `<div class="flex items-center justify-between py-1.5 border-b border-slate-50">
+      <div class="flex items-center gap-2">
+        <span class="text-sm text-slate-700">${g.concepto}</span>
+        <span class="text-[11px] px-1.5 py-0.5 rounded-full ${g.frecuencia==='semanal'?'bg-blue-50 text-primary':'bg-purple-50 text-purple-600'}">${g.frecuencia}</span>
+        <span class="text-xs text-slate-400">${fmt(m)}</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-sm font-semibold text-slate-800">${fmt(prorr)}</span>
+        <button type="button" onclick="gfAbrirEditar('${g.id}')" class="text-slate-300 hover:text-slate-600"><span class="ms text-base">edit</span></button>
+      </div>
+    </div>`;
+  }).join('');
+  const tot = document.getElementById('gf-total');
+  if (tot) tot.textContent = fmt(gfCostoPeriodo(desde, hasta));
+}
+
+window.gfAbrirEditar = function(id) {
+  const g = id ? gfLoad().find(x => x.id === id) : null;
+  document.getElementById('gf-modal-titulo').textContent = g ? 'Editar gasto fijo' : 'Nuevo gasto fijo';
+  document.getElementById('gf-id').value = g ? g.id : '';
+  document.getElementById('gf-concepto').value = g ? g.concepto : '';
+  document.getElementById('gf-monto').value = g ? g.monto : '';
+  document.getElementById('gf-frecuencia').value = g ? g.frecuencia : 'semanal';
+  document.getElementById('gf-del-btn').classList.toggle('hidden', !g);
+  document.getElementById('modal-gf').classList.remove('hidden');
+};
+window.gfGuardar = function() {
+  const concepto = document.getElementById('gf-concepto').value.trim();
+  if (!concepto) { toast('Escribe el concepto'); return; }
+  const id = document.getElementById('gf-id').value || ('gf' + Date.now());
+  const g = { id, concepto, monto: gfNum(document.getElementById('gf-monto').value), frecuencia: document.getElementById('gf-frecuencia').value };
+  const arr = gfLoad();
+  const idx = arr.findIndex(x => x.id === id);
+  if (idx >= 0) arr[idx] = g; else arr.push(g);
+  gfSave(arr);
+  closeModal('modal-gf');
+  toast('✓ Gasto fijo guardado');
+  if (typeof cargarPnL === 'function') cargarPnL();
+};
+window.gfEliminar = function() {
+  const id = document.getElementById('gf-id').value;
+  if (!id) return;
+  gfSave(gfLoad().filter(x => x.id !== id));
+  closeModal('modal-gf');
+  toast('Gasto fijo eliminado');
+  if (typeof cargarPnL === 'function') cargarPnL();
+};
+
 function fcMeta() { return parseFloat(localStorage.getItem('fcMeta') || '30') || 30; }
 window.fcGuardarMeta = function(v) {
   const n = parseFloat(String(v).replace(',', '.')) || 32;
@@ -2993,7 +3133,10 @@ async function cargarPnL() {
   // ── KPIs ──────────────────────────────────────────────────
   // Separar insumos (food cost real) de gastos fijos/operativos
   const { costoInsumos, costoFijos } = fcCostoInsumos(compras);
-  const totalCostosPnL = costoInsumos + costoFijos;
+  // Gastos fijos = los registrados como compra + los recurrentes prorrateados
+  const gfRecurrente = gfCostoPeriodo(desde, hasta);
+  const costoFijosTotal = costoFijos + gfRecurrente;
+  const totalCostosPnL = costoInsumos + costoFijosTotal;
   // Food cost = solo insumos / ventas (estándar de industria restaurantera)
   const fc       = totalVentas > 0 ? (costoInsumos / totalVentas * 100) : 0;
   const utilidad = totalVentas - totalCostosPnL;
@@ -3002,7 +3145,7 @@ async function cargarPnL() {
   const s = (id, val) => { const e = document.getElementById(id); if(e) e.textContent = val; };
   s('pnl-ventas',  fmt(totalVentas));
   s('pnl-costos',  fmt(costoInsumos));
-  s('pnl-costos-sub', 'Insumos · Gastos fijos: ' + fmt(costoFijos));
+  s('pnl-costos-sub', 'Insumos · Gastos fijos: ' + fmt(costoFijosTotal));
 
   const fcEl = document.getElementById('pnl-fc');
   if (fcEl) {
@@ -3018,6 +3161,7 @@ async function cargarPnL() {
 
   // ── Termómetro de Food Cost (Capa 1a) ─────────────────────
   renderFoodCostTermometro();
+  renderGastosFijos();
 
   // ── Alertas de precios ────────────────────────────────────
   renderAlertasPrecios(desde, hasta);
