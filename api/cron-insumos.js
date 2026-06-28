@@ -43,25 +43,31 @@ async function loyReceipts(desdeISO) {
 
 function calcConsumo(insumo, receipts) {
   const desdeTs = insumo.fecha ? new Date(insumo.fecha + 'T00:00:00').getTime() : 0;
-  let consumido = 0;
   const reglas = Array.isArray(insumo.reglas) ? insumo.reglas
     : (() => { try { return JSON.parse(insumo.reglas || '[]'); } catch { return []; } })();
+  const platilloRules = reglas.filter(r => r.tipo === 'platillo' && (r.match || '').trim());
+  const modRules      = reglas.filter(r => r.tipo !== 'platillo' && (r.match || '').trim());
+  // Regla más específica (match más largo) → evita doble-conteo (ej. "Doble Tocino" vs "Tocino")
+  const mejorConsumo = (texto, rules) => {
+    const t = (texto || '').toLowerCase();
+    let bestLen = -1, bestCons = 0;
+    rules.forEach(r => {
+      const m = (r.match || '').toLowerCase().trim();
+      if (t.includes(m) && m.length > bestLen) { bestLen = m.length; bestCons = num(r.consumo); }
+    });
+    return bestCons;
+  };
+  let consumido = 0;
   receipts.forEach(r => {
     const ts = new Date(r.receipt_date || r.created_at || 0).getTime();
     if (ts < desdeTs) return;
     (r.line_items || []).forEach(li => {
       const qty = parseFloat(li.quantity) || 0;
-      const nombre = (li.item_name || '').toLowerCase();
-      reglas.forEach(rg => {
-        const match = (rg.match || '').toLowerCase().trim();
-        if (!match) return;
-        if (rg.tipo === 'platillo') {
-          if (nombre.includes(match)) consumido += qty * num(rg.consumo);
-        } else {
-          (li.line_modifiers || []).forEach(m => {
-            if (modTexto(m).toLowerCase().includes(match)) consumido += qty * num(rg.consumo);
-          });
-        }
+      const cp = mejorConsumo(li.item_name, platilloRules);
+      if (cp > 0) consumido += qty * cp;
+      (li.line_modifiers || []).forEach(m => {
+        const cm = mejorConsumo(modTexto(m), modRules);
+        if (cm > 0) consumido += qty * cm;
       });
     });
   });

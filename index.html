@@ -3607,6 +3607,20 @@ function monModTexto(m) {
 // Calcula consumo de un insumo cruzando con los recibos
 function monCalcConsumo(insumo, receipts) {
   const desdeTs = insumo.fecha ? new Date(insumo.fecha + 'T00:00:00').getTime() : 0;
+  const reglas = insumo.reglas || [];
+  const platilloRules = reglas.filter(r => r.tipo === 'platillo' && (r.match || '').trim());
+  const modRules      = reglas.filter(r => r.tipo !== 'platillo' && (r.match || '').trim());
+  // Regla MÁS específica (match más largo) que aplique al texto → evita doble-conteo
+  // (ej. "Doble Tocino" no dispara también la regla "Tocino").
+  const mejorConsumo = (texto, rules) => {
+    const t = (texto || '').toLowerCase();
+    let bestLen = -1, bestCons = 0;
+    rules.forEach(r => {
+      const m = (r.match || '').toLowerCase().trim();
+      if (t.includes(m) && m.length > bestLen) { bestLen = m.length; bestCons = monNum(r.consumo); }
+    });
+    return bestCons;
+  };
   let consumido = 0, tickets = 0;
   receipts.forEach(r => {
     const ts = new Date(r.receipt_date || r.created_at || 0).getTime();
@@ -3614,17 +3628,11 @@ function monCalcConsumo(insumo, receipts) {
     let usado = false;
     (r.line_items || []).forEach(li => {
       const qty = parseFloat(li.quantity) || 0;
-      const nombre = (li.item_name || '').toLowerCase();
-      (insumo.reglas || []).forEach(rg => {
-        const match = (rg.match || '').toLowerCase().trim();
-        if (!match) return;
-        if (rg.tipo === 'platillo') {
-          if (nombre.includes(match)) { consumido += qty * monNum(rg.consumo); usado = true; }
-        } else { // modificador
-          (li.line_modifiers || []).forEach(m => {
-            if (monModTexto(m).toLowerCase().includes(match)) { consumido += qty * monNum(rg.consumo); usado = true; }
-          });
-        }
+      const cp = mejorConsumo(li.item_name, platilloRules);
+      if (cp > 0) { consumido += qty * cp; usado = true; }
+      (li.line_modifiers || []).forEach(m => {
+        const cm = mejorConsumo(monModTexto(m), modRules);
+        if (cm > 0) { consumido += qty * cm; usado = true; }
       });
     });
     if (usado) tickets++;
