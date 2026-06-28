@@ -46,7 +46,7 @@ function calcConsumo(insumo, receipts) {
   const reglas = Array.isArray(insumo.reglas) ? insumo.reglas
     : (() => { try { return JSON.parse(insumo.reglas || '[]'); } catch { return []; } })();
   const platilloRules = reglas.filter(r => r.tipo === 'platillo' && (r.match || '').trim());
-  const modRules      = reglas.filter(r => r.tipo !== 'platillo' && (r.match || '').trim());
+  const modRules      = reglas.filter(r => r.tipo === 'modificador' && (r.match || '').trim());
   // Regla más específica (match más largo) → evita doble-conteo (ej. "Doble Tocino" vs "Tocino")
   const mejorConsumo = (texto, rules) => {
     const t = (texto || '').toLowerCase();

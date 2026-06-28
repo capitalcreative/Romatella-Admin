@@ -1686,6 +1686,12 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           </div>
         </div>
 
+        <div class="mb-3 p-3 rounded-xl bg-amber-50/60 border border-amber-100">
+          <label class="block text-xs font-semibold text-amber-700 uppercase tracking-wider mb-1">🥩 Proteína — detectar compra (opcional)</label>
+          <input id="mon-compra" type="text" placeholder="Texto del producto en compras (ej. Camarón)" class="w-full px-3 py-2 bg-white rounded-lg text-sm outline-none border border-amber-200"/>
+          <p class="text-[11px] text-amber-600 mt-1">Si lo llenas, cada vez que registres una compra con este texto, el sistema te pedirá capturar las porciones netas (ya limpio/porcionado) para cuadrar el stock.</p>
+        </div>
+
         <div class="mb-2 flex items-center justify-between">
           <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Reglas de consumo</label>
           <button type="button" onclick="monAddRegla()" class="text-xs font-semibold text-primary flex items-center gap-0.5"><span class="ms text-sm">add</span>Regla</button>
@@ -1709,6 +1715,22 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         </div>
         <p class="text-xs text-slate-400 mb-3">Usa estos nombres exactos en tus reglas (basta una parte del texto).</p>
         <div id="mon-det-content" class="text-sm"></div>
+      </div>
+    </div>
+
+    <!-- Modal cuadrar stock de proteína al comprar -->
+    <div id="modal-mon-compra" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl p-5 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="ms text-amber-600">scale</span>
+          <h3 class="font-bold text-lg">Cuadrar stock de proteína</h3>
+        </div>
+        <p class="text-xs text-slate-400 mb-4">Registraste una compra de proteína. Captura las <b>porciones netas</b> que entraron al stock (ya limpio y porcionado). La diferencia con lo comprado es tu merma de preparación.</p>
+        <div id="mon-compra-lista" class="space-y-3 mb-4"></div>
+        <div class="flex gap-2">
+          <button type="button" onclick="monCompraAplicar()" class="flex-1 bg-primary-container text-white py-3 rounded-2xl font-semibold text-sm">Sumar al stock</button>
+          <button type="button" onclick="closeModal('modal-mon-compra')" class="px-4 py-3 rounded-2xl border border-slate-200 text-slate-500 font-semibold text-sm">Ahora no</button>
+        </div>
       </div>
     </div>
 
@@ -3609,7 +3631,7 @@ function monCalcConsumo(insumo, receipts) {
   const desdeTs = insumo.fecha ? new Date(insumo.fecha + 'T00:00:00').getTime() : 0;
   const reglas = insumo.reglas || [];
   const platilloRules = reglas.filter(r => r.tipo === 'platillo' && (r.match || '').trim());
-  const modRules      = reglas.filter(r => r.tipo !== 'platillo' && (r.match || '').trim());
+  const modRules      = reglas.filter(r => r.tipo === 'modificador' && (r.match || '').trim());
   // Regla MÁS específica (match más largo) que aplique al texto → evita doble-conteo
   // (ej. "Doble Tocino" no dispara también la regla "Tocino").
   const mejorConsumo = (texto, rules) => {
@@ -3770,9 +3792,13 @@ window.monAbrirEditar = function(id) {
   document.getElementById('mon-umbral').value = insumo ? insumo.umbral : '';
   document.getElementById('mon-fecha').value = insumo ? insumo.fecha : new Date().toISOString().split('T')[0];
   document.getElementById('mon-del-btn').classList.toggle('hidden', !insumo);
+  // Campo de compra (regla tipo 'compra')
+  const compraRule = insumo && (insumo.reglas || []).find(r => r.tipo === 'compra');
+  document.getElementById('mon-compra').value = compraRule ? compraRule.match : '';
   const wrap = document.getElementById('mon-reglas');
   wrap.innerHTML = '';
-  if (insumo && insumo.reglas?.length) insumo.reglas.forEach(rg => monAddRegla(rg.tipo, rg.match, rg.consumo));
+  const consumoRules = insumo ? (insumo.reglas || []).filter(r => r.tipo === 'platillo' || r.tipo === 'modificador') : [];
+  if (consumoRules.length) consumoRules.forEach(rg => monAddRegla(rg.tipo, rg.match, rg.consumo));
   else { monAddRegla('modificador'); }
   document.getElementById('modal-mon').classList.remove('hidden');
 };
@@ -3788,6 +3814,9 @@ window.monGuardar = function() {
     match: row.querySelector('.mon-r-match').value.trim(),
     consumo: monNum(row.querySelector('.mon-r-consumo').value)
   })).filter(r => r.match && r.consumo > 0);
+  // Regla de compra (proteína) — para disparar el cuadre de stock al comprar
+  const compraTxt = document.getElementById('mon-compra').value.trim();
+  if (compraTxt) reglas.push({ tipo: 'compra', match: compraTxt });
   const insumo = {
     id, nombre,
     unidad: document.getElementById('mon-unidad').value.trim() || 'kg',
@@ -3814,6 +3843,62 @@ window.monEliminar = function() {
   closeModal('modal-mon');
   toast('Insumo eliminado');
   monRender();
+};
+
+// Al registrar una compra: detecta proteínas y abre el modal para cuadrar stock
+let MON_COMPRA_PENDIENTES = [];
+async function monCheckCompraProteina(items) {
+  if (!Array.isArray(items) || !items.length) return;
+  await monSyncFromSupabase();
+  const insumos = monLoad();
+  MON_COMPRA_PENDIENTES = [];
+  insumos.forEach(ins => {
+    const compraRule = (ins.reglas || []).find(r => r.tipo === 'compra' && (r.match || '').trim());
+    if (!compraRule) return;
+    const m = compraRule.match.toLowerCase().trim();
+    // ¿algún item de la compra matchea?
+    const matched = items.filter(it => (it.nombre || '').toLowerCase().includes(m));
+    if (matched.length) {
+      const cantComprada = matched.reduce((a, it) => a + (parseFloat(it.cantidad) || 0), 0);
+      const unidadCompra = matched[0].unidad || '';
+      MON_COMPRA_PENDIENTES.push({ id: ins.id, nombre: ins.nombre, unidadStock: ins.unidad, cantComprada, unidadCompra });
+    }
+  });
+  if (!MON_COMPRA_PENDIENTES.length) return;
+  const cont = document.getElementById('mon-compra-lista');
+  cont.innerHTML = MON_COMPRA_PENDIENTES.map((p, i) => `
+    <div class="border border-slate-100 rounded-xl p-3">
+      <div class="flex items-center justify-between mb-2">
+        <span class="font-bold text-slate-800">${p.nombre}</span>
+        <span class="text-xs text-slate-400">compraste ${p.cantComprada} ${p.unidadCompra}</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-xs text-slate-500">Porciones netas que entraron:</span>
+        <input type="text" inputmode="decimal" id="mon-compra-in-${i}" placeholder="0"
+          class="w-20 text-center text-sm font-bold border border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:border-primary"/>
+        <span class="text-xs text-slate-400">${p.unidadStock}</span>
+      </div>
+    </div>`).join('');
+  document.getElementById('modal-mon-compra').classList.remove('hidden');
+}
+
+window.monCompraAplicar = async function() {
+  const arr = monLoad();
+  let aplicados = 0;
+  for (let i = 0; i < MON_COMPRA_PENDIENTES.length; i++) {
+    const netas = monNum(document.getElementById('mon-compra-in-' + i)?.value);
+    if (netas <= 0) continue;
+    const p = MON_COMPRA_PENDIENTES[i];
+    const idx = arr.findIndex(x => x.id === p.id);
+    if (idx < 0) continue;
+    arr[idx].base = Math.round((monNum(arr[idx].base) + netas) * 1000) / 1000;
+    monPushRemote(arr[idx]);
+    aplicados++;
+  }
+  monSave(arr);
+  MON_COMPRA_PENDIENTES = [];
+  closeModal('modal-mon-compra');
+  if (aplicados) { toast('✓ Stock actualizado con ' + aplicados + ' proteína(s)'); if (typeof monRender === 'function') monRender(); }
 };
 
 window.monDetectados = async function() {
@@ -4887,6 +4972,10 @@ async function registerCompra() {
     if (estatus !== 'Pagado') prov.saldo = (prov.saldo||0) + total;
 
     toast('Compra guardada: ' + proveedor + ' ' + fmt(total));
+
+    // Detectar proteínas en la compra → abrir cuadre de stock
+    if (typeof monCheckCompraProteina === 'function') monCheckCompraProteina(items);
+
     resetForm();
 
     // Si esta compra venia del modo batch, avanzar al siguiente
