@@ -41,8 +41,12 @@ async function loyReceipts(desdeISO) {
   return receipts;
 }
 
+function fechaTs(f) {
+  if (!f) return 0;
+  return new Date(/[T ]\d/.test(f) ? f : (f + 'T00:00:00')).getTime();
+}
 function calcConsumo(insumo, receipts) {
-  const desdeTs = insumo.fecha ? new Date(insumo.fecha + 'T00:00:00').getTime() : 0;
+  const desdeTs = fechaTs(insumo.fecha);
   const reglas = Array.isArray(insumo.reglas) ? insumo.reglas
     : (() => { try { return JSON.parse(insumo.reglas || '[]'); } catch { return []; } })();
   const platilloRules = reglas.filter(r => r.tipo === 'platillo' && (r.match || '').trim());
@@ -108,7 +112,7 @@ export default async function handler(req, res) {
 
     // Fecha base más antigua para una sola llamada a Loyverse
     let desde = new Date().toISOString().split('T')[0];
-    insumos.forEach(i => { if (i.fecha && i.fecha < desde) desde = i.fecha; });
+    insumos.forEach(i => { const f = (i.fecha || '').slice(0,10); if (f && f < desde) desde = f; });
     const receipts = await loyReceipts(desde + 'T00:00:00.000Z');
 
     const hoy = new Date().toISOString().split('T')[0];

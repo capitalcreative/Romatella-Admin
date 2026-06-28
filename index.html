@@ -1734,6 +1734,28 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
       </div>
     </div>
 
+    <!-- Modal conteo físico (reinicia desde AHORA) -->
+    <div id="modal-mon-conteo" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl p-5 w-full max-w-sm shadow-2xl">
+        <div class="flex items-center gap-2 mb-1">
+          <span class="ms text-primary">inventory</span>
+          <h3 class="font-bold text-lg">Conteo físico</h3>
+        </div>
+        <p class="text-xs text-slate-400 mb-4" id="mon-conteo-sub">¿Cuántas tienes AHORA?</p>
+        <input type="hidden" id="mon-conteo-id"/>
+        <div class="flex items-center gap-2 mb-4">
+          <input type="text" inputmode="decimal" id="mon-conteo-valor" placeholder="0"
+            class="flex-1 text-center text-2xl font-bold border-2 border-slate-200 rounded-2xl px-3 py-3 outline-none focus:border-primary"/>
+          <span class="text-sm text-slate-400" id="mon-conteo-unidad"></span>
+        </div>
+        <p class="text-[11px] text-slate-400 mb-4">El conteo se ancla a este momento. A partir de ahora solo se descuentan las ventas <b>nuevas</b> — lo que ya vendiste no se vuelve a restar.</p>
+        <div class="flex gap-2">
+          <button type="button" onclick="monConteoGuardar()" class="flex-1 bg-primary-container text-white py-3 rounded-2xl font-semibold text-sm">Guardar conteo</button>
+          <button type="button" onclick="closeModal('modal-mon-conteo')" class="px-4 py-3 rounded-2xl border border-slate-200 text-slate-500 font-semibold text-sm">Cancelar</button>
+        </div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -3626,9 +3648,16 @@ function monModTexto(m) {
   return [m.option, m.name, m.modifier_option, m.modifier_name].filter(Boolean).join(' ');
 }
 
+// Timestamp del conteo base. Soporta fecha-solo (día) o fecha+hora (ISO exacto
+// del conteo físico). Solo se descuentan ventas POSTERIORES a este momento.
+function monFechaTs(f) {
+  if (!f) return 0;
+  return new Date(/[T ]\d/.test(f) ? f : (f + 'T00:00:00')).getTime();
+}
+
 // Calcula consumo de un insumo cruzando con los recibos
 function monCalcConsumo(insumo, receipts) {
-  const desdeTs = insumo.fecha ? new Date(insumo.fecha + 'T00:00:00').getTime() : 0;
+  const desdeTs = monFechaTs(insumo.fecha);
   const reglas = insumo.reglas || [];
   const platilloRules = reglas.filter(r => r.tipo === 'platillo' && (r.match || '').trim());
   const modRules      = reglas.filter(r => r.tipo === 'modificador' && (r.match || '').trim());
@@ -3668,7 +3697,7 @@ async function monFetchReceipts() {
   const insumos = monLoad();
   const hoy = new Date().toISOString().split('T')[0];
   let desde = hoy;
-  insumos.forEach(i => { if (i.fecha && i.fecha < desde) desde = i.fecha; });
+  insumos.forEach(i => { const f = (i.fecha || '').slice(0,10); if (f && f < desde) desde = f; });
   // margen de 1 día atrás por zona horaria
   return await fetchReceipts(desde, hoy);
 }
@@ -3702,7 +3731,7 @@ async function monRender() {
     if (bajo) enAlerta++;
     const color = bajo ? 'red' : medio ? 'amber' : 'emerald';
     const barColor = bajo ? 'bg-red-500' : medio ? 'bg-amber-400' : 'bg-emerald-500';
-    const fechaTxt = insumo.fecha ? new Date(insumo.fecha + 'T12:00:00').toLocaleDateString('es-MX',{day:'2-digit',month:'short'}) : '—';
+    const fechaTxt = insumo.fecha ? new Date((insumo.fecha||'').slice(0,10) + 'T12:00:00').toLocaleDateString('es-MX',{day:'2-digit',month:'short'}) : '—';
     const card = document.createElement('div');
     card.className = `bg-white rounded-2xl border ${bajo ? 'border-red-200' : 'border-slate-100'} shadow-sm p-4`;
     card.innerHTML = `
@@ -3790,7 +3819,7 @@ window.monAbrirEditar = function(id) {
   document.getElementById('mon-unidad').value = insumo ? insumo.unidad : 'kg';
   document.getElementById('mon-base').value = insumo ? insumo.base : '';
   document.getElementById('mon-umbral').value = insumo ? insumo.umbral : '';
-  document.getElementById('mon-fecha').value = insumo ? insumo.fecha : new Date().toISOString().split('T')[0];
+  document.getElementById('mon-fecha').value = insumo ? (insumo.fecha || '').slice(0,10) : new Date().toISOString().split('T')[0];
   document.getElementById('mon-del-btn').classList.toggle('hidden', !insumo);
   // Campo de compra (regla tipo 'compra')
   const compraRule = insumo && (insumo.reglas || []).find(r => r.tipo === 'compra');
@@ -3803,7 +3832,32 @@ window.monAbrirEditar = function(id) {
   document.getElementById('modal-mon').classList.remove('hidden');
 };
 
-window.monActualizarConteo = function(id) { monAbrirEditar(id); document.getElementById('mon-base').focus(); };
+window.monActualizarConteo = function(id) {
+  const insumo = monLoad().find(x => x.id === id);
+  if (!insumo) return;
+  document.getElementById('mon-conteo-id').value = id;
+  document.getElementById('mon-conteo-sub').textContent = '¿Cuántas ' + (insumo.unidad || '') + ' de ' + insumo.nombre + ' tienes AHORA?';
+  document.getElementById('mon-conteo-unidad').textContent = insumo.unidad || '';
+  document.getElementById('mon-conteo-valor').value = '';
+  document.getElementById('modal-mon-conteo').classList.remove('hidden');
+  setTimeout(() => document.getElementById('mon-conteo-valor').focus(), 100);
+};
+
+window.monConteoGuardar = function() {
+  const id = document.getElementById('mon-conteo-id').value;
+  const valor = monNum(document.getElementById('mon-conteo-valor').value);
+  const arr = monLoad();
+  const idx = arr.findIndex(x => x.id === id);
+  if (idx < 0) return;
+  // Ancla el conteo al momento EXACTO → el consumo se reinicia a 0 desde ahora
+  arr[idx].base = valor;
+  arr[idx].fecha = new Date().toISOString();
+  monSave(arr);
+  monPushRemote(arr[idx]);
+  closeModal('modal-mon-conteo');
+  toast('✓ Conteo guardado: ' + valor + ' ' + (arr[idx].unidad || ''));
+  monRender();
+};
 
 window.monGuardar = function() {
   const id = document.getElementById('mon-id').value || ('mon' + Date.now());
