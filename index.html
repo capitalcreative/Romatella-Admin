@@ -4083,8 +4083,15 @@ function initDate() {
   const str = now.toLocaleDateString('es-MX', opts);
   document.getElementById('dash-date').textContent = str.charAt(0).toUpperCase() + str.slice(1);
   document.getElementById('header-date').textContent = now.toLocaleDateString('es-MX',{day:'2-digit',month:'2-digit',year:'numeric'});
-  document.getElementById('f-fecha').value = now.toISOString().split('T')[0];
-  document.getElementById('pay-fecha').value = now.toISOString().split('T')[0];
+  document.getElementById('f-fecha').value = hoyLocal();
+  document.getElementById('pay-fecha').value = hoyLocal();
+}
+// Fecha local (México), NO UTC — evita que una compra registrada en la noche
+// salte al día siguiente (toISOString da UTC, +6h adelantado).
+function hoyLocal() {
+  const d = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
 }
 function fmt(n) { return '$' + parseFloat(n||0).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function fmtDate(str) {
@@ -4915,7 +4922,7 @@ function resetForm() {
   document.getElementById('total-descuadre')?.classList.add('hidden');
   document.getElementById('venc-alert').classList.add('hidden');
   document.getElementById('upload-status').classList.add('hidden');
-  const today = new Date().toISOString().split('T')[0];
+  const today = hoyLocal();
   document.getElementById('f-fecha').value = today;
   // Resetear forma de pago y condición a defaults
   setFormaPago('Efectivo', null);
@@ -7725,10 +7732,10 @@ function filtrarHistorial(filtro, btnEl) {
   if (filtro === 'hoy') {
     compras = compras.filter(c => c.fecha === todayStr);
   } else if (filtro === 'semana') {
-    const { desde: sd, hasta: sh } = getRangoSemana('actual');
+    const { desde: sd, hasta: sh } = getRangoSemanaPnL('actual');
     compras = compras.filter(c => c.fecha >= sd && c.fecha <= sh);
   } else if (filtro === 'semana-pasada') {
-    const { desde: sd, hasta: sh } = getRangoSemana('pasada');
+    const { desde: sd, hasta: sh } = getRangoSemanaPnL('pasada');
     compras = compras.filter(c => c.fecha >= sd && c.fecha <= sh);
   } else if (filtro === 'mes') {
     const mesStr = hoy.getFullYear() + '-' + pad(hoy.getMonth() + 1);
@@ -7842,10 +7849,10 @@ function renderHistorialPorFecha() {
   if (filtro === 'hoy') {
     compras = compras.filter(c => c.fecha === todayStr);
   } else if (filtro === 'semana') {
-    const { desde, hasta } = getRangoSemana('actual');
+    const { desde, hasta } = getRangoSemanaPnL('actual');
     compras = compras.filter(c => c.fecha >= desde && c.fecha <= hasta);
   } else if (filtro === 'semana-pasada') {
-    const { desde, hasta } = getRangoSemana('pasada');
+    const { desde, hasta } = getRangoSemanaPnL('pasada');
     compras = compras.filter(c => c.fecha >= desde && c.fecha <= hasta);
   } else if (filtro === 'mes') {
     const mesStr = hoy.getFullYear() + '-' + pad(hoy.getMonth()+1);
@@ -8030,10 +8037,10 @@ function renderHistorialPorProveedor() {
   if (filtro === 'hoy') {
     compras = compras.filter(c => c.fecha === todayStr);
   } else if (filtro === 'semana') {
-    const { desde: sd, hasta: sh } = getRangoSemana('actual');
+    const { desde: sd, hasta: sh } = getRangoSemanaPnL('actual');
     compras = compras.filter(c => c.fecha >= sd && c.fecha <= sh);
   } else if (filtro === 'semana-pasada') {
-    const { desde: sd, hasta: sh } = getRangoSemana('pasada');
+    const { desde: sd, hasta: sh } = getRangoSemanaPnL('pasada');
     compras = compras.filter(c => c.fecha >= sd && c.fecha <= sh);
   } else if (filtro === 'mes') {
     const mesStr = hoy.getFullYear() + '-' + pad(hoy.getMonth()+1);
@@ -8848,10 +8855,10 @@ function renderReportes(periodo) {
   let compras = [...DB.compras];
 
   if (p === 'semana') {
-    const { desde: sd, hasta: sh } = getRangoSemana('actual');
+    const { desde: sd, hasta: sh } = getRangoSemanaPnL('actual');
     compras = compras.filter(c => c.fecha >= sd && c.fecha <= sh);
   } else if (p === 'semana-pasada') {
-    const { desde: sd, hasta: sh } = getRangoSemana('pasada');
+    const { desde: sd, hasta: sh } = getRangoSemanaPnL('pasada');
     compras = compras.filter(c => c.fecha >= sd && c.fecha <= sh);
   } else if (p === 'mes') {
     const mesStr = hoy.getFullYear() + '-' + pad(hoy.getMonth() + 1);
@@ -8974,7 +8981,7 @@ function initCondicionFechas() {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = hoyLocal();
   document.getElementById('f-fecha').value = today;
   document.getElementById('pay-fecha').value = today;
   addItem();
