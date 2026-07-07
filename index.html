@@ -6872,7 +6872,7 @@ function exportarCSV() {
 
   const BARRA = {
     'Refrescos': ['Agua Mineral 2L','Agua Tónica','Botella de Agua 500ml','Coca Cola 235ml','Coca Cola Regular','Coca Cola Zero','Manzanita 2L','Peñafiel 355ml','Peñafiel 600ml','Sprite 600ml','Sprite 2L','Squirt 2L','Topo Chico 600ml'],
-    'Pulpas': ['Pulpa Fresa','Pulpa Frutos Rojos','Pulpa Maracuyá'],
+    'Pulpas': ['Pulpa Kiwi','Pulpa Frutos Rojos','Pulpa Maracuyá'],
     'Cerveza': ['Corona','Jabalí Bock','Jabalí IPA','Modelo Especial','Negra Modelo','Sin Alcohol Modelo','Stella Artois','Victoria'],
     'Semillas barra': ['Chile Guajillo','Chile Negro','Jamaica'],
     'Papelería': ['Bolígrafos','Cinta Masking','Grapas','Rollos Impresora','Rollos Terminales PDV'],
@@ -6889,8 +6889,8 @@ function exportarCSV() {
 
   const COCINA = {
     'Superama': ['Anchoas','Arroz Risotto','Corn Flakes','Encendedores','Fettuccine','Galletas para Salame','Galletas Salmas','Gas para Rellenar','Grenetina','Mayonesa','Microdin','Mostaza','Pan Bimbo','Papel Cocina','Pasta Lasagna','Penne','Polvo Camarón','Salsa Soya','Spaghetti','Tortiglioni','Vinagre Balsámico','Vino Blanco Cocina'],
-    'Costco': ['Aceite Oliva','Aceite Regular','Aceitunas Negras','Aceitunas Verdes','Alcaparras','Arúgula','Chocolate Hershey','Helado Vainilla','Jamón Serrano','Jitomate Bola','Jitomate Deshidratado','Leche Entera','Lechugas','Manteca Vegetal para Freír','Mascarpone','Philadelphia','Puré Tomate','Queso Azul','Queso Chihuahua','Queso de Cabra','Queso Mozzarella Fresco','Queso Ricotta','Vodka Cocina'],
-    'Mercado': ['Ajo','Albahaca','Apio','Arándano Fresco','Berenjena','Calabaza','Cebolla Blanca','Cebolla Morada','Champiñón','Chile Habanero Chocolate','Chips Betabel','Espárrago','Fresa a Granel','Fresa Cajita','Hierbabuena','Huevo','Jitomate Cherry','Jitomate Salsa Pomodoro','Limón','Limón Eureka','Mantequilla Desy','Manzana Amarilla','Naranja','Papa Cambray','Perejil','Pimiento Morrón','Romero','Zanahoria','Gas'],
+    'Costco': ['Aceite Oliva','Aceite Regular','Aceitunas Negras','Aceitunas Verdes','Alcaparras','Arúgula','Chocolate Hershey','Helado Vainilla','Jamón Serrano','Jitomate Bola','Jitomate Deshidratado','Leche Entera','Lechugas','Mascarpone','Philadelphia','Puré Tomate','Queso Azul','Queso Chihuahua','Queso de Cabra','Queso Mozzarella Fresco','Queso Ricotta','Vodka Cocina'],
+    'Mercado': ['Ajo','Albahaca','Apio','Arándano Fresco','Berenjena','Calabaza','Cebolla Blanca','Cebolla Morada','Champiñón','Chile Habanero Chocolate','Chips Betabel','Eneldo','Espárrago','Fresa a Granel','Fresa Cajita','Hierbabuena','Huevo','Jitomate Cherry','Jitomate Salsa Pomodoro','Limón','Limón Eureka','Mantequilla Desy','Manzana Amarilla','Naranja','Papa Cambray','Perejil','Pimiento Morrón','Romero','Zanahoria','Gas'],
     'Semillas y Materias Primas': ['Azúcar Glass','Almendra','Arándano Deshidratado','Azúcar','Chile de Árbol','Chile Guajillo','Chile Negro','Chocolate Semi Amargo','Gotas de Chocolate','Harina','Miel','Nuez de la India','Nuez Granillo','Pan Molido','Pimienta en Grano','Pistacho','Sal de Grano','Sal Fina','Vainilla'],
     'Carnicería': ['Carne Carpaccio','Carne Molida Res','Pollo Porción','Pollo Scaloppine','Tocino','Arrachera'],
     'Mariscos': ['Almejas','Aros Calamar','Atún','Camarón Grande','Mejillones','Nuggets','Pulpo','Salmón'],
@@ -9239,7 +9239,7 @@ const PROVEEDOR_MAP = {
 
   // ── COSTCO ──
   'Leche Entera':'COSTCO','Queso Mozzarella Fresco':'COSTCO','Queso de Cabra':'COSTCO','Chocolate Hershey':'COSTCO',
-  'Manteca Vegetal para Freír':'COSTCO','Pollo Porción':'COSTCO','Pollo Scaloppine':'COSTCO','Carne Molida Res':'COSTCO',
+  'Pollo Porción':'COSTCO','Pollo Scaloppine':'COSTCO','Carne Molida Res':'COSTCO',
   'Peñafiel 600ml':'COSTCO','Peñafiel 355ml':'COSTCO','Kirkland':'COSTCO','Aceite Oliva':'COSTCO','Aceite Regular':'COSTCO',
   'Aceitunas Negras':'COSTCO','Aceitunas Verdes':'COSTCO','Helado Vainilla':'COSTCO','Jitomate Bola':'COSTCO',
   'Jamón Serrano':'COSTCO','Jitomate Deshidratado':'COSTCO','Mascarpone':'COSTCO',
@@ -9260,7 +9260,7 @@ const PROVEEDOR_MAP = {
   'Berenjena':'MERCADO','Jitomate Cherry':'MERCADO','Champiñón':'MERCADO','Zanahoria':'MERCADO',
   'Cebolla Morada':'MERCADO','Cebolla Blanca':'MERCADO','Apio':'MERCADO','Limón':'MERCADO','Huevo':'MERCADO',
   'Albahaca':'MERCADO','Perejil':'MERCADO','Romero':'MERCADO','Hierbabuena':'MERCADO','Ajo':'MERCADO',
-  'Calabaza':'MERCADO','Chile Habanero Chocolate':'MERCADO','Chips Betabel':'MERCADO','Espárrago':'MERCADO',
+  'Calabaza':'MERCADO','Chile Habanero Chocolate':'MERCADO','Chips Betabel':'MERCADO','Eneldo':'MERCADO','Espárrago':'MERCADO',
   'Fresa a Granel':'MERCADO','Limón Eureka':'MERCADO','Manzana Amarilla':'MERCADO',
   'Naranja':'MERCADO','Papa Cambray':'MERCADO','Pimiento Morrón':'MERCADO',
 
@@ -9295,7 +9295,7 @@ const PROVEEDOR_MAP = {
   'Baguette':'PANADERÍA',
 
   // ── PULPA MÍA ──
-  'Pulpa Fresa':'PULPA MÍA','Pulpa Frutos Rojos':'PULPA MÍA','Pulpa Maracuyá':'PULPA MÍA',
+  'Pulpa Kiwi':'PULPA MÍA','Pulpa Frutos Rojos':'PULPA MÍA','Pulpa Maracuyá':'PULPA MÍA',
 
   // ── CAFE EUROPA ──
   'Café':'CAFE EUROPA','Café Descafeinado':'CAFE EUROPA',
