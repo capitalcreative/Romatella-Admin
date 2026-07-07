@@ -9398,7 +9398,7 @@ let lcSaveTimer = null;
 function lcSaveDebounced() { lcSetGuardado('guardando…', false); clearTimeout(lcSaveTimer); lcSaveTimer = setTimeout(lcSave, 700); }
 async function lcSave() {
   const id = lcWeekId();
-  const payload = { lcData, lcFecha, reqNombres: (lcReqsUsadas || []).map(r => r.nombre) };
+  const payload = { lcData, lcFecha, modo: lcSoloComprar, reqNombres: (lcReqsUsadas || []).map(r => r.nombre) };
   try { localStorage.setItem('lcActiva', JSON.stringify({ id, ...payload })); } catch {}
   try {
     await fetch('/api/supabase', { method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -9414,12 +9414,12 @@ async function lcLoadSaved() {
     const rows = await resp.json();
     if (Array.isArray(rows) && rows.length) {
       const p = typeof rows[0].data === 'string' ? JSON.parse(rows[0].data) : rows[0].data;
-      if (p && p.lcData) { lcData = p.lcData; lcFecha = p.lcFecha || lcFecha; lcReqsUsadas = (p.reqNombres || []).map(n => ({ nombre: n })); return true; }
+      if (p && p.lcData) { lcData = p.lcData; lcFecha = p.lcFecha || lcFecha; lcReqsUsadas = (p.reqNombres || []).map(n => ({ nombre: n })); lcSoloComprar = !!p.modo; return true; }
     }
   } catch (e) {}
   try {
     const l = JSON.parse(localStorage.getItem('lcActiva') || 'null');
-    if (l && l.id === id && l.lcData) { lcData = l.lcData; lcFecha = l.lcFecha || lcFecha; lcReqsUsadas = (l.reqNombres || []).map(n => ({ nombre: n })); return true; }
+    if (l && l.id === id && l.lcData) { lcData = l.lcData; lcFecha = l.lcFecha || lcFecha; lcReqsUsadas = (l.reqNombres || []).map(n => ({ nombre: n })); lcSoloComprar = !!l.modo; return true; }
   } catch (e) {}
   return false;
 }
@@ -9469,21 +9469,30 @@ function lcRowClass(r, isCocina) {
 }
 
 // Devuelve la cantidad final a pedir para un item (null = omitir del export)
+// ¿El admin decidió comprar este item? = escribió una cantidad a pedir (no cero)
+// O está marcado sin stock. La cantidad de REFERENCIA del inventario NO cuenta.
+function lcVaComprar(r) {
+  if (r.ss) return true;
+  if (r.pedido === '' || r.pedido == null) return false;
+  const str = String(r.pedido).replace(',','.').trim();
+  if (/^0+(\.0+)?$/.test(str)) return false;
+  return true;
+}
+
 function lcCantFinal(r) {
   if (r.pedido !== '' && r.pedido != null) {
     const str = String(r.pedido).replace(',','.').trim();
-    // Excluir solo si es puramente cero sin unidad
     if (/^0+(\.0+)?$/.test(str)) return null;
-    return str; // preservar texto completo: "2 kg", "1 paquete", "1.5 lt", etc.
+    return str; // preservar texto completo: "2 kg", "1 paquete", etc.
   }
   if (r.ss) return '⚠️ sin stock';
-  return r.qty || null;
+  return null; // sin pedido explícito → no se compra
 }
 
-// Items de una sección listos para exportar (excluye comprados y qty=0)
+// Items de una sección listos para exportar (solo los que el admin va a comprar)
 function lcItemsParaExportar(sec) {
   return (lcData[sec] || [])
-    .filter(r => !r.comprado)
+    .filter(r => !r.comprado && lcVaComprar(r))
     .map(r => ({ ...r, _cant: lcCantFinal(r) }))
     .filter(r => r._cant !== null);
 }
@@ -9625,18 +9634,30 @@ function lcExportCSV() {
   toast('✓ Excel descargado');
 }
 
+// lcModoFinal: false = planeando (ves todo el inventario, pones cantidades)
+//              true  = lista cerrada (solo lo que vas a comprar, checklist)
 let lcSoloComprar = false;
 function lcToggleSolo() {
   lcSoloComprar = !lcSoloComprar;
-  const btn = document.getElementById('lc-solo-btn');
-  if (btn) btn.className = lcSoloComprar
-    ? 'px-2.5 py-1.5 rounded-xl bg-primary text-white text-xs font-semibold flex items-center gap-1'
-    : 'px-2.5 py-1.5 rounded-xl border border-slate-200 text-slate-500 text-xs font-semibold flex items-center gap-1 hover:bg-slate-50';
+  lcSave(); // persiste el modo + cantidades
   lcRender();
+  if (lcSoloComprar) toast('✓ Lista guardada — este es tu reporte de compras');
+}
+function lcUpdateModoBtn() {
+  const btn = document.getElementById('lc-solo-btn');
+  if (!btn) return;
+  if (lcSoloComprar) {
+    btn.innerHTML = '<span class="ms text-sm">edit</span>Editar / agregar';
+    btn.className = 'px-2.5 py-1.5 rounded-xl border border-slate-200 text-slate-500 text-xs font-semibold flex items-center gap-1 hover:bg-slate-50';
+  } else {
+    btn.innerHTML = '<span class="ms text-sm">check_circle</span>Guardar lista';
+    btn.className = 'px-2.5 py-1.5 rounded-xl bg-green-500 text-white text-xs font-semibold flex items-center gap-1 hover:bg-green-600';
+  }
 }
 
 function lcRender() {
   const cont = document.getElementById('lc-content');
+  lcUpdateModoBtn();
   const sortedSecs = Object.keys(lcData).sort((a,b) => {
     const ai = PROVEEDOR_ORDER.indexOf(a), bi = PROVEEDOR_ORDER.indexOf(b);
     return (ai<0?999:ai) - (bi<0?999:bi);
@@ -9648,17 +9669,28 @@ function lcRender() {
     return;
   }
 
-  // Banner: muestra qué requisiciones están incluidas
-  const bannerReqs = lcReqsUsadas.map(r => {
-    const fecha = r.fecha ? new Date(r.fecha).toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'}) : '—';
-    return `<span class="inline-flex items-center gap-1 bg-white border border-slate-200 rounded-full px-3 py-1 text-xs font-medium text-slate-700">
-      <span class="ms text-sm text-green-500">check_circle</span>${r.nombre} · ${fecha}
-    </span>`;
-  }).join('');
-  const banner = `<div class="mb-3 p-3 bg-green-50 border border-green-200 rounded-xl">
-    <div class="text-xs font-semibold text-green-800 mb-2">Basado en ${lcReqsUsadas.length} requisición(es) aprobada(s):</div>
-    <div class="flex flex-wrap gap-2">${bannerReqs}</div>
-  </div>`;
+  // En modo lista cerrada: si no seleccionaste nada, avisar
+  if (lcSoloComprar) {
+    const totalComprar = sortedSecs.reduce((a,sec) => a + lcData[sec].filter(r => lcVaComprar(r)).length, 0);
+    if (!totalComprar) {
+      cont.innerHTML = `<div class="text-center py-16 text-slate-400"><span class="ms text-5xl block mb-3">shopping_cart</span>
+        Aún no seleccionaste qué comprar.<br>Dale a <b>"Editar / agregar"</b> y escribe las cantidades a pedir.</div>`;
+      lcRenderProgress();
+      return;
+    }
+  }
+
+  // Banner (solo en modo planear)
+  const banner = lcSoloComprar ? '' : (() => {
+    const bannerReqs = lcReqsUsadas.map(r => {
+      const fecha = r.fecha ? new Date(r.fecha).toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'}) : '—';
+      return `<span class="inline-flex items-center gap-1 bg-white border border-slate-200 rounded-full px-3 py-1 text-xs font-medium text-slate-700">
+        <span class="ms text-sm text-green-500">check_circle</span>${r.nombre} · ${fecha}</span>`;
+    }).join('');
+    return `<div class="mb-3 p-3 bg-green-50 border border-green-200 rounded-xl">
+      <div class="text-xs font-semibold text-green-800 mb-2">Basado en ${lcReqsUsadas.length} requisición(es) aprobada(s):</div>
+      <div class="flex flex-wrap gap-2">${bannerReqs}</div></div>`;
+  })();
 
   cont.innerHTML = banner + sortedSecs.map(sec => {
     const rows = lcData[sec];
@@ -9666,7 +9698,7 @@ function lcRender() {
     const hdrColor = isCocina ? 'bg-slate-900 text-white' : 'bg-primary text-white';
     const safeId = sec.replace(/\s/g,'_');
     // En modo "solo comprar" ocultar los que no llevan cantidad/sin-stock
-    const visibles = rows.map((r, i) => ({ r, i })).filter(({r}) => !lcSoloComprar || lcCantFinal(r) !== null);
+    const visibles = rows.map((r, i) => ({ r, i })).filter(({r}) => !lcSoloComprar || lcVaComprar(r));
     if (lcSoloComprar && !visibles.length) return ''; // proveedor sin nada que comprar
     const pendCount = visibles.filter(({r}) => !r.comprado).length;
 
@@ -9736,6 +9768,7 @@ async function lcAbrir() {
     document.getElementById('lc-progress-label').textContent = 'Sin lista';
     return;
   }
+  lcSoloComprar = false; // lista nueva → modo planear (pones cantidades)
   lcBuildData();
   lcRender();
   lcSave();
@@ -9745,6 +9778,7 @@ function lcRegenerar() {
   const aprobadas = (DB.requisiciones || []).filter(r => r.estatus === 'Aprobada');
   if (!aprobadas.length) { toast('No hay requisiciones aprobadas para regenerar'); return; }
   if (!confirm('¿Rearmar la lista desde el inventario actual? Se perderán las cantidades y marcas que ya pusiste en esta lista.')) return;
+  lcSoloComprar = false;
   lcBuildData();
   lcRender();
   lcSave();
