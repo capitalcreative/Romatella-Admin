@@ -9758,8 +9758,19 @@ async function lcAbrirGuardada(id) {
   lcRenderChecklist();
 }
 
+let lcCollapsed = {}; // { sec: true } proveedores cerrados en el checklist
+function lcToggleSec(sec) {
+  lcCollapsed[sec] = !lcCollapsed[sec];
+  const secId = sec.replace(/\s/g,'_');
+  const body = document.getElementById('lc-secbody-' + secId);
+  const chev = document.getElementById('lc-chev-' + secId);
+  if (body) body.style.display = lcCollapsed[sec] ? 'none' : '';
+  if (chev) chev.style.transform = lcCollapsed[sec] ? 'rotate(0deg)' : 'rotate(180deg)';
+}
+
 function lcRenderChecklist() {
   lcScreen = 'check';
+  lcCollapsed = {}; // arranca fresco: los proveedores completados se auto-colapsan
   lcChrome({ title: lcListaMeta.titulo || 'Lista de compras', progress: '', back: true, actions: '', footer: true });
   const cont = document.getElementById('lc-content');
   const secs = Object.keys(lcData).sort(lcSort);
@@ -9768,17 +9779,23 @@ function lcRenderChecklist() {
     const visibles = rows.map((r,i) => ({r,i})).filter(({r}) => lcVaComprar(r));
     if (!visibles.length) return '';
     const pend = visibles.filter(({r}) => !r.comprado).length;
+    // auto-colapsar proveedores ya completados (todo comprado)
+    if (lcCollapsed[sec] === undefined && pend === 0) lcCollapsed[sec] = true;
+    const colapsado = !!lcCollapsed[sec];
     const rowsHtml = visibles.map(({r,i}) => `<div id="lc-row-${safeId}-${i}" class="${lcRowClass(r, isCocina)}">
       <div class="lc-chk shrink-0 cursor-pointer" onclick="lcToggle('${secEsc}',${i})">${r.comprado?'<span class="ms ms-fill text-green-500 text-xl">check_circle</span>':'<span class="ms text-xl text-slate-200">radio_button_unchecked</span>'}</div>
       <span class="lc-item-name cursor-pointer flex-1 text-sm leading-snug ${r.comprado?'line-through text-slate-300':'text-slate-800'}" onclick="lcToggle('${secEsc}',${i})">${r.item}</span>
       <span class="text-sm font-bold shrink-0 ${r.comprado?'text-slate-300':(r.ss?'text-red-500':'text-slate-700')}">${lcCantFinal(r)||''}</span>
     </div>`).join('');
     return `<div class="rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
-      <div class="${isCocina?'bg-slate-900 text-white':'bg-primary text-white'} px-4 py-3 flex items-center justify-between">
-        <div><div class="font-bold text-sm tracking-wide">${sec}</div><div class="text-xs opacity-70 mt-0.5">${pend} por comprar</div></div>
+      <div class="${isCocina?'bg-slate-900 text-white':'bg-primary text-white'} px-4 py-3 flex items-center justify-between cursor-pointer select-none" onclick="lcToggleSec('${secEsc}')">
+        <div class="flex items-center gap-2">
+          <span class="ms text-base" id="lc-chev-${safeId}" style="display:inline-block;transition:transform .2s;transform:rotate(${colapsado?'0':'180'}deg)">expand_less</span>
+          <div><div class="font-bold text-sm tracking-wide">${sec}</div><div class="text-xs opacity-70 mt-0.5">${pend === 0 ? '✓ completado' : pend + ' por comprar'}</div></div>
+        </div>
         <button onclick="event.stopPropagation();lcCopiarPortapapeles('${secEsc}', this);" class="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-white/20 hover:bg-white/30"><span class="ms text-base">content_copy</span> Copiar</button>
       </div>
-      <div class="p-3 space-y-1.5 bg-surface">${rowsHtml}</div></div>`;
+      <div id="lc-secbody-${safeId}" class="p-3 space-y-1.5 bg-surface" style="display:${colapsado?'none':''}">${rowsHtml}</div></div>`;
   }).join('');
   cont.innerHTML = html || '<div class="text-center py-16 text-slate-400">Esta lista no tiene artículos por comprar</div>';
   lcRenderProgress();
