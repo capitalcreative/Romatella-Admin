@@ -9176,10 +9176,16 @@ if (window.location.pathname === '/inventario') {
           <span class="ms text-xl text-primary">shopping_cart</span> Lista de Compras
         </div>
         <div class="text-xs text-slate-400 mt-0.5" id="lc-progress-label">Cargando…</div>
+        <div class="text-[11px] mt-0.5 flex items-center gap-1" id="lc-guardado"></div>
       </div>
-      <button onclick="lcCerrar()" class="w-9 h-9 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-slate-100">
-        <span class="ms text-xl">close</span>
-      </button>
+      <div class="flex items-center gap-2">
+        <button onclick="lcRegenerar()" title="Rearmar desde el inventario actual" class="px-2.5 py-1.5 rounded-xl border border-slate-200 text-slate-500 text-xs font-semibold flex items-center gap-1 hover:bg-slate-50">
+          <span class="ms text-sm">refresh</span>Regenerar
+        </button>
+        <button onclick="lcCerrar()" class="w-9 h-9 rounded-full border border-slate-200 flex items-center justify-center text-slate-400 hover:bg-slate-100">
+          <span class="ms text-xl">close</span>
+        </button>
+      </div>
     </div>
 
     <!-- Barra de progreso -->
@@ -9369,6 +9375,46 @@ function lcBuildData() {
   });
 }
 
+// ── Persistencia de la lista de compras (respaldo real) ──
+// Una lista por semana (lunes-domingo), guardada en Supabase + localStorage.
+function lcWeekId() {
+  try { return 'lc-' + getRangoSemanaPnL('actual').desde; } catch { return 'lc-' + hoyLocal(); }
+}
+function lcSetGuardado(txt, ok) {
+  const el = document.getElementById('lc-guardado');
+  if (!el) return;
+  el.innerHTML = txt ? `<span class="ms text-xs ${ok?'text-green-500':'text-slate-300'}">${ok?'cloud_done':'cloud_sync'}</span><span class="${ok?'text-green-600':'text-slate-400'}">${txt}</span>` : '';
+}
+let lcSaveTimer = null;
+function lcSaveDebounced() { lcSetGuardado('guardando…', false); clearTimeout(lcSaveTimer); lcSaveTimer = setTimeout(lcSave, 700); }
+async function lcSave() {
+  const id = lcWeekId();
+  const payload = { lcData, lcFecha, reqNombres: (lcReqsUsadas || []).map(r => r.nombre) };
+  try { localStorage.setItem('lcActiva', JSON.stringify({ id, ...payload })); } catch {}
+  try {
+    await fetch('/api/supabase', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table: 'listas_compras', action: 'upsert', data: { id, data: payload } }) });
+    lcSetGuardado('guardado', true);
+  } catch (e) { lcSetGuardado('guardado local', true); }
+}
+async function lcLoadSaved() {
+  const id = lcWeekId();
+  try {
+    const resp = await fetch('/api/supabase', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table: 'listas_compras', action: 'select', filters: 'id=eq.' + encodeURIComponent(id), order: 'none' }) });
+    const rows = await resp.json();
+    if (Array.isArray(rows) && rows.length) {
+      const p = typeof rows[0].data === 'string' ? JSON.parse(rows[0].data) : rows[0].data;
+      if (p && p.lcData) { lcData = p.lcData; lcFecha = p.lcFecha || lcFecha; lcReqsUsadas = (p.reqNombres || []).map(n => ({ nombre: n })); return true; }
+    }
+  } catch (e) {}
+  try {
+    const l = JSON.parse(localStorage.getItem('lcActiva') || 'null');
+    if (l && l.id === id && l.lcData) { lcData = l.lcData; lcFecha = l.lcFecha || lcFecha; lcReqsUsadas = (l.reqNombres || []).map(n => ({ nombre: n })); return true; }
+  } catch (e) {}
+  return false;
+}
+
 function lcRenderProgress() {
   let total = 0, done = 0;
   Object.values(lcData).forEach(rows => rows.forEach(r => { total++; if (r.comprado) done++; }));
@@ -9397,11 +9443,13 @@ function lcToggle(sec, idx) {
     if (inputArea) inputArea.style.opacity = lcData[sec][idx].comprado ? '0.3' : '1';
   }
   lcRenderProgress();
+  lcSaveDebounced();
 }
 
 function lcSetPedido(sec, idx, val) {
   const normalized = String(val).replace(',', '.');
   lcData[sec][idx].pedido = normalized;
+  lcSaveDebounced();
 }
 
 function lcRowClass(r, isCocina) {
@@ -9645,21 +9693,40 @@ function lcRender() {
   lcRenderProgress();
 }
 
-function lcAbrir() {
+async function lcAbrir() {
+  document.getElementById('modal-lc').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  document.getElementById('lc-content').innerHTML = '<div class="text-center py-16 text-slate-400 text-sm">Cargando lista…</div>';
+  lcSetGuardado('', false);
+
+  // 1) Intentar retomar la lista guardada de esta semana (respaldo)
+  const cargada = await lcLoadSaved();
+  if (cargada) { lcRender(); lcSetGuardado('guardado', true); return; }
+
+  // 2) No hay lista guardada → construir desde requisiciones aprobadas
   const todas = DB.requisiciones || [];
-  if (!todas.length) { toast('Sin requisiciones cargadas'); return; }
   const aprobadas = todas.filter(r => r.estatus === 'Aprobada');
   if (!aprobadas.length) {
     const pendientes = todas.filter(r => r.estatus === 'Pendiente').length;
-    toast(pendientes > 0
-      ? `Aprueba primero las ${pendientes} requisición(es) pendiente(s)`
-      : 'No hay requisiciones aprobadas');
+    document.getElementById('lc-content').innerHTML = `<div class="text-center py-16 text-slate-400">
+      <span class="ms text-5xl block mb-3">inventory_2</span>
+      ${pendientes > 0 ? 'Aprueba primero las ' + pendientes + ' requisición(es) pendiente(s)' : 'No hay requisiciones aprobadas ni lista guardada esta semana'}</div>`;
+    document.getElementById('lc-progress-label').textContent = 'Sin lista';
     return;
   }
   lcBuildData();
   lcRender();
-  document.getElementById('modal-lc').classList.remove('hidden');
-  document.body.style.overflow = 'hidden';
+  lcSave();
+}
+
+function lcRegenerar() {
+  const aprobadas = (DB.requisiciones || []).filter(r => r.estatus === 'Aprobada');
+  if (!aprobadas.length) { toast('No hay requisiciones aprobadas para regenerar'); return; }
+  if (!confirm('¿Rearmar la lista desde el inventario actual? Se perderán las cantidades y marcas que ya pusiste en esta lista.')) return;
+  lcBuildData();
+  lcRender();
+  lcSave();
+  toast('Lista regenerada desde inventario');
 }
 
 function lcCerrar() {
