@@ -136,6 +136,9 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         <span class="ms text-lg">fact_check</span>Inventario Empleados
         <span id="req-badge" class="ml-auto text-xs bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
       </div>
+      <div onclick="lcAbrir()" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-listacompras">
+        <span class="ms text-lg">shopping_cart</span>Lista de Compras
+      </div>
     </nav>
     <button type="button" onclick="doLogout()" class="mx-2 mb-2 text-slate-400 py-2 px-3 rounded-xl text-sm flex items-center gap-2 hover:bg-slate-100 transition-colors">
       <span class="ms text-lg">logout</span>Cerrar sesión
@@ -213,6 +216,9 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         <div onclick="mobileNav('requisiciones')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
           <span class="ms text-lg">fact_check</span>Inventario Empleados
           <span id="mob-req-badge" class="ml-auto text-xs bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center hidden">0</span>
+        </div>
+        <div onclick="closeMobileMenu();lcAbrir()" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
+          <span class="ms text-lg">shopping_cart</span>Lista de Compras
         </div>
       </nav>
       <button type="button" onclick="doLogout()" class="mx-2 mb-2 text-slate-400 py-2.5 px-3 rounded-xl text-sm flex items-center gap-2 hover:bg-slate-100 transition-colors">
@@ -9179,6 +9185,9 @@ if (window.location.pathname === '/inventario') {
         <div class="text-[11px] mt-0.5 flex items-center gap-1" id="lc-guardado"></div>
       </div>
       <div class="flex items-center gap-2">
+        <button id="lc-solo-btn" onclick="lcToggleSolo()" title="Ver solo lo que voy a comprar" class="px-2.5 py-1.5 rounded-xl border border-slate-200 text-slate-500 text-xs font-semibold flex items-center gap-1 hover:bg-slate-50">
+          <span class="ms text-sm">checklist</span>Solo comprar
+        </button>
         <button onclick="lcRegenerar()" title="Rearmar desde el inventario actual" class="px-2.5 py-1.5 rounded-xl border border-slate-200 text-slate-500 text-xs font-semibold flex items-center gap-1 hover:bg-slate-50">
           <span class="ms text-sm">refresh</span>Regenerar
         </button>
@@ -9616,6 +9625,16 @@ function lcExportCSV() {
   toast('✓ Excel descargado');
 }
 
+let lcSoloComprar = false;
+function lcToggleSolo() {
+  lcSoloComprar = !lcSoloComprar;
+  const btn = document.getElementById('lc-solo-btn');
+  if (btn) btn.className = lcSoloComprar
+    ? 'px-2.5 py-1.5 rounded-xl bg-primary text-white text-xs font-semibold flex items-center gap-1'
+    : 'px-2.5 py-1.5 rounded-xl border border-slate-200 text-slate-500 text-xs font-semibold flex items-center gap-1 hover:bg-slate-50';
+  lcRender();
+}
+
 function lcRender() {
   const cont = document.getElementById('lc-content');
   const sortedSecs = Object.keys(lcData).sort((a,b) => {
@@ -9645,11 +9664,14 @@ function lcRender() {
     const rows = lcData[sec];
     const isCocina = LC_COCINA_SECS.has(sec);
     const hdrColor = isCocina ? 'bg-slate-900 text-white' : 'bg-primary text-white';
-    const pendCount = rows.filter(r => !r.comprado).length;
     const safeId = sec.replace(/\s/g,'_');
+    // En modo "solo comprar" ocultar los que no llevan cantidad/sin-stock
+    const visibles = rows.map((r, i) => ({ r, i })).filter(({r}) => !lcSoloComprar || lcCantFinal(r) !== null);
+    if (lcSoloComprar && !visibles.length) return ''; // proveedor sin nada que comprar
+    const pendCount = visibles.filter(({r}) => !r.comprado).length;
 
     const secEsc = sec.replace(/'/g,"\\'");
-    const rowsHtml = rows.map((r, i) => `
+    const rowsHtml = visibles.map(({ r, i }) => `
       <div id="lc-row-${safeId}-${i}" class="${lcRowClass(r, isCocina)}">
         <div class="lc-chk shrink-0 cursor-pointer" onclick="lcToggle('${secEsc}',${i})">
           ${r.comprado
