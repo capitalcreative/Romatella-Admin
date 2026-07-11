@@ -129,6 +129,9 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
       <div onclick="showSec('monitor')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-monitor">
         <span class="ms text-lg">monitor_heart</span>Monitoreo Insumos
       </div>
+      <div onclick="showSec('flujo')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-flujo">
+        <span class="ms text-lg">account_balance_wallet</span>Flujo de Caja
+      </div>
       <div onclick="showSec('pnl')" class="nav-item flex items-center gap-3 px-3 py-2.5 text-sm font-medium text-slate-600" id="nav-pnl">
         <span class="ms text-lg">bar_chart</span>P&L Semanal
       </div>
@@ -209,6 +212,9 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         </div>
         <div onclick="mobileNav('monitor')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
           <span class="ms text-lg">monitor_heart</span>Monitoreo Insumos
+        </div>
+        <div onclick="mobileNav('flujo')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
+          <span class="ms text-lg">account_balance_wallet</span>Flujo de Caja
         </div>
         <div onclick="mobileNav('pnl')" class="flex items-center gap-3 px-3 py-3 rounded-xl text-sm font-medium text-slate-600 hover:bg-slate-50 active:bg-slate-100 cursor-pointer">
           <span class="ms text-lg">bar_chart</span>P&L Semanal
@@ -1659,6 +1665,60 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
         </div>
       </div>
       <div id="mon-cards" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+    </section>
+
+    <!-- ═══════════════ FLUJO DE CAJA ═══════════════ -->
+    <section id="sec-flujo" class="sec p-5 fade">
+      <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+        <div>
+          <h2 class="text-2xl font-bold text-slate-900">Flujo de Caja</h2>
+          <p class="text-sm text-slate-400">Cuánto entra, cuánto sale y cuánto debes — dinero real, no rentabilidad</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="setFlujoPeriodo('semana',this)" id="fj-btn-semana" class="px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold">Esta semana</button>
+          <button type="button" onclick="setFlujoPeriodo('mes',this)" id="fj-btn-mes" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200">Este mes</button>
+        </div>
+      </div>
+
+      <!-- KPIs de flujo del período -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1"><span class="ms text-sm text-emerald-500">south_west</span>Entradas</p>
+          <p class="text-2xl font-bold text-emerald-600" id="fj-entradas">—</p>
+          <p class="text-xs text-slate-400 mt-1">ventas del período</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1"><span class="ms text-sm text-red-500">north_east</span>Salidas</p>
+          <p class="text-2xl font-bold text-red-600" id="fj-salidas">—</p>
+          <p class="text-xs text-slate-400 mt-1" id="fj-salidas-sub">pagos + fijos + caja</p>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+          <p class="text-xs text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1"><span class="ms text-sm">account_balance</span>Flujo neto</p>
+          <p class="text-2xl font-bold" id="fj-neto">—</p>
+          <p class="text-xs text-slate-400 mt-1" id="fj-neto-sub">entradas − salidas</p>
+        </div>
+      </div>
+
+      <!-- Desglose de salidas -->
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 mb-6">
+        <h3 class="font-bold text-slate-900 mb-3 flex items-center gap-2"><span class="ms text-red-500">receipt_long</span>Desglose de salidas del período</h3>
+        <div id="fj-desglose" class="space-y-2"></div>
+      </div>
+
+      <!-- Obligaciones: calendario de cuentas por pagar -->
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 mb-6">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-bold text-slate-900 flex items-center gap-2"><span class="ms text-amber-500">event_upcoming</span>Lo que debes (cuentas por pagar)</h3>
+          <span class="text-lg font-bold text-amber-700" id="fj-deuda-total">—</span>
+        </div>
+        <div id="fj-obligaciones" class="space-y-2"></div>
+      </div>
+
+      <!-- Proyección corta -->
+      <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 mb-6">
+        <h3 class="font-bold text-slate-900 mb-3 flex items-center gap-2"><span class="ms text-primary">insights</span>Proyección próximos 14 días</h3>
+        <div id="fj-proyeccion" class="text-sm"></div>
+      </div>
     </section>
 
     <!-- Modal editar insumo monitoreado -->
@@ -3168,6 +3228,118 @@ async function renderFoodCostTermometro() {
   }
 }
 
+// ══════════════════ FLUJO DE CAJA ══════════════════
+function setFlujoPeriodo(tipo, btn) {
+  DB.flujoPeriodo = tipo;
+  ['fj-btn-semana','fj-btn-mes'].forEach(id => { const b = document.getElementById(id); if (b) b.className = 'px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold hover:bg-slate-200'; });
+  const active = document.getElementById(tipo === 'mes' ? 'fj-btn-mes' : 'fj-btn-semana');
+  if (active) active.className = 'px-3 py-1.5 rounded-xl bg-slate-900 text-white text-xs font-semibold';
+  cargarFlujo();
+}
+async function fetchPagos() {
+  try {
+    const resp = await fetch('/api/supabase', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ table: 'pagos', action: 'select', order: 'none' }) });
+    const d = await resp.json(); return Array.isArray(d) ? d : [];
+  } catch { return []; }
+}
+function fjAddDays(str, n) { const d = new Date(str + 'T12:00:00'); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); }
+
+async function cargarFlujo() {
+  const S = (id, v) => { const e = document.getElementById(id); if (e) e.textContent = v; };
+  const tipo = DB.flujoPeriodo || 'semana';
+  const hoy = hoyLocal();
+  let desde, hasta;
+  if (tipo === 'mes') {
+    const now = new Date(); const pad = n => String(n).padStart(2, '0');
+    desde = now.getFullYear() + '-' + pad(now.getMonth() + 1) + '-01'; hasta = hoy;
+  } else {
+    const r = getRangoSemanaPnL('actual'); desde = r.desde; hasta = r.hasta;
+  }
+
+  // ── Entradas (ventas) ──
+  let ventas = 0;
+  try { const rc = await fetchReceipts(desde, hasta > hoy ? hoy : hasta); ventas = rc.reduce((a, x) => a + (x.total_money || 0), 0); } catch (e) {}
+
+  // ── Salidas reales ──
+  const pagos = await fetchPagos();
+  const pagosPeriodo = pagos.filter(p => { const f = (p.fecha || '').slice(0, 10); return f >= desde && f <= hasta; }).reduce((a, p) => a + (parseFloat(p.monto) || 0), 0);
+  const fijos = gfCostoPeriodo(desde, hasta > hoy ? hoy : hasta);
+  let salidasCaja = 0;
+  try {
+    const shifts = await fetchShifts(desde, hasta);
+    shifts.forEach(s => (s.cash_movements || []).forEach(m => { if (m.type === 'PAY_OUT') { const f = (m.created_at || '').slice(0, 10); if (f >= desde && f <= hasta) salidasCaja += Math.abs(m.money_amount || 0); } }));
+  } catch (e) {}
+  const salidas = pagosPeriodo + fijos + salidasCaja;
+  const neto = ventas - salidas;
+
+  S('fj-entradas', fmt(ventas));
+  S('fj-salidas', fmt(salidas));
+  const netoEl = document.getElementById('fj-neto');
+  if (netoEl) { netoEl.textContent = (neto >= 0 ? '+' : '−') + fmt(Math.abs(neto)).replace('$', '$'); netoEl.className = 'text-2xl font-bold ' + (neto >= 0 ? 'text-emerald-600' : 'text-red-600'); }
+  S('fj-neto-sub', neto >= 0 ? 'te sobró efectivo' : 'gastaste más de lo que entró');
+
+  document.getElementById('fj-desglose').innerHTML = [
+    ['Pagos a proveedores', pagosPeriodo, 'store'],
+    ['Gastos fijos (prorrateados)', fijos, 'receipt_long'],
+    ['Salidas de caja', salidasCaja, 'payments'],
+  ].map(([lbl, val, ic]) => `<div class="flex items-center justify-between py-1.5 border-b border-slate-50">
+    <span class="text-sm text-slate-600 flex items-center gap-2"><span class="ms text-base text-slate-400">${ic}</span>${lbl}</span>
+    <span class="text-sm font-semibold text-slate-800">${fmt(val)}</span></div>`).join('') +
+    `<div class="flex items-center justify-between pt-2 mt-1"><span class="text-sm font-bold">Total salidas</span><span class="text-sm font-bold text-red-600">${fmt(salidas)}</span></div>`;
+
+  // ── Obligaciones (cuentas por pagar pendientes) ──
+  const paidBy = {};
+  pagos.forEach(p => { const k = String(p.compra_id); paidBy[k] = (paidBy[k] || 0) + (parseFloat(p.monto) || 0); });
+  const pend = (DB.compras || []).filter(c => c.estatus !== 'Pagado')
+    .map(c => ({ ...c, saldo: (c.total || 0) - (paidBy[String(c.id)] || 0) }))
+    .filter(c => c.saldo > 0.5);
+  const rSem = getRangoSemanaPnL('actual');
+  const finProx = fjAddDays(rSem.hasta, 7);
+  const buckets = { vencido: [], estaSem: [], proxSem: [], despues: [] };
+  pend.forEach(c => {
+    const v = c.vencimiento;
+    if (!v) buckets.despues.push(c);
+    else if (v < hoy) buckets.vencido.push(c);
+    else if (v <= rSem.hasta) buckets.estaSem.push(c);
+    else if (v <= finProx) buckets.proxSem.push(c);
+    else buckets.despues.push(c);
+  });
+  const deudaTotal = pend.reduce((a, c) => a + c.saldo, 0);
+  S('fj-deuda-total', fmt(deudaTotal));
+  const bucketRow = (lbl, arr, color) => {
+    const tot = arr.reduce((a, c) => a + c.saldo, 0);
+    const provs = arr.slice(0, 3).map(c => c.proveedor).join(', ') + (arr.length > 3 ? '…' : '');
+    return `<div class="flex items-center justify-between py-2 border-b border-slate-50">
+      <div class="min-w-0"><div class="text-sm font-semibold ${color}">${lbl} <span class="text-xs font-normal text-slate-400">· ${arr.length} factura(s)</span></div>
+      ${arr.length ? `<div class="text-xs text-slate-400 truncate">${provs}</div>` : ''}</div>
+      <span class="text-sm font-bold ${color} shrink-0 ml-2">${fmt(tot)}</span></div>`;
+  };
+  document.getElementById('fj-obligaciones').innerHTML =
+    bucketRow('⚠️ Vencido', buckets.vencido, 'text-red-600') +
+    bucketRow('Esta semana', buckets.estaSem, 'text-amber-600') +
+    bucketRow('Próxima semana', buckets.proxSem, 'text-slate-700') +
+    bucketRow('Más adelante / sin fecha', buckets.despues, 'text-slate-500');
+
+  // ── Proyección próximos 14 días ──
+  const fin14 = fjAddDays(hoy, 14);
+  const compromisos = buckets.vencido.reduce((a, c) => a + c.saldo, 0)
+    + pend.filter(c => c.vencimiento && c.vencimiento >= hoy && c.vencimiento <= fin14).reduce((a, c) => a + c.saldo, 0)
+    + gfCostoPeriodo(hoy, fin14);
+  let ventasEstim = 0;
+  try { const past = await fetchReceipts(fjAddDays(hoy, -14), hoy); ventasEstim = past.reduce((a, x) => a + (x.total_money || 0), 0); } catch (e) {}
+  const balance = ventasEstim - compromisos;
+  document.getElementById('fj-proyeccion').innerHTML = `
+    <div class="grid grid-cols-2 gap-3 mb-3">
+      <div class="bg-emerald-50 rounded-xl p-3"><p class="text-xs text-emerald-600 mb-1">Ventas estimadas (14 días)</p><p class="text-lg font-bold text-emerald-700">${fmt(ventasEstim)}</p><p class="text-[11px] text-slate-400">según las últimas 2 semanas</p></div>
+      <div class="bg-red-50 rounded-xl p-3"><p class="text-xs text-red-600 mb-1">Compromisos (14 días)</p><p class="text-lg font-bold text-red-700">${fmt(compromisos)}</p><p class="text-[11px] text-slate-400">vencidos + por vencer + fijos</p></div>
+    </div>
+    <div class="rounded-xl px-4 py-3 ${balance >= 0 ? 'bg-emerald-50 text-emerald-800 border border-emerald-100' : 'bg-red-50 text-red-800 border border-red-100'}">
+      ${balance >= 0
+        ? `✅ Con el ritmo de ventas actual te alcanza y sobran <b>${fmt(balance)}</b> para los próximos 14 días.`
+        : `⚠️ Con el ritmo actual te faltarían <b>${fmt(Math.abs(balance))}</b> para cubrir los compromisos de 14 días. Prioriza cobros/pagos o ajusta.`}
+    </div>`;
+}
+
 async function cargarPnL() {
   const desde = document.getElementById('pnl-desde')?.value;
   const hasta  = document.getElementById('pnl-hasta')?.value;
@@ -4057,7 +4229,7 @@ function showSec(name) {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const nav = document.getElementById('nav-'+name);
   if (nav) nav.classList.add('active');
-  const titles = {home:'Dashboard',compras:'Nueva Compra',historial:'Historial de Compras',productos:'Productos',proveedores:'Proveedores',cuentas:'Cuentas por Pagar',requisiciones:'Inventario Empleados',ventas:'Ventas Loyverse',reportes:'Reportes & Exportar',inventario:'Inventario Semanal',salidas:'Salidas de Caja',pnl:'P&L Semanal',monitor:'Monitoreo de Insumos'};
+  const titles = {home:'Dashboard',compras:'Nueva Compra',historial:'Historial de Compras',productos:'Productos',proveedores:'Proveedores',cuentas:'Cuentas por Pagar',requisiciones:'Inventario Empleados',ventas:'Ventas Loyverse',reportes:'Reportes & Exportar',inventario:'Inventario Semanal',salidas:'Salidas de Caja',pnl:'P&L Semanal',monitor:'Monitoreo de Insumos',flujo:'Flujo de Caja'};
   document.getElementById('sec-title').textContent = titles[name] || name;
   // Render section data
   if (name === 'home') renderDashboard();
@@ -4072,6 +4244,7 @@ function showSec(name) {
   if (name === 'salidas') { initSalidas(); }
   if (name === 'pnl')     { initPnL(); }
   if (name === 'monitor') { monRender(); }
+  if (name === 'flujo')   { setFlujoPeriodo(DB.flujoPeriodo || 'semana'); }
   if (name === 'requisiciones') { loadRequisicionesSupabase(); renderRequisiciones('pendientes'); }
   if (name === 'productos') renderProductos();
 }
