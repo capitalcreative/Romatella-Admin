@@ -3636,18 +3636,20 @@ async function monSyncFromSupabase() {
   if (!Array.isArray(remote)) return; // tabla no existe aún → seguir con localStorage
   const byId = {};
   remote.forEach(r => {
+    if (monDeletedIds.has(r.id)) return; // no resucitar lo que se borró en esta sesión
     byId[r.id] = {
       id: r.id, nombre: r.nombre, unidad: r.unidad,
       base: r.base, umbral: r.umbral, fecha: r.fecha,
       reglas: Array.isArray(r.reglas) ? r.reglas : (() => { try { return JSON.parse(r.reglas||'[]'); } catch { return []; } })()
     };
   });
-  // migrar locales que aún no están en Supabase
+  // migrar locales que aún no están en Supabase (excepto borrados)
   for (const l of monLoad()) {
-    if (!byId[l.id]) { byId[l.id] = l; monPushRemote(l); }
+    if (!byId[l.id] && !monDeletedIds.has(l.id)) { byId[l.id] = l; monPushRemote(l); }
   }
   monSave(Object.values(byId));
 }
+const monDeletedIds = new Set(); // ids borrados en esta sesión (evita que un sync los reviva)
 
 // Texto buscable de un modificador (defensivo ante variaciones del API)
 function monModTexto(m) {
@@ -3708,10 +3710,10 @@ async function monFetchReceipts() {
   return await fetchReceipts(desde, hoy);
 }
 
-async function monRender() {
+async function monRender(sync = true) {
   const cont = document.getElementById('mon-cards');
   if (!cont) return;
-  await monSyncFromSupabase();
+  if (sync) await monSyncFromSupabase(); // solo al abrir la sección; las ediciones renderizan local
   const insumos = monLoad();
   if (!insumos.length) {
     cont.innerHTML = `<div class="col-span-full text-center py-16 text-slate-400">
@@ -3859,10 +3861,10 @@ window.monConteoGuardar = function() {
   arr[idx].base = valor;
   arr[idx].fecha = new Date().toISOString();
   monSave(arr);
-  monPushRemote(arr[idx]);
   closeModal('modal-mon-conteo');
   toast('✓ Conteo guardado: ' + valor + ' ' + (arr[idx].unidad || ''));
-  monRender();
+  monRender(false);          // render inmediato desde local (sin re-sync = sin lag)
+  monPushRemote(arr[idx]);   // sube a Supabase en segundo plano
 };
 
 window.monGuardar = function() {
@@ -3889,20 +3891,21 @@ window.monGuardar = function() {
   const idx = arr.findIndex(x => x.id === id);
   if (idx >= 0) arr[idx] = insumo; else arr.push(insumo);
   monSave(arr);
-  monPushRemote(insumo);
   closeModal('modal-mon');
   toast('✓ Insumo guardado');
-  monRender();
+  monRender(false);          // render inmediato desde local
+  monPushRemote(insumo);     // sube a Supabase en segundo plano
 };
 
-window.monEliminar = function() {
+window.monEliminar = async function() {
   const id = document.getElementById('mon-id').value;
   if (!id) return;
-  monSave(monLoad().filter(x => x.id !== id));
-  monDeleteRemote(id);
+  monDeletedIds.add(id);                          // tombstone: que un sync no lo reviva
+  monSave(monLoad().filter(x => x.id !== id));     // quita de local
   closeModal('modal-mon');
   toast('Insumo eliminado');
-  monRender();
+  monRender(false);                                // render inmediato (sin re-sync)
+  await monDeleteRemote(id);                        // borra en Supabase
 };
 
 // Al registrar una compra: detecta proteínas y abre el modal para cuadrar stock
