@@ -7053,17 +7053,16 @@ function exportarCSV() {
 (function() {
 
   const BARRA = {
-    'Refrescos': ['Agua Mineral 2L','Agua Tónica','Botella de Agua 500ml','Coca Cola 235ml','Coca Cola Regular','Coca Cola Zero','Manzanita 2L','Peñafiel 355ml','Peñafiel 600ml','Sprite 600ml','Sprite 2L','Squirt 2L','Topo Chico 600ml'],
+    'Refrescos': ['Agua Tónica','Botella de Agua 500ml','Coca Cola 235ml','Coca Cola Regular','Coca Cola Zero','Manzanita 2L','Peñafiel 355ml','Peñafiel 600ml','Sprite 600ml','Topo Chico 600ml'],
     'Pulpas': ['Pulpa Kiwi','Pulpa Frutos Rojos','Pulpa Maracuyá'],
     'Cerveza': ['Corona','Jabalí Bock','Jabalí IPA','Modelo Especial','Negra Modelo','Sin Alcohol Modelo','Stella Artois','Victoria'],
     'Semillas barra': ['Chile Guajillo','Chile Negro','Jamaica'],
-    'Papelería': ['Bolígrafos','Cinta Masking','Grapas','Rollos Impresora','Rollos Terminales PDV'],
     'Vino Tinto': ['Apapcho','Cal y Canto','Gran Passione Tinto','Vino Clericot'],
     'Vino Blanco': ['Desvarío','Soave'],
     'Vino Rosado': ['Rincones Rosé'],
-    'Vino Espumoso': ['Cinzano Espumoso','Gran Passione Espumoso','Kirkland'],
+    'Vino Espumoso': ['Gran Passione Espumoso','Vino Para Spritz'],
     'Frutas barra': ['Hierbabuena','Limón','Naranja'],
-    'Abarrotes barra': ['Azúcar','Baguette','Stevia','Café','Café Descafeinado','Té Fresa Vainilla','Té Frutos del Bosque'],
+    'Abarrotes barra': ['Azúcar','Baguette','Stevia','Café','Café Descafeinado'],
     'Limpieza barra': ['Aromatizante de Baño','Desengrasante','Fabuloso','Jabón para Manos','Papel de Baño','Sanitas','Windex'],
     'Destilados': ['Absolut','Aperol','Bacardí','Baileys','Campari','Centenario Plata','Cinzano Vermouth Rosso','Controy','Frangelico','Grey Goose','Licor del 43','Maestro Dobel','Mezcal Joven 38','Red Label','Stoli','Tanqueray','Torres 5','Vaccari'],
     'Desechables barra': ['Bolsa Asa P/Llevar Ch','Bolsa Asa P/Llevar Med','Bolsa Basura','Bolsa Botes Baño','Bolsa Papel Pan','Cuchara','Cuchillo','Hamburgesero','Servilleta Larga','Tapa 16 Oz','Tapa 2 Pz','Tenedor','Vaso 16 Oz','Vaso 2 Oz']
@@ -7072,14 +7071,14 @@ function exportarCSV() {
   const COCINA = {
     'Superama': ['Anchoas','Arroz Risotto','Corn Flakes','Encendedores','Fettuccine','Galletas para Salame','Galletas Salmas','Gas para Rellenar','Grenetina','Mayonesa','Microdin','Mostaza','Pan Bimbo','Papel Cocina','Pasta Lasagna','Penne','Polvo Camarón','Salsa Soya','Spaghetti','Tortiglioni','Vinagre Balsámico','Vino Blanco Cocina'],
     'Costco': ['Aceite Oliva','Aceite Regular','Aceitunas Negras','Aceitunas Verdes','Alcaparras','Arúgula','Chocolate Hershey','Helado Vainilla','Jamón Serrano','Jitomate Bola','Jitomate Deshidratado','Leche Entera','Lechugas','Mascarpone','Philadelphia','Puré Tomate','Queso Azul','Queso Chihuahua','Queso de Cabra','Queso Mozzarella Fresco','Queso Ricotta','Vodka Cocina'],
-    'Mercado': ['Ajo','Albahaca','Apio','Arándano Fresco','Berenjena','Calabaza','Cebolla Blanca','Cebolla Morada','Champiñón','Chile Habanero Chocolate','Chips Betabel','Eneldo','Espárrago','Fresa a Granel','Fresa Cajita','Hierbabuena','Huevo','Jitomate Cherry','Jitomate Salsa Pomodoro','Limón','Limón Eureka','Mantequilla Desy','Manzana Amarilla','Naranja','Papa Cambray','Perejil','Pimiento Morrón','Romero','Zanahoria','Gas'],
-    'Semillas y Materias Primas': ['Azúcar Glass','Almendra','Arándano Deshidratado','Azúcar','Chile de Árbol','Chile Guajillo','Chile Negro','Chocolate Semi Amargo','Gotas de Chocolate','Harina','Miel','Nuez de la India','Nuez Granillo','Pan Molido','Pimienta en Grano','Pistacho','Sal de Grano','Sal Fina','Vainilla'],
+    'Mercado': ['Ajo','Albahaca','Apio','Arándano Fresco','Berenjena','Calabaza','Cebolla Blanca','Cebolla Morada','Champiñón','Chile Habanero Chocolate','Chips Betabel','Eneldo','Espárrago','Fresa Cajita','Hierbabuena','Huevo','Jitomate Cherry','Jitomate Salsa Pomodoro','Limón','Limón Eureka','Mantequilla Desy','Manzana Amarilla','Mermelada de Fresa','Naranja','Papa Cambray','Perejil','Pimiento Morrón','Romero','Zanahoria','Gas'],
+    'Semillas y Materias Primas': ['Azúcar Glass','Almendra','Arándano Deshidratado','Azúcar','Chile de Árbol','Chocolate Semi Amargo','Gotas de Chocolate','Harina','Miel','Nuez de la India','Nuez Granillo','Pan Molido','Pimienta en Grano','Pistacho','Sal de Grano','Sal Fina','Vainilla'],
     'Carnicería': ['Carne Carpaccio','Carne Molida Res','Pollo Porción','Pollo Scaloppine','Tocino','Arrachera'],
     'Mariscos': ['Almejas','Aros Calamar','Atún','Camarón Grande','Mejillones','Nuggets','Pulpo','Salmón'],
     'Quesos Ayala': ['Crema','Queso Gouda','Queso Mozzarella','Queso Parmesano'],
     'Productos Italianos': ['Savoiardi'],
     'Limpieza cocina': ['Bolsa Basura 90x120','Cloro','Desengrasante','Esponjas Trastes','Fabuloso','Fibra de Metal','Guantes','Jabón para Trastes','Jabón Roma','Papel Transparente'],
-    'Desechables cocina': ['Bolsa de Kilo 20x30','Hamburgesero','Cristal Grande','Desechables Costco con Tapa','Redondo Sopa con Tapa','Velas cumpleaños']
+    'Desechables cocina': ['Bolsa de Kilo 20x30','Cristal Grande','Desechables Costco con Tapa','Redondo Sopa con Tapa','Velas cumpleaños']
   };
 
   let tabActual = 'barra';
@@ -9424,7 +9423,7 @@ const PROVEEDOR_MAP = {
   'Sanitas':'SUPERAMA','Papel de Baño':'SUPERAMA','Jabón para Manos':'SUPERAMA','Aromatizante de Baño':'SUPERAMA',
   'Bolsa Botes Baño':'SUPERAMA','Té Fresa Vainilla':'SUPERAMA',
   'Té Frutos del Bosque':'SUPERAMA','Stevia':'SUPERAMA',
-  'Jabalí Bock':'SUPERAMA','Jabalí IPA':'SUPERAMA','Corn Flakes':'SUPERAMA',
+  'Jabalí Bock':'SUPERAMA','Jabalí IPA':'SUPERAMA','Corn Flakes':'SUPERAMA','Mermelada de Fresa':'SUPERAMA',
 
   // ── COSTCO ──
   'Leche Entera':'COSTCO','Queso Mozzarella Fresco':'COSTCO','Queso de Cabra':'COSTCO','Chocolate Hershey':'COSTCO',
@@ -9495,7 +9494,7 @@ const PROVEEDOR_MAP = {
 
   // ── VIPARMEX (VINOS) ──
   'Cal y Canto':'VIPARMEX (VINOS)','Gran Passione Tinto':'VIPARMEX (VINOS)','Gran Passione Espumoso':'VIPARMEX (VINOS)',
-  'Soave':'VIPARMEX (VINOS)','Rincones Rosé':'VIPARMEX (VINOS)','Desvarío':'VIPARMEX (VINOS)','Cinzano Espumoso':'VIPARMEX (VINOS)',
+  'Soave':'VIPARMEX (VINOS)','Rincones Rosé':'VIPARMEX (VINOS)','Desvarío':'VIPARMEX (VINOS)','Vino Para Spritz':'VIPARMEX (VINOS)',
 
   // ── FERNANDO FIGUEROA ──
   'Apapcho':'FERNANDO FIGUEROA',
