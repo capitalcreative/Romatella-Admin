@@ -520,10 +520,11 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
                 </div>
                 <div>
                   <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Proveedor</label>
-                  <input id="f-proveedor" type="text" placeholder="Buscar proveedor..." 
-                    list="proveedores-list"
+                  <input id="f-proveedor" type="text" placeholder="Buscar proveedor..."
+                    list="proveedores-list" onchange="aplicarDefaultProveedor()" oninput="aplicarDefaultProveedor()"
                     class="w-full px-4 py-3 bg-surface-container-low rounded-xl text-sm outline-none"/>
                   <datalist id="proveedores-list"></datalist>
+                  <p id="f-prov-default" class="hidden text-[11px] text-emerald-600 mt-1 font-semibold"></p>
                 </div>
 
                 <div>
@@ -4800,10 +4801,11 @@ function setCondicion(valor, btnEl) {
     if (b) b.className = base + ' ' + (v === valor ? activo[v] : 'border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100');
   });
 
-  // Calcular y mostrar fecha de vencimiento
+  // Calcular y mostrar fecha de vencimiento — base = fecha de factura (f-fecha)
   const alertEl = document.getElementById('venc-alert');
   const vencText = document.getElementById('venc-text');
-  const hoy = new Date();
+  const fFactura = document.getElementById('f-fecha')?.value;
+  const hoy = fFactura ? new Date(fFactura + 'T12:00:00') : new Date();
   const pad = n => String(n).padStart(2,'0');
   const toStr = d => d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
 
@@ -4843,6 +4845,31 @@ function setEstatus(e) {
 }
 
 function calcVencimiento() { /* legacy — reemplazado por setCondicion */ }
+
+// ── Defaults de proveedor: forma de pago + condición automáticas ──
+const SUPPLIER_DEFAULTS = [
+  { match: 'KRILL',              forma: 'Mercado Pago', condicion: 'lunes'  },
+  { match: 'VIPARMEX',           forma: 'Banamex',      condicion: '15dias' },
+  { match: 'AGUSTIN RODRIGUEZ',  forma: 'Banamex',      condicion: '15dias' },
+  { match: 'AGUSTÍN RODRÍGUEZ',  forma: 'Banamex',      condicion: '15dias' },
+];
+let _lcProvDefaultAplicado = '';
+function aplicarDefaultProveedor() {
+  const prov = (document.getElementById('f-proveedor')?.value || '').toUpperCase().trim();
+  const ind = document.getElementById('f-prov-default');
+  const def = SUPPLIER_DEFAULTS.find(d => prov.includes(d.match));
+  if (!def) { if (ind) ind.classList.add('hidden'); _lcProvDefaultAplicado = ''; return; }
+  // evitar reaplicar en cada tecla si ya se aplicó para este proveedor
+  if (_lcProvDefaultAplicado === def.match) return;
+  _lcProvDefaultAplicado = def.match;
+  setFormaPago(def.forma);
+  setCondicion(def.condicion);
+  if (ind) {
+    const condTxt = def.condicion === 'lunes' ? 'se paga el lunes' : def.condicion === '15dias' ? 'crédito 15 días' : def.condicion;
+    ind.innerHTML = '✓ Auto: <b>' + def.forma + '</b> · ' + condTxt;
+    ind.classList.remove('hidden');
+  }
+}
 
 
 function inferirCategoria(nombre) {
@@ -5114,6 +5141,8 @@ function getTotal() {
 }
 function resetForm() {
   document.getElementById('f-proveedor').value = '';
+  _lcProvDefaultAplicado = '';
+  const provInd = document.getElementById('f-prov-default'); if (provInd) provInd.classList.add('hidden');
   document.getElementById('f-categoria').value = '';
   document.getElementById('items-container').innerHTML = '';
   document.getElementById('total-display').textContent = '$0.00';
@@ -5432,6 +5461,9 @@ function fillFormFromData(data) {
     const sel = document.getElementById('f-pago');
     if (sel) { sel.value = data.forma_pago; calcVencimiento(); }
   }
+  // Defaults de proveedor recurrente (KRILL, VIPARMEX…) — mandan sobre lo que leyó la IA
+  _lcProvDefaultAplicado = '';
+  aplicarDefaultProveedor();
 
   const totalFactura = parseFloat(data.total) || 0;
 
