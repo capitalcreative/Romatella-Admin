@@ -1746,9 +1746,14 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
             <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Alertar bajo de</label>
             <input id="mon-umbral" type="text" inputmode="decimal" placeholder="1" class="w-full px-3 py-2.5 bg-surface-container-low rounded-xl text-sm outline-none"/>
           </div>
-          <div class="col-span-2">
+          <div>
             <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Fecha del conteo base</label>
             <input id="mon-fecha" type="date" class="w-full px-3 py-2.5 bg-surface-container-low rounded-xl text-sm outline-none"/>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Costo por unidad $</label>
+            <input id="mon-costo" type="text" inputmode="decimal" placeholder="0" class="w-full px-3 py-2.5 bg-surface-container-low rounded-xl text-sm outline-none"/>
+            <p class="text-[11px] text-slate-400 mt-1">Para calcular la merma en pesos (Capa B)</p>
           </div>
         </div>
 
@@ -3828,6 +3833,12 @@ function monModTexto(m) {
   return [m.option, m.name, m.modifier_option, m.modifier_name].filter(Boolean).join(' ');
 }
 
+// Costo por unidad del insumo (regla tipo 'costo') — para la merma en pesos
+function monCosto(insumo) {
+  const r = (insumo.reglas || []).find(x => x.tipo === 'costo');
+  return r ? monNum(r.valor) : 0;
+}
+
 // Timestamp del conteo base. Soporta fecha-solo (día) o fecha+hora (ISO exacto
 // del conteo físico). Solo se descuentan ventas POSTERIORES a este momento.
 function monFechaTs(f) {
@@ -4004,6 +4015,9 @@ window.monAbrirEditar = function(id) {
   // Campo de compra (regla tipo 'compra')
   const compraRule = insumo && (insumo.reglas || []).find(r => r.tipo === 'compra');
   document.getElementById('mon-compra').value = compraRule ? compraRule.match : '';
+  // Costo por unidad (regla tipo 'costo')
+  const costoRule = insumo && (insumo.reglas || []).find(r => r.tipo === 'costo');
+  document.getElementById('mon-costo').value = costoRule ? costoRule.valor : '';
   const wrap = document.getElementById('mon-reglas');
   wrap.innerHTML = '';
   const consumoRules = insumo ? (insumo.reglas || []).filter(r => r.tipo === 'platillo' || r.tipo === 'modificador') : [];
@@ -4051,6 +4065,9 @@ window.monGuardar = function() {
   // Regla de compra (proteína) — para disparar el cuadre de stock al comprar
   const compraTxt = document.getElementById('mon-compra').value.trim();
   if (compraTxt) reglas.push({ tipo: 'compra', match: compraTxt });
+  // Costo por unidad — para calcular merma en pesos (Capa B)
+  const costo = monNum(document.getElementById('mon-costo').value);
+  if (costo > 0) reglas.push({ tipo: 'costo', valor: costo });
   const insumo = {
     id, nombre,
     unidad: document.getElementById('mon-unidad').value.trim() || 'kg',
