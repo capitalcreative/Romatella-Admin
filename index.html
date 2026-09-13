@@ -7107,7 +7107,7 @@ function exportarCSV() {
     'Pulpas': ['Pulpa Kiwi','Pulpa Frutos Rojos','Pulpa Maracuyá'],
     'Cerveza': ['Corona','Jabalí Bock','Jabalí IPA','Modelo Especial','Negra Modelo','Sin Alcohol Modelo','Stella Artois','Victoria'],
     'Semillas barra': ['Chile Guajillo','Chile Negro','Jamaica'],
-    'Vino Tinto': ['Apapacho','Cal y Canto','Gran Passione Tinto','Vino Clericot'],
+    'Vino Tinto': ['Apapacho','Cal y Canto','Gran Passione Tinto','Passimento','Vino Clericot'],
     'Vino Blanco': ['Desvarío','Soave'],
     'Vino Rosado': ['Rincones Rosé'],
     'Vino Espumoso': ['Gran Passione Espumoso','Vino Para Spritz'],
@@ -7128,7 +7128,7 @@ function exportarCSV() {
     'Quesos Ayala': ['Crema','Queso Gouda','Queso Mozzarella','Queso Parmesano'],
     'Productos Italianos': ['Savoiardi'],
     'Limpieza cocina': ['Bolsa Basura 90x120','Cloro','Desengrasante','Esponjas Trastes','Fabuloso','Fibra de Metal','Guantes','Jabón para Trastes','Jabón Roma','Papel Transparente'],
-    'Desechables cocina': ['Bolsa de Kilo 20x30','Cristal Grande','Desechables Costco con Tapa','Redondo Sopa con Tapa','Velas cumpleaños']
+    'Desechables cocina': ['Bolsa de Kilo 20x30','Desechable BioCup 8x8','Redondo Sopa con Tapa','Velas cumpleaños']
   };
 
   let tabActual = 'barra';
@@ -7565,12 +7565,14 @@ function exportarCSV() {
         else if (v.bien) bien.push({ item, area: t });
         else if (v.qty > 0) solicitados.push({ item, qty: v.qty, area: t, ...(v.nota ? { nota: v.nota } : {}) });
       });
-      // Incluir items custom de la seccion Otros
+      // Incluir items custom de la seccion Otros / Adicionales.
+      // El NOMBRE es la info valiosa: se incluye aunque la cantidad quede vacia
+      // (no se descarta en silencio). Si no hay cantidad, se muestra "s/c".
       (reqCustom[t] || []).forEach(c => {
-        const qtyNum = parseFloat(String(c.qty).replace(',','.')) || 0;
-        if (c.item && qtyNum > 0) {
-          solicitados.push({ item: c.item, qty: qtyNum, area: t, custom: true });
-        }
+        const nombre = (c.item || '').trim();
+        if (!nombre) return;
+        const qtyNum = parseFloat(String(c.qty).replace(',','.'));
+        solicitados.push({ item: nombre, qty: (isNaN(qtyNum) || qtyNum <= 0) ? 's/c' : qtyNum, area: t, custom: true });
       });
     });
 
@@ -7597,9 +7599,9 @@ function exportarCSV() {
     if (itemsWrap) itemsWrap.innerHTML = solicitados.length === 0
       ? '<p class="text-sm text-slate-400 italic">Sin artículos con existencia anotada</p>'
       : solicitados.map(x =>
-          `<div class="flex items-center justify-between bg-white border border-slate-100 rounded-xl px-3 py-2.5">
+          `<div class="flex items-center justify-between bg-white border ${x.custom ? 'border-amber-200 bg-amber-50/40' : 'border-slate-100'} rounded-xl px-3 py-2.5">
             <div class="flex items-center gap-2">
-              <span class="text-sm text-slate-800">${x.item}</span>
+              <span class="text-sm text-slate-800">${x.custom ? '⭐ ' : ''}${x.item}</span>
               <span class="text-xs px-1.5 py-0.5 rounded-full font-medium ${x.area === 'barra' ? 'bg-blue-50 text-primary' : 'bg-green-50 text-green-700'}">${x.area}</span>
             </div>
             <span class="text-sm font-bold text-slate-900 ml-2">${x.qty}</span>
@@ -7634,12 +7636,19 @@ function exportarCSV() {
     const fechaStr = new Date(p.fecha).toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long' });
     let msg = `*Inventario Romatella*\n${p.nombre} · ${fechaStr}\n`;
     const porArea = { barra: [], cocina: [] };
-    p.solicitados.forEach(x => { if (porArea[x.area]) porArea[x.area].push(x); });
+    const adicionales = [];
+    p.solicitados.forEach(x => {
+      if (x.custom) { adicionales.push(x); return; }
+      if (porArea[x.area]) porArea[x.area].push(x);
+    });
     if (porArea.barra.length) {
       msg += `\n🍹 *Barra*\n` + porArea.barra.map(x => `• ${x.item}: *${x.qty}*` + (x.nota ? ` (${x.nota})` : '')).join('\n');
     }
     if (porArea.cocina.length) {
       msg += `\n\n🍳 *Cocina*\n` + porArea.cocina.map(x => `• ${x.item}: *${x.qty}*` + (x.nota ? ` (${x.nota})` : '')).join('\n');
+    }
+    if (adicionales.length) {
+      msg += `\n\n⭐ *Otros / Adicionales*\n` + adicionales.map(x => `• ${x.item}: *${x.qty}*` + (` (${x.area})`)).join('\n');
     }
     if (p.sinStock.length) {
       const ssBarra = p.sinStock.filter(x => x.area === 'barra');
@@ -8979,10 +8988,12 @@ function filterReq(filtro, btnEl) {
 
     // Lista agrupada por proveedor/sección
     if (items.length > 0 || sinStock.length > 0) {
-      const SEC_ORDER = ['Superama','Costco','Mercado','Carnicería','Mariscos','Quesos Ayala','Semillas y Materias Primas','Productos Italianos','Limpieza cocina','Desechables cocina','Refrescos','Pulpas','Cerveza','Vino Tinto','Vino Blanco','Vino Rosado','Vino Espumoso','Destilados','Frutas barra','Abarrotes barra','Semillas barra','Papelería','Limpieza barra','Desechables barra'];
+      const SEC_ORDER = ['Superama','Costco','Mercado','Carnicería','Mariscos','Quesos Ayala','Semillas y Materias Primas','Productos Italianos','Limpieza cocina','Desechables cocina','Refrescos','Pulpas','Cerveza','Vino Tinto','Vino Blanco','Vino Rosado','Vino Espumoso','Destilados','Frutas barra','Abarrotes barra','Semillas barra','Papelería','Limpieza barra','Desechables barra','⭐ Otros / Adicionales'];
       const grouped = {};
       items.forEach(x => {
-        const sec = (window.reqItemSection && window.reqItemSection(x.item, x.area)) || (x.area === 'barra' ? '🍹 Barra' : '🍳 Cocina');
+        const sec = x.custom
+          ? '⭐ Otros / Adicionales'
+          : ((window.reqItemSection && window.reqItemSection(x.item, x.area)) || (x.area === 'barra' ? '🍹 Barra' : '🍳 Cocina'));
         if (!grouped[sec]) grouped[sec] = { items: [], sinStock: [] };
         grouped[sec].items.push(x);
       });
@@ -9265,7 +9276,7 @@ function reqExportPDF() {
   if (!w) { toast('Permite ventanas emergentes para exportar PDF'); return; }
   const fecha = new Date().toLocaleDateString('es-MX', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
 
-  const SEC_ORDER = ['Superama','Costco','Mercado','Carnicería','Mariscos','Quesos Ayala','Semillas y Materias Primas','Productos Italianos','Limpieza cocina','Desechables cocina','Refrescos','Pulpas','Cerveza','Vino Tinto','Vino Blanco','Vino Rosado','Vino Espumoso','Destilados','Frutas barra','Abarrotes barra','Semillas barra','Papelería','Limpieza barra','Desechables barra'];
+  const SEC_ORDER = ['Superama','Costco','Mercado','Carnicería','Mariscos','Quesos Ayala','Semillas y Materias Primas','Productos Italianos','Limpieza cocina','Desechables cocina','Refrescos','Pulpas','Cerveza','Vino Tinto','Vino Blanco','Vino Rosado','Vino Espumoso','Destilados','Frutas barra','Abarrotes barra','Semillas barra','Papelería','Limpieza barra','Desechables barra','⭐ Otros / Adicionales'];
 
   // Agrupar todos los items de todas las requisiciones por proveedor
   const grouped = {}; // { section: [{item, qty, area, ss, bien, nombre, fStr}] }
@@ -9279,7 +9290,9 @@ function reqExportPDF() {
     [...items, ...sinStock.map(x => ({...x, qty: 0, ss: true}))].forEach(x => {
       const isBien = x.bien === true;
       const isSS   = x.ss   === true;
-      const sec = (window.reqItemSection && window.reqItemSection(x.item, x.area)) || (x.area === 'barra' ? '🍹 Barra' : '🍳 Cocina');
+      const sec = x.custom
+        ? '⭐ Otros / Adicionales'
+        : ((window.reqItemSection && window.reqItemSection(x.item, x.area)) || (x.area === 'barra' ? '🍹 Barra' : '🍳 Cocina'));
       if (!grouped[sec]) grouped[sec] = [];
       grouped[sec].push({ item: x.item, qty: x.qty, area: x.area, ss: isSS, bien: isBien, enc, fStr });
     });
@@ -9482,7 +9495,7 @@ const PROVEEDOR_MAP = {
   'Aceitunas Negras':'COSTCO','Aceitunas Verdes':'COSTCO','Helado Vainilla':'COSTCO','Jitomate Bola':'COSTCO',
   'Jamón Serrano':'COSTCO','Jitomate Deshidratado':'COSTCO','Mascarpone':'COSTCO','Salsa Inglesa':'COSTCO','Queso Gouda Costco':'COSTCO',
   'Philadelphia':'COSTCO','Puré Tomate':'COSTCO','Queso Azul':'COSTCO','Queso Chihuahua':'COSTCO',
-  'Queso Ricotta':'COSTCO','Vodka Cocina':'COSTCO','Desechables Costco con Tapa':'COSTCO','Mermelada de Fresa':'COSTCO',
+  'Queso Ricotta':'COSTCO','Vodka Cocina':'COSTCO','Mermelada de Fresa':'COSTCO',
   'Alcaparras':'COSTCO','Mayonesa':'COSTCO','Coca Cola Regular':'COSTCO',
   'Chocolate Semi Amargo':'COSTCO','Gotas de Chocolate':'COSTCO',
   'Aperol':'COSTCO','Licor del 43':'COSTCO','Baileys':'COSTCO','Servilleta Larga':'COSTCO',
@@ -9543,7 +9556,7 @@ const PROVEEDOR_MAP = {
   'Negra Modelo':'TADA (CERVEZA)','Sin Alcohol Modelo':'TADA (CERVEZA)','Stella Artois':'TADA (CERVEZA)','Victoria':'TADA (CERVEZA)',
 
   // ── VIPARMEX (VINOS) ──
-  'Cal y Canto':'VIPARMEX (VINOS)','Gran Passione Tinto':'VIPARMEX (VINOS)','Gran Passione Espumoso':'VIPARMEX (VINOS)',
+  'Cal y Canto':'VIPARMEX (VINOS)','Gran Passione Tinto':'VIPARMEX (VINOS)','Passimento':'VIPARMEX (VINOS)','Gran Passione Espumoso':'VIPARMEX (VINOS)',
   'Soave':'VIPARMEX (VINOS)','Rincones Rosé':'VIPARMEX (VINOS)','Desvarío':'VIPARMEX (VINOS)',
 
   // ── FERNANDO FIGUEROA ──
@@ -9561,7 +9574,7 @@ const PROVEEDOR_MAP = {
   'Bolsa Basura':'BIOCUP (DESECHABLES)','Bolsa Papel Pan':'BIOCUP (DESECHABLES)','Cuchara':'BIOCUP (DESECHABLES)',
   'Cuchillo':'BIOCUP (DESECHABLES)','Tapa 16 Oz':'BIOCUP (DESECHABLES)',
   'Tenedor':'BIOCUP (DESECHABLES)','Vaso 16 Oz':'BIOCUP (DESECHABLES)','Vaso 2 Oz':'BIOCUP (DESECHABLES)',
-  'Cristal Grande':'BIOCUP (DESECHABLES)','Redondo Sopa con Tapa':'BIOCUP (DESECHABLES)',
+  'Desechable BioCup 8x8':'BIOCUP (DESECHABLES)','Redondo Sopa con Tapa':'BIOCUP (DESECHABLES)',
   'Velas cumpleaños':'BIOCUP (DESECHABLES)',
 
   // ── OFFICE DEPOT (papelería) ──
