@@ -1657,6 +1657,9 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           <p class="text-sm text-slate-400">Stock estimado de insumos no rastreables en Loyverse (modificadores y platillos), cruzado con ventas</p>
         </div>
         <div class="flex items-center gap-2">
+          <button type="button" onclick="monVerFugas()" class="px-3 py-1.5 rounded-xl bg-red-50 text-red-600 text-xs font-semibold flex items-center gap-1 hover:bg-red-100">
+            <span class="ms text-sm">trending_down</span>Fugas / Mermas
+          </button>
           <button type="button" onclick="monDetectados()" class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-600 text-xs font-semibold flex items-center gap-1 hover:bg-slate-200">
             <span class="ms text-sm">search</span>Ver platillos/modificadores
           </button>
@@ -1813,18 +1816,40 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           <span class="ms text-primary">inventory</span>
           <h3 class="font-bold text-lg">Conteo físico</h3>
         </div>
-        <p class="text-xs text-slate-400 mb-4" id="mon-conteo-sub">¿Cuántas tienes AHORA?</p>
         <input type="hidden" id="mon-conteo-id"/>
-        <div class="flex items-center gap-2 mb-4">
-          <input type="text" inputmode="decimal" id="mon-conteo-valor" placeholder="0"
-            class="flex-1 text-center text-2xl font-bold border-2 border-slate-200 rounded-2xl px-3 py-3 outline-none focus:border-primary"/>
-          <span class="text-sm text-slate-400" id="mon-conteo-unidad"></span>
+        <!-- Formulario de captura -->
+        <div id="mon-conteo-form">
+          <p class="text-xs text-slate-400 mb-4" id="mon-conteo-sub">¿Cuántas tienes AHORA?</p>
+          <div class="flex items-center gap-2 mb-4">
+            <input type="text" inputmode="decimal" id="mon-conteo-valor" placeholder="0"
+              class="flex-1 text-center text-2xl font-bold border-2 border-slate-200 rounded-2xl px-3 py-3 outline-none focus:border-primary"/>
+            <span class="text-sm text-slate-400" id="mon-conteo-unidad"></span>
+          </div>
+          <p class="text-[11px] text-slate-400 mb-4">El conteo se ancla a este momento. A partir de ahora solo se descuentan las ventas <b>nuevas</b> — lo que ya vendiste no se vuelve a restar. Se comparará contra el stock esperado para detectar mermas.</p>
+          <div class="flex gap-2">
+            <button type="button" id="mon-conteo-btn" onclick="monConteoGuardar()" class="flex-1 bg-primary-container text-white py-3 rounded-2xl font-semibold text-sm">Guardar conteo</button>
+            <button type="button" onclick="closeModal('modal-mon-conteo')" class="px-4 py-3 rounded-2xl border border-slate-200 text-slate-500 font-semibold text-sm">Cancelar</button>
+          </div>
         </div>
-        <p class="text-[11px] text-slate-400 mb-4">El conteo se ancla a este momento. A partir de ahora solo se descuentan las ventas <b>nuevas</b> — lo que ya vendiste no se vuelve a restar.</p>
-        <div class="flex gap-2">
-          <button type="button" onclick="monConteoGuardar()" class="flex-1 bg-primary-container text-white py-3 rounded-2xl font-semibold text-sm">Guardar conteo</button>
-          <button type="button" onclick="closeModal('modal-mon-conteo')" class="px-4 py-3 rounded-2xl border border-slate-200 text-slate-500 font-semibold text-sm">Cancelar</button>
+        <!-- Resultado del cierre (merma) -->
+        <div id="mon-conteo-result" class="hidden"></div>
+      </div>
+    </div>
+
+    <!-- Modal Fugas / Mermas (Capa B) -->
+    <div id="modal-mon-fugas" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl w-full max-w-2xl shadow-2xl max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between p-5 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <span class="ms text-red-500">trending_down</span>
+            <div>
+              <h3 class="font-bold text-lg">Fugas / Mermas</h3>
+              <p class="text-xs text-slate-400">Diferencia entre stock esperado y conteo físico real</p>
+            </div>
+          </div>
+          <button type="button" onclick="closeModal('modal-mon-fugas')" class="w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400"><span class="ms">close</span></button>
         </div>
+        <div id="mon-fugas-content" class="p-5 overflow-y-auto"></div>
       </div>
     </div>
 
@@ -3801,6 +3826,28 @@ async function monDeleteRemote(id) {
     });
   } catch(e) {}
 }
+
+// ── Capa B: cierres de inventario (merma/fuga) ──
+// Cada conteo físico genera un cierre: compara stock esperado vs contado real.
+async function cierrePush(c) {
+  try {
+    const r = await fetch('/api/supabase', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table: 'cierres_insumos', action: 'insert', data: c })
+    });
+    return r.ok;
+  } catch(e) { return false; }
+}
+async function cierresLoad() {
+  try {
+    const r = await fetch('/api/supabase', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ table: 'cierres_insumos', action: 'select', order: 'none' })
+    });
+    const d = await r.json();
+    return Array.isArray(d) ? d : [];
+  } catch(e) { return []; }
+}
 // Trae config de Supabase y la fusiona con localStorage (migra los locales que aún no estén)
 async function monSyncFromSupabase() {
   let remote;
@@ -4034,25 +4081,105 @@ window.monActualizarConteo = function(id) {
   document.getElementById('mon-conteo-sub').textContent = '¿Cuántas ' + (insumo.unidad || '') + ' de ' + insumo.nombre + ' tienes AHORA?';
   document.getElementById('mon-conteo-unidad').textContent = insumo.unidad || '';
   document.getElementById('mon-conteo-valor').value = '';
+  // Reset: mostrar formulario, ocultar resultado previo
+  document.getElementById('mon-conteo-form').classList.remove('hidden');
+  document.getElementById('mon-conteo-result').classList.add('hidden');
+  const cbtn = document.getElementById('mon-conteo-btn');
+  if (cbtn) { cbtn.disabled = false; cbtn.innerHTML = 'Guardar conteo'; }
   document.getElementById('modal-mon-conteo').classList.remove('hidden');
   setTimeout(() => document.getElementById('mon-conteo-valor').focus(), 100);
 };
 
-window.monConteoGuardar = function() {
+window.monConteoGuardar = async function() {
   const id = document.getElementById('mon-conteo-id').value;
-  const valor = monNum(document.getElementById('mon-conteo-valor').value);
+  const contado = monNum(document.getElementById('mon-conteo-valor').value);
   const arr = monLoad();
   const idx = arr.findIndex(x => x.id === id);
   if (idx < 0) return;
+  const insumo = arr[idx];
+
+  const btn = document.getElementById('mon-conteo-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="ms animate-spin align-middle">progress_activity</span> Calculando…'; }
+
+  // Consumo teórico acumulado desde el último conteo base (antes de re-anclar)
+  let consumido = 0;
+  try {
+    const receipts = await monFetchReceipts();
+    consumido = monCalcConsumo(insumo, receipts).consumido;
+  } catch(e) { consumido = 0; }
+
+  const base = monNum(insumo.base);
+  const esperado = Math.round((base - consumido) * 1000) / 1000; // lo que DEBERÍA haber
+  const merma = Math.round((esperado - contado) * 1000) / 1000;  // + = faltante (fuga)
+  const costo = monCosto(insumo);
+  const mermaPesos = Math.round(merma * costo * 100) / 100;
+
+  // Registrar el cierre (histórico de fugas)
+  const cierre = {
+    id: 'c' + Date.now(),
+    insumo_id: id,
+    nombre: insumo.nombre || '',
+    unidad: insumo.unidad || '',
+    fecha: new Date().toISOString(),
+    base_anterior: base,
+    consumido,
+    esperado,
+    contado,
+    merma,
+    costo_unit: costo,
+    merma_pesos: mermaPesos
+  };
+  cierrePush(cierre); // sube en segundo plano (si la tabla no existe, se ignora)
+
   // Ancla el conteo al momento EXACTO → el consumo se reinicia a 0 desde ahora
-  arr[idx].base = valor;
-  arr[idx].fecha = new Date().toISOString();
+  arr[idx].base = contado;
+  arr[idx].fecha = cierre.fecha;
   monSave(arr);
-  closeModal('modal-mon-conteo');
-  toast('✓ Conteo guardado: ' + valor + ' ' + (arr[idx].unidad || ''));
-  monRender(false);          // render inmediato desde local (sin re-sync = sin lag)
   monPushRemote(arr[idx]);   // sube a Supabase en segundo plano
+  monRender(false);          // render inmediato desde local (sin re-sync = sin lag)
+
+  monMostrarResultadoCierre(cierre);
 };
+
+// Muestra el resultado del cierre dentro del modal de conteo
+function monMostrarResultadoCierre(c) {
+  const form = document.getElementById('mon-conteo-form');
+  const res  = document.getElementById('mon-conteo-result');
+  if (!res) { closeModal('modal-mon-conteo'); return; }
+  if (form) form.classList.add('hidden');
+
+  const u = c.unidad || '';
+  // merma > 0 = faltante (fuga); < 0 = sobrante; ~0 = cuadró
+  const hayFuga = c.merma > 0.001;
+  const haySobrante = c.merma < -0.001;
+  const color = hayFuga ? 'red' : haySobrante ? 'amber' : 'emerald';
+  const titulo = hayFuga ? '⚠ Merma detectada' : haySobrante ? 'Sobrante' : '✓ Cuadró';
+  const mermaAbs = Math.abs(c.merma);
+  const pesosAbs = Math.abs(c.merma_pesos);
+  const pesosTxt = c.costo_unit > 0
+    ? '$' + pesosAbs.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : '<span class="text-slate-400">sin costo configurado</span>';
+
+  res.classList.remove('hidden');
+  res.innerHTML = `
+    <div class="rounded-2xl border border-${color}-200 bg-${color}-50 p-4 mb-3">
+      <p class="text-sm font-bold text-${color}-700 mb-2">${titulo}</p>
+      <div class="text-4xl font-bold text-${color}-600">${hayFuga ? '−' : haySobrante ? '+' : ''}${mermaAbs} <span class="text-lg">${u}</span></div>
+      <div class="text-lg font-bold text-${color}-600 mt-1">${hayFuga ? '−' : haySobrante ? '+' : ''}${pesosTxt}</div>
+    </div>
+    <div class="space-y-1.5 text-sm mb-4">
+      <div class="flex justify-between"><span class="text-slate-500">Base anterior</span><b class="text-slate-800">${c.base_anterior} ${u}</b></div>
+      <div class="flex justify-between"><span class="text-slate-500">Consumo teórico (ventas)</span><b class="text-slate-800">−${c.consumido} ${u}</b></div>
+      <div class="flex justify-between border-t border-slate-100 pt-1.5"><span class="text-slate-500">Esperado</span><b class="text-slate-800">${c.esperado} ${u}</b></div>
+      <div class="flex justify-between"><span class="text-slate-500">Contado (real)</span><b class="text-slate-800">${c.contado} ${u}</b></div>
+    </div>
+    <p class="text-[11px] text-slate-400 mb-3">${hayFuga
+      ? 'Faltó producto respecto a lo que las ventas justifican. Revisa porciones, desperdicio o salidas no registradas.'
+      : haySobrante
+      ? 'Hay más producto del esperado. Puede ser una compra no registrada o un conteo previo bajo.'
+      : 'El conteo coincide con lo esperado.'}</p>
+    <button type="button" onclick="closeModal('modal-mon-conteo')" class="w-full bg-primary-container text-white py-3 rounded-2xl font-semibold text-sm">Listo</button>`;
+}
 
 window.monGuardar = function() {
   const id = document.getElementById('mon-id').value || ('mon' + Date.now());
@@ -4096,6 +4223,100 @@ window.monEliminar = async function() {
   toast('Insumo eliminado');
   monRender(false);                                // render inmediato (sin re-sync)
   await monDeleteRemote(id);                        // borra en Supabase
+};
+
+// Tablero de fugas / mermas (Capa B)
+window.monVerFugas = async function() {
+  const cont = document.getElementById('mon-fugas-content');
+  document.getElementById('modal-mon-fugas').classList.remove('hidden');
+  cont.innerHTML = '<div class="text-center py-12 text-slate-400 text-sm">Cargando cierres…</div>';
+  const cierres = await cierresLoad();
+
+  if (!cierres.length) {
+    cont.innerHTML = `<div class="text-center py-10 text-slate-400">
+      <span class="ms text-5xl block mb-3">inventory_2</span>
+      <p class="text-sm mb-1">Aún no hay cierres registrados.</p>
+      <p class="text-xs">Cada vez que actualices un <b>conteo físico</b> se registra un cierre y aquí verás la merma.</p>
+      <p class="text-[11px] text-slate-300 mt-3">Requiere la tabla <code>cierres_insumos</code> en Supabase.</p>
+    </div>`;
+    return;
+  }
+
+  const nn = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+  // Agrupar por insumo
+  const porInsumo = {};
+  cierres.forEach(c => {
+    const k = c.insumo_id || c.nombre;
+    if (!porInsumo[k]) porInsumo[k] = { nombre: c.nombre, unidad: c.unidad || '', n: 0, mermaU: 0, mermaP: 0, ultima: '' };
+    const g = porInsumo[k];
+    g.n++;
+    g.mermaU += nn(c.merma);
+    g.mermaP += nn(c.merma_pesos);
+    if (!g.ultima || (c.fecha || '') > g.ultima) g.ultima = c.fecha || '';
+  });
+  const grupos = Object.values(porInsumo).sort((a, b) => b.mermaP - a.mermaP);
+
+  // Totales: fugas (merma positiva) vs sobrantes
+  const totalFugaP = cierres.reduce((a, c) => a + (nn(c.merma_pesos) > 0 ? nn(c.merma_pesos) : 0), 0);
+  const totalNetoP = cierres.reduce((a, c) => a + nn(c.merma_pesos), 0);
+  const fmt$ = v => '$' + Math.abs(v).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmtU = (v, u) => (Math.round(v * 1000) / 1000) + ' ' + (u || '');
+  const fechaCorta = f => f ? new Date(f).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : '—';
+
+  let html = `
+    <div class="grid grid-cols-2 gap-3 mb-5">
+      <div class="rounded-2xl bg-red-50 border border-red-100 p-4">
+        <p class="text-xs text-red-500 font-semibold mb-1">Fugas acumuladas</p>
+        <p class="text-2xl font-bold text-red-600">${fmt$(totalFugaP)}</p>
+        <p class="text-[11px] text-red-400 mt-0.5">Suma de faltantes en pesos</p>
+      </div>
+      <div class="rounded-2xl bg-slate-50 border border-slate-100 p-4">
+        <p class="text-xs text-slate-500 font-semibold mb-1">Balance neto</p>
+        <p class="text-2xl font-bold ${totalNetoP > 0 ? 'text-red-600' : 'text-emerald-600'}">${totalNetoP > 0 ? '−' : '+'}${fmt$(totalNetoP)}</p>
+        <p class="text-[11px] text-slate-400 mt-0.5">Fugas menos sobrantes</p>
+      </div>
+    </div>`;
+
+  // Ranking por insumo
+  html += '<p class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Por insumo</p><div class="space-y-2 mb-5">';
+  grupos.forEach(g => {
+    const fuga = g.mermaU > 0.001;
+    const col = fuga ? 'red' : (g.mermaU < -0.001 ? 'amber' : 'emerald');
+    html += `
+      <div class="flex items-center justify-between rounded-xl border border-slate-100 px-3 py-2.5">
+        <div class="min-w-0">
+          <p class="font-semibold text-slate-800 text-sm truncate">${g.nombre}</p>
+          <p class="text-[11px] text-slate-400">${g.n} cierre${g.n === 1 ? '' : 's'} · último ${fechaCorta(g.ultima)}</p>
+        </div>
+        <div class="text-right shrink-0 ml-2">
+          <p class="font-bold text-${col}-600 text-sm">${g.mermaU > 0 ? '−' : g.mermaU < 0 ? '+' : ''}${fmtU(Math.abs(g.mermaU), g.unidad)}</p>
+          <p class="text-xs text-${col}-500">${g.mermaP !== 0 ? (g.mermaP > 0 ? '−' : '+') + fmt$(g.mermaP) : '—'}</p>
+        </div>
+      </div>`;
+  });
+  html += '</div>';
+
+  // Historial reciente
+  const recientes = [...cierres].sort((a, b) => (b.fecha || '').localeCompare(a.fecha || '')).slice(0, 20);
+  html += '<p class="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Cierres recientes</p><div class="space-y-1">';
+  recientes.forEach(c => {
+    const fuga = nn(c.merma) > 0.001;
+    const col = fuga ? 'red' : (nn(c.merma) < -0.001 ? 'amber' : 'emerald');
+    html += `
+      <div class="flex items-center justify-between text-sm py-1.5 border-b border-slate-50">
+        <div>
+          <span class="text-slate-700">${c.nombre}</span>
+          <span class="text-[11px] text-slate-400 ml-1">${fechaCorta(c.fecha)}</span>
+        </div>
+        <div class="text-right">
+          <span class="text-xs text-slate-400">esp ${nn(c.esperado)} → real ${nn(c.contado)}</span>
+          <span class="font-bold text-${col}-600 ml-2">${nn(c.merma) > 0 ? '−' : nn(c.merma) < 0 ? '+' : ''}${fmtU(Math.abs(nn(c.merma)), c.unidad)}</span>
+        </div>
+      </div>`;
+  });
+  html += '</div>';
+
+  cont.innerHTML = html;
 };
 
 // Al registrar una compra: detecta proteínas y abre el modal para cuadrar stock
