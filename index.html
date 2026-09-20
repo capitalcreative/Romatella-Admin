@@ -1668,7 +1668,7 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           </button>
         </div>
       </div>
-      <div id="mon-cards" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+      <div id="mon-cards" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3"></div>
     </section>
 
     <!-- ═══════════════ FLUJO DE CAJA ═══════════════ -->
@@ -3941,6 +3941,8 @@ async function monFetchReceipts() {
   return await fetchReceipts(desde, hoy);
 }
 
+let MON_CIERRES_CACHE = null; // últimas mermas por insumo (Capa B), se refresca al sincronizar
+
 async function monRender(sync = true) {
   const cont = document.getElementById('mon-cards');
   if (!cont) return;
@@ -3957,10 +3959,21 @@ async function monRender(sync = true) {
   let receipts = [];
   try { receipts = await monFetchReceipts(); } catch(e) { receipts = []; }
 
+  // Capa B: última merma por insumo (solo se refresca al abrir la sección para no lagear)
+  if (sync || MON_CIERRES_CACHE === null) {
+    try { MON_CIERRES_CACHE = await cierresLoad(); } catch(e) { MON_CIERRES_CACHE = MON_CIERRES_CACHE || []; }
+  }
+  const ultCierrePorInsumo = {};
+  (MON_CIERRES_CACHE || []).forEach(c => {
+    const k = c.insumo_id;
+    if (!ultCierrePorInsumo[k] || (c.fecha || '') > (ultCierrePorInsumo[k].fecha || '')) ultCierrePorInsumo[k] = c;
+  });
+
   let enAlerta = 0;
   cont.innerHTML = '';
   insumos.forEach(insumo => {
-    const { consumido, tickets } = monCalcConsumo(insumo, receipts);
+    const { consumido } = monCalcConsumo(insumo, receipts);
+    const u = insumo.unidad || '';
     const base = monNum(insumo.base);
     const umbral = monNum(insumo.umbral);
     const est = Math.round((base - consumido) * 1000) / 1000;
@@ -3969,37 +3982,90 @@ async function monRender(sync = true) {
     const medio = !bajo && est <= umbral * 1.5;
     if (bajo) enAlerta++;
     const color = bajo ? 'red' : medio ? 'amber' : 'emerald';
-    const barColor = bajo ? 'bg-red-500' : medio ? 'bg-amber-400' : 'bg-emerald-500';
+    const dot = bajo ? 'bg-red-500' : medio ? 'bg-amber-400' : 'bg-emerald-500';
     const fechaTxt = insumo.fecha ? new Date((insumo.fecha||'').slice(0,10) + 'T12:00:00').toLocaleDateString('es-MX',{day:'2-digit',month:'short'}) : '—';
+
+    // Chip de última merma (Capa B)
+    const uc = ultCierrePorInsumo[insumo.id];
+    let mermaChip = '<span class="text-slate-300">Sin cierres aún</span>';
+    if (uc) {
+      const mv = parseFloat(uc.merma) || 0;
+      const fuga = mv > 0.001, sob = mv < -0.001;
+      const mcol = fuga ? 'red' : sob ? 'amber' : 'emerald';
+      const pesos = (parseFloat(uc.costo_unit) || 0) > 0
+        ? ' · ' + (fuga ? '−' : sob ? '+' : '') + '$' + Math.abs(parseFloat(uc.merma_pesos) || 0).toLocaleString('es-MX', { maximumFractionDigits: 0 })
+        : '';
+      mermaChip = `<span class="text-${mcol}-600 font-semibold">${fuga ? '▼' : sob ? '▲' : '✓'} ${Math.abs(mv)}${pesos}</span>`;
+    }
+
     const card = document.createElement('div');
-    card.className = `bg-white rounded-2xl border ${bajo ? 'border-red-200' : 'border-slate-100'} shadow-sm p-4`;
+    card.className = `bg-white rounded-2xl border ${bajo ? 'border-red-200' : 'border-slate-100'} shadow-sm p-3.5`;
     card.innerHTML = `
-      <div class="flex items-start justify-between mb-2">
-        <div>
-          <div class="flex items-center gap-2">
-            <span class="font-bold text-slate-900">${insumo.nombre || '—'}</span>
-            ${bajo ? '<span class="text-xs font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-full">⚠ Reabastecer</span>' : ''}
-          </div>
-          <p class="text-xs text-slate-400">Conteo base ${fechaTxt} · ${tickets} ventas con consumo</p>
+      <div class="flex items-center justify-between gap-2 mb-2.5">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="w-2.5 h-2.5 rounded-full ${dot} shrink-0"></span>
+          <span class="font-semibold text-slate-900 text-sm truncate">${insumo.nombre || '—'}</span>
+          ${bajo ? '<span class="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full shrink-0">Reabastecer</span>' : ''}
         </div>
-        <button type="button" onclick="monAbrirEditar('${insumo.id}')" class="text-slate-300 hover:text-slate-600"><span class="ms text-lg">edit</span></button>
+        <button type="button" onclick="monAbrirEditar('${insumo.id}')" class="text-slate-300 hover:text-slate-600 shrink-0"><span class="ms text-base">edit</span></button>
       </div>
-      <div class="flex items-end gap-2 mb-1">
-        <span class="text-3xl font-bold text-${color}-600">${est}</span>
-        <span class="text-sm text-slate-400 mb-1">${insumo.unidad || ''} estimado de ${base} ${insumo.unidad || ''}</span>
+      <div class="flex items-baseline gap-1.5 mb-1.5">
+        <span class="text-2xl font-bold text-${color}-600 leading-none">${est}</span>
+        <span class="text-xs text-slate-400">${u} <span class="text-slate-300">debería haber · de ${base}</span></span>
       </div>
-      <div class="h-2 bg-slate-100 rounded-full overflow-hidden mb-2">
-        <div class="h-full ${barColor} rounded-full transition-all" style="width:${pct.toFixed(0)}%"></div>
+      <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-2.5">
+        <div class="h-full ${dot} rounded-full transition-all" style="width:${pct.toFixed(0)}%"></div>
       </div>
-      <div class="flex items-center justify-between text-xs text-slate-500">
-        <span>Consumido: <b class="text-slate-700">${consumido} ${insumo.unidad||''}</b></span>
-        <span>Alerta bajo: ${umbral} ${insumo.unidad||''}</span>
+      <div class="flex items-center justify-between text-[11px] text-slate-500 mb-2.5">
+        <span>Vendido <b class="text-slate-700">${consumido}</b> · alerta ${umbral}</span>
+        <span class="flex items-center gap-1"><span class="text-slate-400">merma ${fechaTxt}:</span> ${mermaChip}</span>
       </div>
-      <button type="button" onclick="monActualizarConteo('${insumo.id}')" class="mt-3 w-full text-xs font-semibold text-primary bg-blue-50 rounded-xl py-2 hover:bg-blue-100">Actualizar conteo físico</button>`;
+      <div id="mon-recount-${insumo.id}">
+        <button type="button" onclick="monRecontarInline('${insumo.id}')" class="w-full text-xs font-semibold text-primary bg-blue-50 rounded-lg py-2 hover:bg-blue-100 flex items-center justify-center gap-1"><span class="ms text-sm">inventory</span>Recontar</button>
+      </div>`;
     cont.appendChild(card);
   });
   monUpdateBadge(enAlerta);
 }
+
+// Reconteo INLINE en la tarjeta (sin abrir otra pantalla)
+window.monRecontarInline = function(id) {
+  const box = document.getElementById('mon-recount-' + id);
+  if (!box) return;
+  const ins = monLoad().find(x => x.id === id);
+  const u = ins ? (ins.unidad || '') : '';
+  box.innerHTML = `
+    <div class="flex items-center gap-1.5">
+      <input id="mon-rc-${id}" type="text" inputmode="decimal" placeholder="¿Cuántas ${u} hay?"
+        class="flex-1 text-center text-sm font-bold border-2 border-primary/40 rounded-lg px-2 py-1.5 outline-none focus:border-primary"/>
+      <button type="button" onclick="monRecontarConfirm('${id}')" class="w-9 h-9 rounded-lg bg-primary-container text-white flex items-center justify-center shrink-0"><span class="ms text-base">check</span></button>
+      <button type="button" onclick="monRender(false)" class="w-9 h-9 rounded-lg border border-slate-200 text-slate-400 flex items-center justify-center shrink-0"><span class="ms text-base">close</span></button>
+    </div>`;
+  const inp = document.getElementById('mon-rc-' + id);
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); monRecontarConfirm(id); } });
+  setTimeout(() => inp.focus(), 50);
+};
+
+window.monRecontarConfirm = async function(id) {
+  const inp = document.getElementById('mon-rc-' + id);
+  const box = document.getElementById('mon-recount-' + id);
+  if (!inp || !box) return;
+  const contado = monNum(inp.value);
+  box.innerHTML = '<div class="text-center text-xs text-slate-400 py-2"><span class="ms animate-spin align-middle text-sm">progress_activity</span> Calculando…</div>';
+  const c = await monAplicarConteo(id, contado);
+  if (!c) { monRender(false); return; }
+  const fuga = c.merma > 0.001, sob = c.merma < -0.001;
+  const col = fuga ? 'red' : sob ? 'amber' : 'emerald';
+  const u = c.unidad || '';
+  const pesos = c.costo_unit > 0
+    ? ' · ' + (fuga ? '−' : sob ? '+' : '') + '$' + Math.abs(c.merma_pesos).toLocaleString('es-MX', { maximumFractionDigits: 0 })
+    : '';
+  box.innerHTML = `
+    <div class="rounded-lg border border-${col}-200 bg-${col}-50 px-2.5 py-2 flex items-center justify-between gap-2">
+      <span class="text-xs font-semibold text-${col}-700">${fuga ? '⚠ Merma' : sob ? 'Sobrante' : '✓ Cuadró'} ${fuga ? '−' : sob ? '+' : ''}${Math.abs(c.merma)} ${u}${pesos}</span>
+      <button type="button" onclick="monRender(false)" class="text-xs font-bold text-${col}-600 shrink-0">Listo</button>
+    </div>`;
+};
 
 function monUpdateBadge(n) {
   ['mon-badge','mob-mon-badge'].forEach(id => {
@@ -4090,16 +4156,13 @@ window.monActualizarConteo = function(id) {
   setTimeout(() => document.getElementById('mon-conteo-valor').focus(), 100);
 };
 
-window.monConteoGuardar = async function() {
-  const id = document.getElementById('mon-conteo-id').value;
-  const contado = monNum(document.getElementById('mon-conteo-valor').value);
+// Núcleo compartido: calcula la merma de un conteo, registra el cierre y re-ancla la base.
+// Devuelve el cierre (o null). Lo usan el reconteo inline y el modal de conteo.
+async function monAplicarConteo(id, contado) {
   const arr = monLoad();
   const idx = arr.findIndex(x => x.id === id);
-  if (idx < 0) return;
+  if (idx < 0) return null;
   const insumo = arr[idx];
-
-  const btn = document.getElementById('mon-conteo-btn');
-  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="ms animate-spin align-middle">progress_activity</span> Calculando…'; }
 
   // Consumo teórico acumulado desde el último conteo base (antes de re-anclar)
   let consumido = 0;
@@ -4114,7 +4177,6 @@ window.monConteoGuardar = async function() {
   const costo = monCosto(insumo);
   const mermaPesos = Math.round(merma * costo * 100) / 100;
 
-  // Registrar el cierre (histórico de fugas)
   const cierre = {
     id: 'c' + Date.now(),
     insumo_id: id,
@@ -4130,14 +4192,24 @@ window.monConteoGuardar = async function() {
     merma_pesos: mermaPesos
   };
   cierrePush(cierre); // sube en segundo plano (si la tabla no existe, se ignora)
+  if (Array.isArray(MON_CIERRES_CACHE)) MON_CIERRES_CACHE.unshift(cierre); else MON_CIERRES_CACHE = [cierre];
 
   // Ancla el conteo al momento EXACTO → el consumo se reinicia a 0 desde ahora
   arr[idx].base = contado;
   arr[idx].fecha = cierre.fecha;
   monSave(arr);
   monPushRemote(arr[idx]);   // sube a Supabase en segundo plano
-  monRender(false);          // render inmediato desde local (sin re-sync = sin lag)
+  return cierre;
+}
 
+window.monConteoGuardar = async function() {
+  const id = document.getElementById('mon-conteo-id').value;
+  const contado = monNum(document.getElementById('mon-conteo-valor').value);
+  const btn = document.getElementById('mon-conteo-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<span class="ms animate-spin align-middle">progress_activity</span> Calculando…'; }
+  const cierre = await monAplicarConteo(id, contado);
+  if (!cierre) { closeModal('modal-mon-conteo'); return; }
+  monRender(false);          // render inmediato desde local (sin re-sync = sin lag)
   monMostrarResultadoCierre(cierre);
 };
 
