@@ -3978,11 +3978,18 @@ async function monRender(sync = true) {
     const umbral = monNum(insumo.umbral);
     const est = Math.round((base - consumido) * 1000) / 1000;
     const pct = base > 0 ? Math.max(0, Math.min(100, (est / base) * 100)) : 0;
-    const bajo = est <= umbral;
-    const medio = !bajo && est <= umbral * 1.5;
-    if (bajo) enAlerta++;
-    const color = bajo ? 'red' : medio ? 'amber' : 'emerald';
-    const dot = bajo ? 'bg-red-500' : medio ? 'bg-amber-400' : 'bg-emerald-500';
+    // Descuadre: se vendió más de lo registrado (est negativo) → falta capturar una compra
+    const descuadre = est < -0.001;
+    const bajoRaw = est <= umbral;
+    if (bajoRaw) enAlerta++;
+    const bajo = bajoRaw && !descuadre;
+    const medio = !bajoRaw && est <= umbral * 1.5;
+    const color = descuadre ? 'amber' : bajo ? 'red' : medio ? 'amber' : 'emerald';
+    const dot = descuadre ? 'bg-amber-500' : bajo ? 'bg-red-500' : medio ? 'bg-amber-400' : 'bg-emerald-500';
+    const borderCls = descuadre ? 'border-amber-200' : bajo ? 'border-red-200' : 'border-slate-100';
+    const chip = descuadre
+      ? '<span class="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-full shrink-0">Descuadre</span>'
+      : bajo ? '<span class="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full shrink-0">Reabastecer</span>' : '';
     const fechaTxt = insumo.fecha ? new Date((insumo.fecha||'').slice(0,10) + 'T12:00:00').toLocaleDateString('es-MX',{day:'2-digit',month:'short'}) : '—';
 
     // Chip de última merma (Capa B)
@@ -3998,24 +4005,35 @@ async function monRender(sync = true) {
       mermaChip = `<span class="text-${mcol}-600 font-semibold">${fuga ? '▼' : sob ? '▲' : '✓'} ${Math.abs(mv)}${pesos}</span>`;
     }
 
+    // Barra normal o banner de descuadre
+    const barraOBanner = descuadre
+      ? `<div class="rounded-lg bg-amber-50 border border-amber-200 px-2.5 py-1.5 mb-2.5">
+           <p class="text-[11px] text-amber-700 font-semibold leading-snug">⚠ Vendiste ${consumido} y solo hay ${base} registrada${base === 1 ? '' : 's'}.</p>
+           <p class="text-[10px] text-amber-600 leading-snug">Falta capturar una compra de ${insumo.nombre || 'este insumo'} (o revisa las ventas).</p>
+         </div>`
+      : `<div class="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-2.5">
+           <div class="h-full ${dot} rounded-full transition-all" style="width:${pct.toFixed(0)}%"></div>
+         </div>`;
+
     const card = document.createElement('div');
-    card.className = `bg-white rounded-2xl border ${bajo ? 'border-red-200' : 'border-slate-100'} shadow-sm p-3.5`;
+    card.className = `bg-white rounded-2xl border ${borderCls} shadow-sm p-3.5`;
     card.innerHTML = `
       <div class="flex items-center justify-between gap-2 mb-2.5">
         <div class="flex items-center gap-2 min-w-0">
           <span class="w-2.5 h-2.5 rounded-full ${dot} shrink-0"></span>
           <span class="font-semibold text-slate-900 text-sm truncate">${insumo.nombre || '—'}</span>
-          ${bajo ? '<span class="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full shrink-0">Reabastecer</span>' : ''}
+          ${chip}
         </div>
         <button type="button" onclick="monAbrirEditar('${insumo.id}')" class="text-slate-300 hover:text-slate-600 shrink-0"><span class="ms text-base">edit</span></button>
       </div>
-      <div class="flex items-baseline gap-1.5 mb-1.5">
-        <span class="text-2xl font-bold text-${color}-600 leading-none">${est}</span>
-        <span class="text-xs text-slate-400">${u} <span class="text-slate-300">debería haber · de ${base}</span></span>
+      <div class="mb-1.5">
+        <div class="flex items-baseline gap-1.5">
+          <span class="text-2xl font-bold text-${color}-600 leading-none">${descuadre ? 0 : est}</span>
+          <span class="text-xs text-slate-400">${u} <span class="text-slate-300">· base ${base}</span></span>
+        </div>
+        <p class="text-[10px] uppercase tracking-wide text-slate-400 mt-0.5">Debería haber ahora</p>
       </div>
-      <div class="h-1.5 bg-slate-100 rounded-full overflow-hidden mb-2.5">
-        <div class="h-full ${dot} rounded-full transition-all" style="width:${pct.toFixed(0)}%"></div>
-      </div>
+      ${barraOBanner}
       <div class="flex items-center justify-between text-[11px] text-slate-500 mb-2.5">
         <span>Vendido <b class="text-slate-700">${consumido}</b> · alerta ${umbral}</span>
         <span class="flex items-center gap-1"><span class="text-slate-400">merma ${fechaTxt}:</span> ${mermaChip}</span>
