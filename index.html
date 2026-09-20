@@ -4047,22 +4047,67 @@ async function monRender(sync = true) {
   monUpdateBadge(enAlerta);
 }
 
-// Reconteo INLINE en la tarjeta (sin abrir otra pantalla)
+// Normaliza un nombre para comparar (minúsculas, sin acentos, sin signos)
+function monNorm(s) {
+  return (s || '').toString().toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+// Último conteo capturado en las requisiciones de empleados (Inventario Barra/Cocina).
+// Devuelve { nombreNormalizado: {qty, fecha, nombre, empleado} } tomando la requisición más reciente.
+function monInvConteos() {
+  const out = {};
+  const reqs = (DB.requisiciones || []).slice().sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+  reqs.forEach(r => {
+    let items = []; try { items = JSON.parse(r.items || '[]'); } catch { items = []; }
+    items.forEach(it => {
+      if (it.bien) return;                 // 'bien' = suficiente, sin número de conteo
+      const k = monNorm(it.item);
+      if (!k || out[k]) return;            // reqs viene ordenado desc → conserva el más reciente
+      const q = parseFloat(it.qty);
+      if (isNaN(q)) return;
+      out[k] = { qty: q, fecha: r.fecha, nombre: it.item, empleado: r.nombre };
+    });
+  });
+  return out;
+}
+
+// Busca el conteo de inventario que corresponde a un insumo: match exacto y, si no,
+// substring ÚNICO (evita confundir "Rib Eye" con "Tablitas de Rib Eye").
+function monMatchInv(insumoNombre, mapa) {
+  const k = monNorm(insumoNombre);
+  if (!k) return null;
+  if (mapa[k]) return mapa[k];
+  const cands = Object.keys(mapa).filter(key => key.includes(k));
+  return cands.length === 1 ? mapa[cands[0]] : null;
+}
+
+// Reconteo INLINE en la tarjeta (sin abrir otra pantalla).
+// Pre-llena con el último conteo del Inventario de Empleados si existe.
 window.monRecontarInline = function(id) {
   const box = document.getElementById('mon-actions-' + id);
   if (!box) return;
   const ins = monLoad().find(x => x.id === id);
   const u = ins ? (ins.unidad || '') : '';
+  const match = ins ? monMatchInv(ins.nombre, monInvConteos()) : null;
+  const prefill = match ? match.qty : '';
+  const fechaInv = match && match.fecha ? new Date(match.fecha).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : '';
+  const hint = match
+    ? `<p class="text-[10px] text-emerald-600 mb-1 leading-snug">📋 Del inventario ${fechaInv}${match.empleado ? ' · ' + match.empleado : ''}: <b>${match.qty} ${u}</b> — ajusta si cambió</p>`
+    : '';
   box.innerHTML = `
-    <div class="flex items-center gap-1.5 w-full">
-      <input id="mon-rc-${id}" type="text" inputmode="decimal" placeholder="Conteo físico: ¿cuántas ${u} hay?"
-        class="flex-1 min-w-0 text-center text-sm font-bold border-2 border-primary/40 rounded-lg px-2 py-1.5 outline-none focus:border-primary"/>
-      <button type="button" onclick="monRecontarConfirm('${id}')" class="w-9 h-9 rounded-lg bg-primary-container text-white flex items-center justify-center shrink-0"><span class="ms text-base">check</span></button>
-      <button type="button" onclick="monRender(false)" class="w-9 h-9 rounded-lg border border-slate-200 text-slate-400 flex items-center justify-center shrink-0"><span class="ms text-base">close</span></button>
+    <div class="w-full">
+      ${hint}
+      <div class="flex items-center gap-1.5 w-full">
+        <input id="mon-rc-${id}" type="text" inputmode="decimal" value="${prefill}" placeholder="Conteo físico (${u})"
+          class="flex-1 min-w-0 text-center text-sm font-bold border-2 border-primary/40 rounded-lg px-2 py-1.5 outline-none focus:border-primary"/>
+        <button type="button" onclick="monRecontarConfirm('${id}')" class="w-9 h-9 rounded-lg bg-primary-container text-white flex items-center justify-center shrink-0"><span class="ms text-base">check</span></button>
+        <button type="button" onclick="monRender(false)" class="w-9 h-9 rounded-lg border border-slate-200 text-slate-400 flex items-center justify-center shrink-0"><span class="ms text-base">close</span></button>
+      </div>
     </div>`;
   const inp = document.getElementById('mon-rc-' + id);
   inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); monRecontarConfirm(id); } });
-  setTimeout(() => inp.focus(), 50);
+  setTimeout(() => { inp.focus(); inp.select(); }, 50);
 };
 
 window.monRecontarConfirm = async function(id) {
