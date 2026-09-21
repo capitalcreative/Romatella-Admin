@@ -1657,6 +1657,9 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           <p class="text-sm text-slate-400">Stock estimado de insumos no rastreables en Loyverse (modificadores y platillos), cruzado con ventas</p>
         </div>
         <div class="flex items-center gap-2">
+          <button type="button" onclick="monArranqueAbrir()" class="px-3 py-1.5 rounded-xl bg-primary-container text-white text-xs font-semibold flex items-center gap-1 hover:opacity-90">
+            <span class="ms text-sm">restart_alt</span>Arrancar
+          </button>
           <button type="button" onclick="monVerFugas()" class="px-3 py-1.5 rounded-xl bg-red-50 text-red-600 text-xs font-semibold flex items-center gap-1 hover:bg-red-100">
             <span class="ms text-sm">trending_down</span>Fugas / Mermas
           </button>
@@ -1850,6 +1853,28 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           <button type="button" onclick="closeModal('modal-mon-fugas')" class="w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400"><span class="ms">close</span></button>
         </div>
         <div id="mon-fugas-content" class="p-5 overflow-y-auto"></div>
+      </div>
+    </div>
+
+    <!-- Modal Arranque: pone los insumos en cero desde hoy -->
+    <div id="modal-mon-arranque" class="hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div class="bg-white rounded-3xl w-full max-w-lg shadow-2xl max-h-[90vh] flex flex-col">
+        <div class="flex items-center justify-between p-5 border-b border-slate-100">
+          <div class="flex items-center gap-2">
+            <span class="ms text-primary">restart_alt</span>
+            <div>
+              <h3 class="font-bold text-lg">Arrancar monitoreo</h3>
+              <p class="text-xs text-slate-400">Fija el conteo de hoy como base. El consumo arranca en 0 desde ahora.</p>
+            </div>
+          </div>
+          <button type="button" onclick="closeModal('modal-mon-arranque')" class="w-9 h-9 rounded-full hover:bg-slate-100 flex items-center justify-center text-slate-400"><span class="ms">close</span></button>
+        </div>
+        <div id="mon-arranque-sum" class="text-xs px-5 py-2.5 bg-slate-50 border-b border-slate-100 text-slate-500"></div>
+        <div id="mon-arranque-lista" class="px-5 py-2 overflow-y-auto flex-1"></div>
+        <div class="flex gap-2 p-4 border-t border-slate-100">
+          <button type="button" onclick="monArranqueGuardar()" class="flex-1 bg-primary-container text-white py-3 rounded-2xl font-semibold text-sm">Arrancar en cero</button>
+          <button type="button" onclick="closeModal('modal-mon-arranque')" class="px-4 py-3 rounded-2xl border border-slate-200 text-slate-500 font-semibold text-sm">Cancelar</button>
+        </div>
       </div>
     </div>
 
@@ -4532,6 +4557,58 @@ window.monVerFugas = async function() {
   html += '</div>';
 
   cont.innerHTML = html;
+};
+
+// Arranque: pone los insumos en cero desde hoy (re-ancla) usando el inventario aprobado.
+window.monArranqueAbrir = function() {
+  const insumos = monLoad();
+  const reqs = DB.requisiciones || [];
+  const aprob = reqs.filter(r => r.estatus === 'Aprobada');
+  const mapa = monInvConteos();
+  let matched = 0;
+
+  const rows = insumos.map(ins => {
+    const m = monMatchInv(ins.nombre, mapa);
+    if (m) matched++;
+    const val = m ? m.qty : '';
+    const src = m
+      ? `<span class="text-emerald-600">📋 inv aprobado ${new Date(m.fecha).toLocaleDateString('es-MX',{day:'2-digit',month:'short'})}${m.nombre && monNorm(m.nombre) !== monNorm(ins.nombre) ? ' · ' + m.nombre : ''}</span>`
+      : '<span class="text-slate-300">sin match en inventario — escribe a mano</span>';
+    return `<div class="flex items-center gap-2 py-2 border-b border-slate-50">
+        <div class="flex-1 min-w-0"><p class="text-sm font-semibold text-slate-800 truncate">${ins.nombre || '—'}</p><p class="text-[10px]">${src}</p></div>
+        <input id="mon-arr-${ins.id}" type="text" inputmode="decimal" value="${val}" placeholder="0" class="w-20 text-center text-sm font-bold border-2 border-slate-200 rounded-lg px-2 py-1.5 outline-none focus:border-primary"/>
+        <span class="text-[11px] text-slate-400 w-12 truncate">${ins.unidad || ''}</span>
+      </div>`;
+  }).join('');
+
+  let diag;
+  if (!reqs.length) diag = '⚠ No hay requisiciones cargadas. Abre "Inventario Empleados" primero.';
+  else if (!aprob.length) diag = '⚠ No hay ninguna requisición APROBADA. Aprueba la del domingo en Inventario Empleados y reabre esto.';
+  else diag = `${matched} de ${insumos.length} jalados del inventario aprobado (${aprob.length} aprobada${aprob.length===1?'':'s'}). Ajusta lo que quieras; los vacíos no se tocan.`;
+
+  document.getElementById('mon-arranque-sum').innerHTML = diag;
+  document.getElementById('mon-arranque-lista').innerHTML = rows || '<p class="text-sm text-slate-400 py-6 text-center">Sin insumos.</p>';
+  document.getElementById('modal-mon-arranque').classList.remove('hidden');
+};
+
+window.monArranqueGuardar = async function() {
+  const arr = monLoad();
+  const ahora = new Date().toISOString();
+  let n = 0;
+  arr.forEach(ins => {
+    const el = document.getElementById('mon-arr-' + ins.id);
+    if (!el) return;
+    const raw = String(el.value).trim();
+    if (raw === '') return;              // vacío = no tocar este insumo
+    ins.base = monNum(raw);
+    ins.fecha = ahora;                   // re-ancla: el consumo arranca en 0 desde ahora
+    monPushRemote(ins);
+  n++;
+  });
+  monSave(arr);
+  closeModal('modal-mon-arranque');
+  toast('✓ Monitoreo arrancado: ' + n + ' insumo' + (n===1?'':'s') + ' en cero desde hoy', 5000);
+  monRender(false);
 };
 
 // Al registrar una compra: detecta proteínas y abre el modal para cuadrar stock
