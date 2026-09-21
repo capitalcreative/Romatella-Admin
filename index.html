@@ -4095,17 +4095,20 @@ function monNorm(s) {
     .replace(/[^a-z0-9]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-// Último conteo capturado en las requisiciones de empleados (Inventario Barra/Cocina).
-// Devuelve { nombreNormalizado: {qty, fecha, nombre, empleado} } tomando la requisición más reciente.
+// Último conteo APROBADO capturado en las requisiciones de empleados (Inventario Barra/Cocina).
+// Solo usa requisiciones con estatus 'Aprobada' (conteo validado, ej. el del domingo).
+// Devuelve { nombreNormalizado: {qty, fecha, nombre, empleado} } tomando la aprobada más reciente.
 function monInvConteos() {
   const out = {};
-  const reqs = (DB.requisiciones || []).slice().sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
+  const reqs = (DB.requisiciones || [])
+    .filter(r => r.estatus === 'Aprobada')
+    .slice().sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''));
   reqs.forEach(r => {
     let items = []; try { items = JSON.parse(r.items || '[]'); } catch { items = []; }
     items.forEach(it => {
       if (it.bien) return;                 // 'bien' = suficiente, sin número de conteo
       const k = monNorm(it.item);
-      if (!k || out[k]) return;            // reqs viene ordenado desc → conserva el más reciente
+      if (!k || out[k]) return;            // reqs viene ordenado desc → conserva la aprobada más reciente
       const q = parseFloat(it.qty);
       if (isNaN(q)) return;
       out[k] = { qty: q, fecha: r.fecha, nombre: it.item, empleado: r.nombre };
@@ -4135,7 +4138,7 @@ window.monRecontarInline = function(id) {
   const prefill = match ? match.qty : '';
   const fechaInv = match && match.fecha ? new Date(match.fecha).toLocaleDateString('es-MX', { day: '2-digit', month: 'short' }) : '';
   const hint = match
-    ? `<p class="text-[10px] text-emerald-600 mb-1 leading-snug">📋 Del inventario ${fechaInv}${match.empleado ? ' · ' + match.empleado : ''}: <b>${match.qty} ${u}</b> — ajusta si cambió</p>`
+    ? `<p class="text-[10px] text-emerald-600 mb-1 leading-snug">📋 Inventario aprobado ${fechaInv}${match.empleado ? ' · ' + match.empleado : ''}: <b>${match.qty} ${u}</b> — ajusta si cambió</p>`
     : '';
   box.innerHTML = `
     <div class="w-full pt-1">
@@ -4683,7 +4686,7 @@ function showSec(name) {
   if (name === 'inventario') { cargarUltimoInventario().then(() => invCambiarFecha()); }
   if (name === 'salidas') { initSalidas(); }
   if (name === 'pnl')     { initPnL(); }
-  if (name === 'monitor') { monRender(); }
+  if (name === 'monitor') { if (!DB.requisiciones || !DB.requisiciones.length) loadRequisicionesSupabase(); monRender(); }
   if (name === 'flujo')   { setFlujoPeriodo(DB.flujoPeriodo || 'semana'); }
   if (name === 'requisiciones') { loadRequisicionesSupabase(); renderRequisiciones('pendientes'); }
   if (name === 'productos') renderProductos();
