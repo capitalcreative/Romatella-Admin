@@ -3833,7 +3833,7 @@ function monNum(v) { const n = parseFloat(String(v).replace(',', '.')); return i
 // ── Sincronización con Supabase (para que el cron de Telegram lea la config) ──
 async function monPushRemote(insumo) {
   try {
-    await fetch('/api/supabase', {
+    const r = await fetch('/api/supabase', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ table: 'insumos_monitor', action: 'upsert', data: {
         id: insumo.id, nombre: insumo.nombre, unidad: insumo.unidad,
@@ -3841,7 +3841,13 @@ async function monPushRemote(insumo) {
         reglas: insumo.reglas
       }})
     });
-  } catch(e) { /* offline: queda en localStorage */ }
+    if (!r.ok) {
+      let detalle = ''; try { detalle = await r.text(); } catch {}
+      console.error('monPushRemote falló', r.status, detalle);
+      return { ok: false, status: r.status, detalle };
+    }
+    return { ok: true };
+  } catch(e) { /* offline: queda en localStorage */ return { ok: false, detalle: e.message }; }
 }
 async function monDeleteRemote(id) {
   try {
@@ -4594,7 +4600,7 @@ window.monArranqueAbrir = function() {
 window.monArranqueGuardar = async function() {
   const arr = monLoad();
   const ahora = new Date().toISOString();
-  let n = 0;
+  const cambiados = [];
   arr.forEach(ins => {
     const el = document.getElementById('mon-arr-' + ins.id);
     if (!el) return;
@@ -4602,12 +4608,30 @@ window.monArranqueGuardar = async function() {
     if (raw === '') return;              // vacío = no tocar este insumo
     ins.base = monNum(raw);
     ins.fecha = ahora;                   // re-ancla: el consumo arranca en 0 desde ahora
-    monPushRemote(ins);
-  n++;
+    cambiados.push(ins);
   });
-  monSave(arr);
+  monSave(arr); // guarda local de una vez
+
+  const btn = document.querySelector('#modal-mon-arranque button[onclick="monArranqueGuardar()"]');
+  if (btn) { btn.disabled = true; btn.textContent = 'Guardando…'; }
+
+  // Espera a que TODO se guarde en Supabase antes de cerrar (así persiste tras refresh)
+  const resultados = await Promise.all(cambiados.map(ins => monPushRemote(ins)));
+  const fallidos = resultados.filter(r => r && r.ok === false);
+
+  if (btn) { btn.disabled = false; btn.textContent = 'Arrancar en cero'; }
+
+  if (fallidos.length) {
+    const ej = fallidos[0];
+    alert('⚠ ' + fallidos.length + ' de ' + cambiados.length + ' no se guardaron en la base.\n\n' +
+          'Error: ' + (ej.status ? ej.status + ' ' : '') + (ej.detalle || 'sin conexión') + '\n\n' +
+          'Se guardaron localmente pero pueden revertirse al refrescar. Mándame este error para arreglarlo.');
+    monRender(false);
+    return;
+  }
+
   closeModal('modal-mon-arranque');
-  toast('✓ Monitoreo arrancado: ' + n + ' insumo' + (n===1?'':'s') + ' en cero desde hoy', 5000);
+  toast('✓ Monitoreo arrancado: ' + cambiados.length + ' insumo' + (cambiados.length===1?'':'s') + ' en cero desde hoy', 5000);
   monRender(false);
 };
 
