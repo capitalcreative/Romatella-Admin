@@ -1668,7 +1668,7 @@ body { font-family: 'Inter', sans-serif; background: #f9f9fb; }
           </button>
         </div>
       </div>
-      <div id="mon-cards" class="space-y-3"></div>
+      <div id="mon-cards" class="space-y-6"></div>
     </section>
 
     <!-- ═══════════════ FLUJO DE CAJA ═══════════════ -->
@@ -4007,73 +4007,84 @@ async function monRender(sync = true) {
     return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
   });
 
+  // Estilos de pastilla de estado (tipo "Priority" de la referencia)
+  const ESTADO = {
+    descuadre: { pill: 'bg-orange-500 text-white',      label: 'Descuadre',   num: 'text-orange-500' },
+    bajo:      { pill: 'bg-red-500 text-white',         label: 'Reabastecer', num: 'text-red-500' },
+    medio:     { pill: 'bg-amber-400 text-white',       label: 'Medio',       num: 'text-amber-500' },
+    ok:        { pill: 'bg-emerald-100 text-emerald-700', label: 'Suficiente', num: 'text-slate-900' },
+  };
+
   cont.innerHTML = '';
   gruposOrdenados.forEach(grupo => {
     const items = porGrupo[grupo].sort((a, b) => a.orden - b.orden || (a.insumo.nombre || '').localeCompare(b.insumo.nombre || ''));
     const nAlerta = items.filter(f => f.descuadre || f.bajo).length;
 
-    const bloque = document.createElement('div');
-    bloque.className = 'bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden';
-    let filasHtml = '';
+    let cardsHtml = '';
     items.forEach(f => {
       const insumo = f.insumo, u = insumo.unidad || '';
-      const color = f.descuadre ? 'amber' : f.bajo ? 'red' : f.medio ? 'amber' : 'emerald';
-      const dot = f.descuadre ? 'bg-amber-500' : f.bajo ? 'bg-red-500' : f.medio ? 'bg-amber-400' : 'bg-emerald-500';
-      const chip = f.descuadre
-        ? '<span class="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded-full shrink-0">Descuadre</span>'
-        : f.bajo ? '<span class="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded-full shrink-0">Bajo</span>' : '';
+      const key = f.descuadre ? 'descuadre' : f.bajo ? 'bajo' : f.medio ? 'medio' : 'ok';
+      const e = ESTADO[key];
       const fechaTxt = insumo.fecha ? new Date((insumo.fecha||'').slice(0,10) + 'T12:00:00').toLocaleDateString('es-MX',{day:'2-digit',month:'short'}) : '—';
 
-      // merma compacta
+      // merma (última) como texto claro
       const uc = ultCierrePorInsumo[insumo.id];
-      let mermaTxt = '<span class="text-slate-300">merma —</span>';
+      let mermaTxt = '<span class="text-slate-300">Sin cierres</span>';
       if (uc) {
         const mv = parseFloat(uc.merma) || 0;
         const fuga = mv > 0.001, sob = mv < -0.001;
-        const mcol = fuga ? 'red' : sob ? 'amber' : 'emerald';
+        const mcol = fuga ? 'text-red-500' : sob ? 'text-amber-500' : 'text-emerald-600';
         const pesos = (parseFloat(uc.costo_unit) || 0) > 0
           ? ' ' + (fuga ? '−' : sob ? '+' : '') + '$' + Math.abs(parseFloat(uc.merma_pesos) || 0).toLocaleString('es-MX', { maximumFractionDigits: 0 })
           : '';
-        mermaTxt = `<span class="text-${mcol}-600 font-semibold">${fuga ? '▼' : sob ? '▲' : '✓'}${Math.abs(mv)}${pesos}</span> <span class="text-slate-300">${fechaTxt}</span>`;
+        mermaTxt = `<span class="${mcol} font-semibold">${fuga ? '▼' : sob ? '▲' : '✓'}${Math.abs(mv)}${pesos}</span>`;
       }
 
-      // línea secundaria: descuadre o stats
-      const meta = f.descuadre
-        ? `<span class="text-amber-600 font-medium">⚠ vendiste ${f.consumido}, hay ${f.base} — falta compra</span>`
-        : `vend <b class="text-slate-600">${f.consumido}</b> · alerta ${f.umbral} · ${mermaTxt}`;
+      // Bloque central: número héroe, o aviso de descuadre
+      const centro = f.descuadre
+        ? `<div class="rounded-xl bg-orange-50 px-3 py-2.5 mb-3">
+             <p class="text-sm font-bold text-orange-700 leading-snug">Vendiste ${f.consumido}, solo hay ${f.base}</p>
+             <p class="text-xs text-orange-500 mt-0.5">Falta registrar una compra</p>
+           </div>`
+        : `<div class="mb-3">
+             <div class="flex items-baseline gap-1.5">
+               <span class="text-4xl font-bold ${e.num} leading-none">${f.est}</span>
+               <span class="text-sm text-slate-400 font-medium">${u}</span>
+             </div>
+             <p class="text-[11px] uppercase tracking-wide text-slate-400 mt-1.5">Debería haber</p>
+           </div>`;
 
-      filasHtml += `
-        <div class="border-b border-slate-50 last:border-0">
-          <div class="flex items-center gap-2.5 px-3.5 py-2.5">
-            <span class="w-2 h-2 rounded-full ${dot} shrink-0"></span>
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-1.5">
-                <span class="font-semibold text-slate-800 text-sm truncate">${insumo.nombre || '—'}</span>
-                ${chip}
-              </div>
-              <div class="text-[11px] text-slate-400 truncate">${meta}</div>
+      cardsHtml += `
+        <div class="bg-white rounded-3xl shadow-sm p-4 flex flex-col">
+          <div class="flex items-start justify-between gap-2 mb-3">
+            <div class="min-w-0">
+              <p class="font-bold text-slate-900 text-lg leading-tight truncate">${insumo.nombre || '—'}</p>
+              <p class="text-xs text-slate-400 mt-0.5">base ${f.base} · vendido ${f.consumido} ${u}</p>
             </div>
-            <div class="text-right shrink-0 w-14">
-              <div class="text-lg font-bold text-${color}-600 leading-none">${f.descuadre ? 0 : f.est}</div>
-              <div class="text-[9px] uppercase tracking-wide text-slate-300">${u}</div>
-            </div>
-            <div class="flex items-center gap-1 shrink-0">
-              <button type="button" title="Entrada de porciones" onclick="monEntradaInline('${insumo.id}')" class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 hover:bg-emerald-100 flex items-center justify-center"><span class="ms text-base">add</span></button>
-              <button type="button" title="Recontar (conteo físico)" onclick="monRecontarInline('${insumo.id}')" class="w-8 h-8 rounded-lg bg-blue-50 text-primary hover:bg-blue-100 flex items-center justify-center"><span class="ms text-base">inventory</span></button>
-              <button type="button" title="Editar" onclick="monAbrirEditar('${insumo.id}')" class="w-8 h-8 rounded-lg text-slate-300 hover:text-slate-600 hover:bg-slate-50 flex items-center justify-center"><span class="ms text-base">edit</span></button>
+            <button type="button" title="Editar" onclick="monAbrirEditar('${insumo.id}')" class="w-8 h-8 rounded-full hover:bg-slate-100 text-slate-300 hover:text-slate-600 flex items-center justify-center shrink-0"><span class="ms text-lg">edit</span></button>
+          </div>
+          ${centro}
+          <div class="flex items-center justify-between gap-2 mb-3">
+            <span class="text-xs font-bold px-3 py-1 rounded-full ${e.pill}">${e.label}</span>
+            <span class="text-xs text-slate-500">Merma ${fechaTxt}: ${mermaTxt}</span>
+          </div>
+          <div id="mon-inline-${insumo.id}" class="mt-auto">
+            <div class="flex gap-2">
+              <button type="button" onclick="monEntradaInline('${insumo.id}')" class="flex-1 text-sm font-semibold text-emerald-700 bg-emerald-50 rounded-xl py-2.5 hover:bg-emerald-100 flex items-center justify-center gap-1.5"><span class="ms text-base">add</span>Entrada</button>
+              <button type="button" onclick="monRecontarInline('${insumo.id}')" class="flex-1 text-sm font-semibold text-primary bg-blue-50 rounded-xl py-2.5 hover:bg-blue-100 flex items-center justify-center gap-1.5"><span class="ms text-base">inventory</span>Recontar</button>
             </div>
           </div>
-          <div id="mon-inline-${insumo.id}"></div>
         </div>`;
     });
 
-    bloque.innerHTML = `
-      <div class="flex items-center justify-between px-3.5 py-2 bg-slate-50 border-b border-slate-100">
-        <span class="text-xs font-bold text-slate-600 uppercase tracking-wide">${grupo}</span>
-        <span class="text-[11px] text-slate-400">${items.length} insumo${items.length === 1 ? '' : 's'}${nAlerta ? ' · <span class="text-red-500 font-semibold">' + nAlerta + ' en alerta</span>' : ''}</span>
+    const section = document.createElement('div');
+    section.innerHTML = `
+      <div class="flex items-end justify-between mb-3 px-1">
+        <h3 class="text-xl font-bold text-slate-900">${grupo}</h3>
+        <span class="text-xs text-slate-400 pb-0.5">${items.length} insumo${items.length === 1 ? '' : 's'}${nAlerta ? ' · <span class="text-orange-500 font-bold">' + nAlerta + ' en alerta</span>' : ''}</span>
       </div>
-      ${filasHtml}`;
-    cont.appendChild(bloque);
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${cardsHtml}</div>`;
+    cont.appendChild(section);
   });
   monUpdateBadge(enAlerta);
 }
@@ -4127,7 +4138,7 @@ window.monRecontarInline = function(id) {
     ? `<p class="text-[10px] text-emerald-600 mb-1 leading-snug">📋 Del inventario ${fechaInv}${match.empleado ? ' · ' + match.empleado : ''}: <b>${match.qty} ${u}</b> — ajusta si cambió</p>`
     : '';
   box.innerHTML = `
-    <div class="w-full px-3.5 pb-2.5">
+    <div class="w-full pt-1">
       ${hint}
       <div class="flex items-center gap-1.5 w-full">
         <input id="mon-rc-${id}" type="text" inputmode="decimal" value="${prefill}" placeholder="Conteo físico (${u})"
@@ -4146,7 +4157,7 @@ window.monRecontarConfirm = async function(id) {
   const box = document.getElementById('mon-inline-' + id);
   if (!inp || !box) return;
   const contado = monNum(inp.value);
-  box.innerHTML = '<div class="text-center text-xs text-slate-400 px-3.5 py-2"><span class="ms animate-spin align-middle text-sm">progress_activity</span> Calculando…</div>';
+  box.innerHTML = '<div class="text-center text-xs text-slate-400 py-2.5"><span class="ms animate-spin align-middle text-sm">progress_activity</span> Calculando…</div>';
   const c = await monAplicarConteo(id, contado);
   if (!c) { monRender(false); return; }
   const fuga = c.merma > 0.001, sob = c.merma < -0.001;
@@ -4156,11 +4167,9 @@ window.monRecontarConfirm = async function(id) {
     ? ' · ' + (fuga ? '−' : sob ? '+' : '') + '$' + Math.abs(c.merma_pesos).toLocaleString('es-MX', { maximumFractionDigits: 0 })
     : '';
   box.innerHTML = `
-    <div class="px-3.5 pb-2.5">
-      <div class="rounded-lg border border-${col}-200 bg-${col}-50 px-2.5 py-2 flex items-center justify-between gap-2">
-        <span class="text-xs font-semibold text-${col}-700">${fuga ? '⚠ Merma' : sob ? 'Sobrante' : '✓ Cuadró'} ${fuga ? '−' : sob ? '+' : ''}${Math.abs(c.merma)} ${u}${pesos}</span>
-        <button type="button" onclick="monRender(false)" class="text-xs font-bold text-${col}-600 shrink-0">Listo</button>
-      </div>
+    <div class="rounded-xl border border-${col}-200 bg-${col}-50 px-3 py-2.5 flex items-center justify-between gap-2">
+      <span class="text-sm font-semibold text-${col}-700">${fuga ? '⚠ Merma' : sob ? 'Sobrante' : '✓ Cuadró'} ${fuga ? '−' : sob ? '+' : ''}${Math.abs(c.merma)} ${u}${pesos}</span>
+      <button type="button" onclick="monRender(false)" class="text-xs font-bold text-${col}-600 shrink-0">Listo</button>
     </div>`;
 };
 
@@ -4172,7 +4181,7 @@ window.monEntradaInline = function(id) {
   const ins = monLoad().find(x => x.id === id);
   const u = ins ? (ins.unidad || '') : '';
   box.innerHTML = `
-    <div class="flex items-center gap-1.5 w-full px-3.5 pb-2.5">
+    <div class="flex items-center gap-1.5 w-full pt-1">
       <input id="mon-en-${id}" type="text" inputmode="decimal" placeholder="Entrada: ¿cuántas ${u} entraron?"
         class="flex-1 min-w-0 text-center text-sm font-bold border-2 border-emerald-300 rounded-lg px-2 py-1.5 outline-none focus:border-emerald-500"/>
       <button type="button" onclick="monEntradaConfirm('${id}')" class="w-9 h-9 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0"><span class="ms text-base">check</span></button>
